@@ -1,0 +1,295 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\id}{id}
+
+\title{\bfseries Proof of the Exact Recovery Threshold for Multi-View Gaussian Planted Matching}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: R.~Wang and J.~Hu,\\
+\emph{Shared information governs multi-view planted matching},\\
+\href{https://arxiv.org/abs/2611.32892}{arXiv:2611.32892}, Conjecture~\texttt{conj:c1prime}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We prove Conjecture~\texttt{conj:c1prime} of Wang and Hu (\href{https://arxiv.org/abs/2611.32892}{arXiv:2611.32892}) for every fixed number of views $K \ge 2$ and every fixed positive-definite Gaussian coordinate covariance $R \succ 0$.
+Combined with the converse established by Wang and Hu, this settles the exact-recovery threshold $d L(R) / \log n = 1$, where $L(R) = \min\{I_*/2,\, \min_{|\mathcal{P}| \ge 3} R_{\mathcal{P}}\}$.
+Our achievability proof introduces an admissibility filter checking the empirical uncentered second-moment KL divergence on all subsets of at most $M$ proposed rows: (1)~the planted alignment is admissible with probability $1 - o(1)$ by a finite-dimensional Cram\'er large-deviation bound; (2)~a deterministic graph-theoretic argument combining greedy weight activation, sequential cell merging with data processing, a strict Hall prefix inequality, Abel summation, and two-sided cancellation forces every connected component of two admissible alignments to have bounded size $m \le H$; and (3)~a Gaussian swap affinity bound eliminates all bounded-component competitors, after which Bayes optimality transfers exact recovery to ordinary unconstrained maximum likelihood.
+\end{abstract}
+
+\section{Model, Rate Functional, and Main Result}
+
+Consider $n$ independent objects, each with $d$ i.i.d.\ coordinate observations drawn from $p = \mathcal{N}(0, R)$ on $K \ge 2$ scalar views, where $R \in \mathbb{R}^{K \times K}$ is fixed and positive definite ($R \succ 0$).
+Each view $a \in [K]$ permutes the $n$ objects independently and uniformly.
+Anchoring view~$1$ ($\pi_1 = \id$) leaves $K - 1$ independent uniform relative permutations $(\pi_2, \dots, \pi_K)$.
+Exact recovery means reconstructing all $K - 1$ permutations with zero errors. All logarithms are natural.
+
+Let $I_* := \min_{\varnothing \neq S \subsetneq [K]} I_p(X^S; X^{S^c})$ be the minimum cut mutual information under $p$.
+For a probability distribution $G$ on $\mathbb{R}^K$ and a partition $\mathcal{P}$ of $[K]$ into $q = |\mathcal{P}| \ge 2$ nonempty blocks, write $T_{\mathcal{P}}(G) := D(G \| \bigotimes_{B \in \mathcal{P}} G_B)$ for its multi-information and define
+\[
+R_{\mathcal{P}} := \inf_G \left[ D(G \| p) + \frac{T_{\mathcal{P}}(G)}{q - 1} \right]
+= \frac{1}{q - 1} \inf_{\nu = \bigotimes_{B \in \mathcal{P}} \nu_B} D_{(q-1)/q}(p \| \nu),
+\]
+where the second equality is the variational identity of \href{https://arxiv.org/abs/2611.32892}{arXiv:2611.32892}.
+Set
+\[
+L(R) := \min\left\{\frac{I_*}{2},\ \min_{|\mathcal{P}| \ge 3} R_{\mathcal{P}}\right\}
+\]
+(with the empty minimum equal to $+\infty$ when $K = 2$).
+
+\begin{theorem}[Resolution of Conjecture~\texttt{conj:c1prime}]\label{thm:main}
+Fix $K \ge 2$ and $R \succ 0$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{(Achievability)} If $\liminf_{n \to \infty} d L(R) / \log n > 1$, then ordinary joint maximum likelihood recovers all $K - 1$ relative permutations exactly with probability $1 - o(1)$.
+\item \emph{(Converse, Wang--Hu)} If $\limsup_{n \to \infty} d L(R) / \log n < 1$, then every estimator has exact-recovery probability tending to $0$.
+\end{enumerate}
+\end{theorem}
+
+We begin with a uniform partition inequality covering both $q = 2$ and $q \ge 3$ (crucial when cell mergers coarsen a partition down to two blocks).
+
+\begin{lemma}[Universal partition inequality]\label{lem:part-ineq}
+For every partition $\mathcal{P}$ of $[K]$ with $q = |\mathcal{P}| \ge 2$ and every nonsingular centered Gaussian law $G$ on $\mathbb{R}^K$,
+\begin{equation}\label{eq:part-ineq}
+T_{\mathcal{P}}(G) \ge (q - 1)\bigl[L(R) - D(G \| p)\bigr].
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For $q \ge 3$, $R_{\mathcal{P}} \ge L(R)$ by definition, so $D(G\|p) + T_{\mathcal{P}}(G)/(q-1) \ge R_{\mathcal{P}} \ge L(R)$.
+For $q = 2$, let $\mathcal{P} = \{S, S^c\}$ and view $Z := \sqrt{p}$ as a Hilbert--Schmidt kernel across $S \mid S^c$.
+By the two-block affinity formula, $R_{\mathcal{P}} = -\log \|Z\|_{\mathrm{op}}^2$.
+Moreover, $\|Z\|_{\mathrm{op}}^4 \le \tr[(Z^* Z)^2] = e^{-I_p(X^S; X^{S^c})}$, where the final equality is the Gaussian two-row swap identity derived in~\eqref{eq:swap-id} below.
+Thus $R_{\mathcal{P}} \ge I_p(X^S; X^{S^c})/2 \ge I_*/2 \ge L(R)$, establishing~\eqref{eq:part-ineq} for all $q \ge 2$.
+\end{proof}
+
+\section{Achievability Proof}
+
+Assume $\liminf_{n \to \infty} d L(R)/\log n > 1$, so $L := L(R) > 0$.
+Choose a constant $c$ satisfying
+\[
+\limsup_{n \to \infty} \frac{\log n}{d} < c < L, \qquad \eta := L - c > 0.
+\]
+Fix an integer $T > 2 + 2c/\eta$, and set the constants $H := 1 + KT$ and $M := KH$.
+
+\subsection{Step 1: Empirical Second-Moment Admissibility}
+
+For any candidate alignment and any subset $U$ of $1 \le s \le M$ proposed rows (in a fixed order), stack their $K$ views at each coordinate to obtain vectors $y_1, \dots, y_d \in \mathbb{R}^{sK}$, and let $\widehat{\Sigma}_U := \frac{1}{d}\sum_{\ell=1}^d y_\ell y_\ell^\top$ be the \emph{uncentered} sample second-moment matrix.
+When $\widehat{\Sigma}_U \succ 0$, let $G_U := \mathcal{N}(0, \widehat{\Sigma}_U)$.
+Restricting to any subcollection of variables commutes with this construction, since it extracts the corresponding principal submatrix of $\widehat{\Sigma}_U$.
+Call a candidate alignment \emph{admissible} if for every set $U$ of $1 \le s \le M$ rows, $\widehat{\Sigma}_U \succ 0$ and
+\begin{equation}\label{eq:admissible}
+D(G_U \| p^{\otimes s}) \le s c.
+\end{equation}
+
+\begin{lemma}[Cram\'er LDP admissibility of the truth]\label{lem:cramer}
+With probability tending to $1$ as $n \to \infty$, the planted alignment is admissible.
+\end{lemma}
+
+\begin{proof}
+Eventually $d \ge KM$.
+Fix $1 \le s \le M$ and put $h := sK$.
+For a fixed set $U$ of $s$ true rows, whitening each stacked vector by $(I_s \otimes R)^{-1/2}$ produces $z_1, \dots, z_d \stackrel{\text{i.i.d.}}{\sim} \mathcal{N}(0, I_h)$ whose empirical second moment $V := \frac{1}{d}\sum_{\ell=1}^d z_\ell z_\ell^\top$ satisfies
+\[
+D(G_U \| p^{\otimes s}) = I(V) := \tfrac{1}{2}\bigl(\tr V - \log\det V - h\bigr)
+\]
+for $V \succ 0$, and we extend $I(V) := +\infty$ on singular $V \succeq 0$.
+Apply finite-dimensional Cram\'er's theorem in the space of symmetric $h \times h$ matrices to the i.i.d.\ outer products $z_\ell z_\ell^\top$.
+Their log moment generating function against a symmetric matrix $A$ is
+\[
+\Lambda(A) = \log \mathbb{E}\bigl[e^{\tr(A z z^\top)}\bigr] = -\tfrac{1}{2}\log\det(I_h - 2A)
+\]
+when $I_h - 2A \succ 0$, and $+\infty$ otherwise.
+At any $V \succ 0$, the Fenchel--Legendre conjugate $\Lambda^*(V) = \sup_A \{\tr(AV) - \Lambda(A)\}$ is attained uniquely at $2A = I_h - V^{-1}$, giving $\Lambda^*(V) = I(V)$.
+If $V \succeq 0$ is singular with unit null vector $u$, testing $A = -t u u^\top$ as $t \to +\infty$ gives $\Lambda^*(V) = +\infty$.
+Hence $\{V \succeq 0 : I(V) \ge sc\}$ is closed in the positive semidefinite cone and has infimal rate $sc$, so $\mathbb{P}(I(V) \ge sc) \le \exp(-d(sc - o(1)))$.
+Union bounding over $\binom{n}{s} \le n^s$ subsets and $s = 1, \dots, M$ bounds the probability of inadmissibility by
+\[
+\sum_{s=1}^M \exp\!\left(-sd\Bigl(c - \frac{\log n}{d} - o(1)\Bigr)\right) \longrightarrow 0. \qedhere
+\]
+\end{proof}
+
+\subsection{Step 2: Deterministic Component-Size Cap}
+
+\begin{lemma}[Deterministic component bound]\label{lem:component}
+Superimpose any two admissible alignments $\pi^{(1)}, \pi^{(2)}$ on the same data into a bipartite multigraph whose left vertices are the rows of $\pi^{(1)}$, whose right vertices are the rows of $\pi^{(2)}$, and whose edges are the $nK$ observed view-rows joining their left and right owners.
+Then every connected component has at most $H = 1 + KT$ vertices on each side.
+\end{lemma}
+
+\begin{proof}
+Each vertex has degree $K$ (counting multiplicity), and each view $a \in [K]$ forms a perfect matching, so each connected component has equal left and right sizes $m$.
+For every row vertex $v$ on either side, define
+\[
+D_v := D(G_v \| p), \qquad b_v := c - D_v \in [0, c],
+\]
+using~\eqref{eq:admissible} for $s = 1$.
+For any collection of physical view-rows, the empirical second-moment law depends only on the variables, not on which alignment supplies them.
+
+Suppose for contradiction that some connected component has $m > H$.
+Activate its $2m$ vertices in decreasing order of $b_v$ (breaking ties arbitrarily), stopping when some connected component $C$ of the active induced subgraph first reaches $|C| \ge T$.
+Since the final activated vertex has degree $K$, it joins at most $K$ earlier active components of size $\le T - 1$, giving
+\[
+T \le |C| \le 1 + K(T - 1) \le H.
+\]
+Let $A$ and $B$ denote the left and right vertex sets of $C$, and let $\lambda \in [0, c]$ be the weight of the last activated vertex.
+Both $A$ and $B$ are nonempty (as $T \ge 2$ and the graph is bipartite).
+Every vertex in $C$ has weight at least $\lambda$, and every neighbor of $C$ outside $C$ is inactive and has weight at most $\lambda$.
+Let $N(B)$ be the full left neighborhood of $B$ in the component, with $s := |N(B)| \le K|B| \le KH = M$.
+Then $A \subseteq N(B)$, and viewing $B$ as hyperedges on $N(B)$ connects $N(B)$ since $C$ is connected.
+
+By~\eqref{eq:admissible} applied to the $s \le M$ left rows $N(B)$, the total correlation under $G_{N(B)}$ obeys
+\begin{equation}\label{eq:tc-upper}
+\mathcal{T} := D\!\left(G_{N(B)} \,\middle\|\, \bigotimes_{u \in N(B)} G_u\right)
+= D(G_{N(B)} \| p^{\otimes s}) - \sum_{u \in N(B)} D_u
+\le \sum_{u \in N(B)} b_u.
+\end{equation}
+Initialize $s$ singleton cells $\{\{u\} : u \in N(B)\}$ and process the vertices $v \in B$ in decreasing order of $b_v$.
+At vertex $v$, merge all current cells containing neighbors of $v$, and let $k_v \ge 0$ be the decrease in the number of cells (so $k_v + 1$ cells merge into one).
+Because $B$ connects $N(B)$, the final state is a single cell $N(B)$ and $\sum_{v \in B} k_v = s - 1$.
+Telescoping the differential entropies of the intermediate cells expresses $\mathcal{T}$ as the sum over $v \in B$ of the total correlation among the $k_v + 1$ full-row cells merged at $v$.
+Projecting each merging cell onto the subset of views it supplies to $v$ yields a partition $\mathcal{P}_v$ of $[K]$ into $k_v + 1$ blocks.
+By data processing and Lemma~\ref{lem:part-ineq} (and trivially $0 = 0$ when $k_v = 0$), the merger at $v$ contributes at least $T_{\mathcal{P}_v}(G_v) \ge k_v(L - D_v) = k_v(b_v + \eta)$.
+Summing over $v \in B$ gives
+\begin{equation}\label{eq:tc-lower}
+\mathcal{T} \ge \sum_{v \in B} k_v(b_v + \eta), \qquad \sum_{v \in B} k_v = s - 1.
+\end{equation}
+
+\emph{Strict Hall prefix inequality.}
+For any nonempty prefix $F \subseteq B$ of the processing order, the cells after processing $F$ are the $j(F)$ connected components of the incidence graph on $F \cup N(F)$, so $\sum_{v \in F} k_v = |N(F)| - j(F)$.
+For any nonempty proper subset $E$ of right vertices of the $m$-by-$m$ connected component, its $K|E|$ incident edges enter $N(E)$, which has $K|N(E)|$ edge slots; equality $|N(E)| = |E|$ would fill all slots and disconnect $E \cup N(E)$ from the remainder.
+Hence $|N(E)| \ge |E| + 1$.
+Since $|B| \le H < m$, each of the $j(F)$ connected components of $F \cup N(F)$ has a nonempty proper right vertex set $E_r$, giving $|N(E_r)| \ge |E_r| + 1$.
+Summing over $r = 1, \dots, j(F)$ yields
+\begin{equation}\label{eq:hall}
+\sum_{v \in F} k_v = |N(F)| - j(F) \ge |F|
+\qquad (\forall\text{ prefix } F \subseteq B).
+\end{equation}
+
+\emph{Abel summation and two-sided cancellation.}
+Writing $b_v = \lambda + \int_\lambda^\infty \mathbf{1}_{b_v > t}\,dt$ for $v \in B$ and applying~\eqref{eq:hall} to each threshold prefix $F_t := \{v \in B : b_v > t\}$ in~\eqref{eq:tc-lower} gives
+\begin{equation}\label{eq:abel}
+\mathcal{T}
+\ge (s - 1)(\lambda + \eta) + \int_\lambda^\infty \sum_{v \in F_t} k_v\,dt
+\ge (s - 1)(\lambda + \eta) + \sum_{v \in B} (b_v - \lambda).
+\end{equation}
+Since every $u \in N(B) \setminus A$ has $b_u \le \lambda$, the right-hand side of~\eqref{eq:tc-upper} is at most $s\lambda + \sum_{u \in A}(b_u - \lambda)$.
+Comparing~\eqref{eq:tc-upper} and~\eqref{eq:abel} gives
+\[
+(s - 1)\eta \le \lambda + \sum_{u \in A}(b_u - \lambda) - \sum_{v \in B}(b_v - \lambda).
+\]
+Repeating the identical argument from the right alignment (also admissible), with $r := |N(A)| \le M$, exchanges $A$ and $B$ and flips the signs of both sums.
+Adding the two inequalities cancels the sums completely:
+\[
+(s + r - 2)\eta \le 2\lambda \le 2c.
+\]
+However, $s + r = |N(B)| + |N(A)| \ge |A| + |B| = |C| \ge T > 2 + 2c/\eta$, a contradiction.
+Thus $m \le H$.
+\end{proof}
+
+\subsection{Step 3: Bounded-Component Gaussian Swap Bound and Bayes Transfer}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}\textup{(1)}]
+Let $\widehat{\pi}_{\mathrm{adm}}$ maximize the joint likelihood over admissible alignments (with an arbitrary fallback if none exist).
+On the event that the planted alignment $\pi^*$ is admissible (probability $1 - o(1)$ by Lemma~\ref{lem:cramer}), an error $\widehat{\pi}_{\mathrm{adm}} \neq \pi^*$ implies some admissible $\pi \neq \pi^*$ with likelihood ratio $\ge 1$.
+Since the likelihood ratio factors across connected components of the superposition multigraph of $(\pi^*, \pi)$, at least one nontrivial component ($m \ge 2$) has likelihood ratio $\ge 1$, and Lemma~\ref{lem:component} guarantees $2 \le m \le H$.
+Keeping only this component produces an alternative $\tilde{\pi}$ differing from $\pi^*$ on $m \in \{2, \dots, H\}$ rows with likelihood ratio $\ge 1$.
+
+Fix one such alternative on $m$ moved rows; relabel so $\pi^* = \id$ and the moved rows are $1, \dots, m$, with candidate row $i$ given by $y_i = (x_{\pi_a(i), a})_{a=1}^K$ ($\pi_1 = \id$).
+For each $i \in [m]$, let $S_i := \{a \in [K] : \pi_a(i) = i\}$; since view~$1$ is anchored and row $i$ moves, $\varnothing \neq S_i \subsetneq [K]$.
+For a single coordinate ($d = 1$), consider the midpoint affinity
+\[
+\rho(\tilde{\pi}) := \int \prod_{i=1}^m \sqrt{p(x_i)\,p(y_i)}\,dx.
+\]
+Integrating out the unchanged variables $x_{i, S_i}$ inside row $i$ leaves the positive semidefinite kernel $H_i := Z_i^* Z_i$ on the $S_i^c$ variables, where $Z_i(x_{S_i}, x_{S_i^c}) := \sqrt{p(x_{S_i}, x_{S_i^c})}$.
+Each remaining variable $x_{i, a}$ ($a \notin S_i$) belongs to exactly two distinct kernels ($H_i$ and $H_{\pi_a^{-1}(i)}$).
+Integrating out the remaining variables one by one via Cauchy--Schwarz bounds $\rho(\tilde{\pi}) \le \prod_{i=1}^m \|H_i\|_2$, where $\|H_i\|_2 = (\tr(H_i^2))^{1/2}$.
+
+Now $\|H_i\|_2^2 = \tr[(Z_i^* Z_i)^2]$ is the two-row swap affinity across $S_i \mid S_i^c$: the $t = 1/2$ affinity between $(X_1, X_2) \sim \mathcal{N}(0, R \oplus R)$ and the law obtained by swapping $S_i^c$ between the two rows.
+Transforming to normalized sums and differences $(X_1 \pm X_2)/\sqrt{2}$, the sum covariance is $R$ under both laws, while in the difference covariance swapping $S_i^c$ negates the cross-block $R_{S_i, S_i^c}$.
+The average of the two difference covariances is therefore $R_{S_i S_i} \oplus R_{S_i^c S_i^c}$, so the Gaussian affinity formula yields
+\begin{equation}\label{eq:swap-id}
+-\log \|H_i\|_2^2
+= \frac{1}{2}\log \frac{\det(R_{S_i S_i})\det(R_{S_i^c S_i^c})}{\det R}
+= I_p(X^{S_i}; X^{S_i^c}) \ge I_*.
+\end{equation}
+Consequently $\rho(\tilde{\pi}) \le e^{-m I_*/2}$.
+Over $d$ i.i.d.\ coordinates, Markov's inequality on the square-root likelihood ratio yields
+\[
+\mathbb{P}\!\left(\frac{\mathcal{L}(\tilde{\pi})}{\mathcal{L}(\pi^*)} \ge 1\right)
+\le \rho(\tilde{\pi})^d
+\le e^{-dm I_*/2}
+\le e^{-dm L}.
+\]
+Since there are at most $\binom{n}{m}(m!)^{K-1} \le n^m (m!)^{K-1}$ alternatives on $m$ rows and $H$ is constant with $dL - \log n \ge \eta d$, a union bound gives
+\[
+\mathbb{P}(\widehat{\pi}_{\mathrm{adm}} \neq \pi^*)
+\le \mathbb{P}(\pi^* \text{ inadmissible})
++ \sum_{m=2}^H (m!)^{K-1} e^{-m(dL - \log n)}
+\longrightarrow 0.
+\]
+Finally, because the prior over all $(n!)^{K-1}$ alignments is uniform, ordinary unconstrained joint maximum likelihood maximizes the probability of exact recovery among all decoders, so $\mathbb{P}(\widehat{\pi}_{\mathrm{ML}} = \pi^*) \ge \mathbb{P}(\widehat{\pi}_{\mathrm{adm}} = \pi^*) \to 1$.
+\end{proof}
+
+\section{Converse (Wang and Hu)}
+
+For completeness, we recall the strong converse established by Wang and Hu (\href{https://arxiv.org/abs/2611.32892}{arXiv:2611.32892}) when the dimension lies strictly below threshold, $\limsup_{n \to \infty} d L(R)/\log n < 1$:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Two-block regime ($d I_* \le (2 - \epsilon)\log n$):} Revealing all within-side correspondences across a minimizing cut reduces to aligning two Gaussian databases with total mutual information $I = d I_*$. For $I > 0$, a transposition strictly improves the likelihood with probability at least $\frac{3}{8}e^{-I-\sqrt{8I}}$, while two overlapping transpositions both improve it with probability at most $e^{-3I/2}$. Since disjoint swaps are independent, the winning-swap count $W$ has $\Var(W)/(\mathbb{E}W)^2 = O(n^{-2}e^{I+O(\sqrt{I})} + n^{-1}e^{I/2+O(\sqrt{I})}) = o(1)$, forcing exact recovery probability to $0$ (at $I = 0$ the remaining permutation is independent of the data).
+\item \emph{Multi-block regime ($d R_{\mathcal{P}} \le (1 - \epsilon)\log n$ for some $|\mathcal{P}| = q \ge 3$):} Take an optimizing tilt $Q$ with $D = D(Q\|p)$, $V = \bigotimes_{B \in \mathcal{P}} Q_B$, $T' = D(Q\|V)$, and $R_{\mathcal{P}} = D + T'/(q-1)$. Restrict to the $Q^{\otimes d}$-typical event (log density ratios against $p^{\otimes d}, V^{\otimes d}$ at most $d(D+u), d(T'+u)$) and mark each row with probability $e^{-d(D+u)} dQ^{\otimes d}/dp^{\otimes d}$. With high probability the marked count $m$ obeys $\log m = \log n - d(D+u) + O(1)$ and grows polynomially. Revealing the marked positions, unmarked correspondences, and within-block maps leaves $q - 1$ uniform bijections on $m$ items. Under $V^{\otimes d}$ exact guessing has probability $(m!)^{-(q-1)}$, and changing measure to $Q^{\otimes d}$ costs at most $\exp(m(d(T'+u)+o(1)))$, yielding log success bound $m[(q-1)(dR_{\mathcal{P}} - \log n) + qdu + O(1)] \to -\infty$ for small $u > 0$ (revealing up to $\lfloor\sqrt{\log n}\rfloor$ extra coordinates if needed when $R_{\mathcal{P}} > 0$; at $R_{\mathcal{P}} = 0$ the views factor across $\mathcal{P}$).
+\end{itemize}
+
+\section{Numerical Verification}
+
+The verification script \texttt{solutions/multiview\_planted\_align/explore.py} (run with single-threaded BLAS via \texttt{OPENBLAS\_NUM\_THREADS=1} \texttt{VECLIB\_MAXIMUM\_THREADS=1} \texttt{.venv/bin/python -B}) passes all assertions with default seed \texttt{261132892} and \texttt{--max-support 4}:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Chernoff census:} 15,212 simultaneous-conjugacy classes representing 341,638 labeled full-support alternatives ($K \in \{3, 4, 5\}$, $m \in \{2, 3, 4\}$) evaluated on 6 laws per $K$ (91,272 Chernoff/midpoint calculations plus 18 fully split cyclic checks). Every model's minimum Chernoff exponent per moved row matched $I_*/2$ within $10^{-9}$ (largest shift $|t^* - 1/2| = 0.01029218$ at $K = 5$).
+\item \emph{Partition rates:} All 414 nontrivial partition-rate fixed points matched the KL variational objective within $10^{-8}$. For $K = 3$ ($r = -1/3$), $L = 0.098353188$ vs.\ $I_*/2 = 0.101366277$; for $K = 4$ ($r = -1/4$), $L = 0.101510479$ vs.\ $I_*/2 = 0.117500907$ ($1/L \in (9.8511971, 9.8512024)$).
+\item \emph{Lemma~\ref{lem:component} checks:} 5,728 deduplicated proper subsets of small connected incidence graphs satisfied~\eqref{eq:hall}, and 3,000 seeded weighted graphs ($m = 90$ per side) passed~\eqref{eq:abel} and the two-sided contradiction.
+\item \emph{Exact joint ML simulations} (80 trials per $d \approx 0.6, 1.0, 1.4 \times \log n / L$, nested coordinates; exhaustive ML on dense models and exact edge assignments on tridiagonal-precision chains):
+\end{itemize}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}rlrll@{}}
+\toprule
+$K$ & Coordinate law & $n$ & Dimensions $d$ & Exact ML successes (of 80) \\
+\midrule
+3 & Negative equicorrelation & 6   & 11, 18, 26  & 28, 63, 75 \\
+3 & Random 1                 & 6   & 51, 84, 118 & 53, 74, 79 \\
+3 & Chain                    & 128 & 25, 42, 58  & 0, 75, 80  \\
+4 & Negative equicorrelation & 4   & 8, 14, 19   & 37, 67, 80 \\
+4 & Random 1                 & 4   & 12, 20, 27  & 60, 77, 79 \\
+4 & Chain                    & 128 & 37, 62, 86  & 2, 79, 80  \\
+5 & Negative equicorrelation & 4   & 8, 14, 20   & 22, 63, 77 \\
+5 & Random 1                 & 4   & 5, 9, 12    & 48, 74, 79 \\
+5 & Chain                    & 128 & 57, 95, 133 & 3, 75, 80  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

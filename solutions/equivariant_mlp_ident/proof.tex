@@ -1,0 +1,184 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\GL}{GL}
+\DeclareMathOperator{\GELU}{GELU}
+\DeclareMathOperator{\ReLU}{ReLU}
+\DeclareMathOperator{\BV}{BV}
+
+\title{\bfseries Resolution of the Biased-MLP Weak Identifiability Conjecture}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: V.~Shahverdi, G.~L.~Marchetti, G.~B\"okman, and K.~Kohn,\\
+\emph{Identifiable Equivariant Networks are Layerwise Equivariant},\\
+\href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645} (ICML 2026 camera-ready), Section~5.1, Conjecture~1 (\texttt{conj:main})\\[0.35em]
+Companion verification script: \texttt{solutions/equivariant\_mlp\_ident/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve Conjecture~1 (\texttt{conj:main}) of Shahverdi et~al.\ (\href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645}, Section~5.1) on weak identifiability of biased multilayer perceptrons (MLPs).
+First, if every admissible submodel is required to have positive hidden widths ($d_i \ge 1$), the conjecture is \emph{false for every origin-passing activation}: constant functions already fail at architecture $(1,1,1)$.
+Second, under \emph{either} width convention ($d_i \ge 0$ or $d_i \ge 1$), the conjecture is \emph{false for $\ReLU$, exact $\GELU$, and every activation capable of realizing the scalar identity $x \mapsto x$ at depth $L \ge 2$}, via the translation family $x = \sigma(x-t) - \sigma(t-x) + t$, which shifts the readout bias and yields continuous minimal-width fibers of dimensions $3$ for $\ReLU$ and $2$ for $\GELU$.
+Forward differences show that every nonconstant polynomial of degree $d \ge 1$ fails at width $d$, making failures dense in the compact-open topology on continuous origin-passing activations.
+Third, when zero hidden widths are allowed ($d_i \ge 0$), we prove the affirmative classification for $\tanh$ (and centered logistic) via Vla\v{c}i\'c--B\"olcskei (2021), and for a uniformly dense family of origin-passing sigmoidal activations across all finite depths and widths with permutation symmetries via Vla\v{c}i\'c--B\"olcskei (2022).
+\end{abstract}
+
+\section{Setup and Conjecture Statement}
+
+Fix depth $L \ge 1$, input and output dimensions $d_0, d_L \ge 1$, hidden widths $d_1, \dots, d_{L-1} \in \mathbb{N}$ (the source does not specify whether $0 \in \mathbb{N}$), and a coordinatewise activation $\sigma : \mathbb{R} \to \mathbb{R}$ satisfying $\sigma(0) = 0$.
+Each hidden layer $i \in \{1, \dots, L-1\}$ carries the full affine parameter space $(W_i, b_i) \in \mathbb{R}^{d_i \times d_{i-1}} \times \mathbb{R}^{d_i}$ with layer map $f_i(z; W_i, b_i) = \sigma(W_i z + b_i)$, and the readout layer $L$ is affine with free bias: $f_L(z; W_L, c) = W_L z + c$.
+The hidden symmetry groups $K_i \subseteq \GL(d_i)$ are the linear intertwiner groups specified by $\sigma(Ax) = B\sigma(x)$ for invertible $A, B$; our refutations use only that every $k_i \in K_i$ acts linearly (and therefore fixes $0$). The endpoint groups $K_0, K_L$ are trivial.
+
+Following \href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645} (\texttt{def:submodel}, \texttt{defn:identii}, \texttt{def:weak\_ident}):
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item A parameter $\theta \in \Theta$ is \emph{identifiable} if for every $\theta' \in \Theta$ with $f(\cdot; \theta') = f(\cdot; \theta)$ there exists a \emph{unique} tuple $(k_1, \dots, k_{L-1}) \in K_1 \times \dots \times K_{L-1}$ such that
+\[
+f_i(\cdot; \theta'_i) = k_i \circ f_i(\cdot; \theta_i) \circ k_{i-1}^{-1}
+\qquad \text{on all of } \mathbb{R}^{d_{i-1}} \quad (i = 1, \dots, L),
+\]
+with $k_0 = I_{d_0}$ and $k_L = I_{d_L}$. By transitivity of the group action, if a functional fiber contains two tuples of layer maps in distinct orbits, then no member of that fiber is identifiable.
+\item A parameter $\theta' \in \Theta$ is \emph{weakly identifiable} if it is the image of an identifiable parameter $\tilde{\theta}$ of a same-depth, same-activation MLP submodel $\tilde{\Theta}$ (with full affine layer spaces, identical endpoints, linear maps $\alpha_i, \alpha_i^*$ satisfying $\alpha_i^*\alpha_i = I$, injective symmetry homomorphisms, and $f_i(x; \beta_i(\tilde{\theta}_i)) = \alpha_i \tilde{f}_i(\alpha_{i-1}^* x; \tilde{\theta}_i)$ for all $x \in \mathbb{R}^{d_{i-1}}$).
+\item Because $\sigma(0) = 0$, coordinate padding (extending weight matrices and biases by zeros, projecting back via $\alpha_i^*$, and extending symmetries by the identity on extra coordinates) defines a valid submodel whenever $\tilde{d}_i \le d_i$.
+\end{itemize}
+
+\begin{quote}
+\textbf{Conjecture~1 (\texttt{conj:main}, \href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645}).}
+\emph{For a broad class of activation functions $\sigma$, every function realized by an MLP with activation $\sigma$ admits a weakly identifiable representative: for every $\theta \in \Theta$, there exists $\theta' \in \Theta$ with $f(\cdot; \theta) = f(\cdot; \theta')$ such that $\theta'$ is weakly identifiable.}
+\end{quote}
+
+\section{Universal Refutation Under Positive Hidden Widths}
+
+\begin{theorem}[Constant-function obstruction for $d_i \ge 1$]\label{thm:const}
+Assume every admissible MLP submodel has positive hidden widths. Then for every origin-passing activation $\sigma$, depth $L = 2$, and scalar endpoints $(d_0, d_2) = (1, 1)$, no constant function $x \mapsto c$ admits a weakly identifiable representative.
+\end{theorem}
+
+\begin{proof}
+Let $\tilde{\Theta}$ be any depth-$2$ MLP submodel with hidden width $m \ge 1$ realizing $x \mapsto c$. Inside $\tilde{\Theta}$, choose $(W_1, b_1) = (0, 0)$ so the hidden map is identically $\sigma(0) = 0$, and compare the two readouts $(W_2, c_2) = (0, c)$ (giving $z \mapsto c$) and $(W'_2, c'_2) = (e_1^\top, c)$ (giving $z \mapsto c + z_1$).
+Both tuples realize $x \mapsto c$. For any $k_1 \in \tilde{K}_1 \subseteq \GL(m)$, precomposition by $k_1^{-1}$ preserves constancy of $z \mapsto c$ on $\mathbb{R}^m$, so it cannot match $z \mapsto c + z_1$.
+Hence the fiber of $x \mapsto c$ in $\tilde{\Theta}$ splits into at least two orbits, so no parameter of $\tilde{\Theta}$ realizing $x \mapsto c$ is identifiable. Since $\tilde{\Theta}$ was arbitrary, no ambient representative (already at width profile $(1, 1, 1)$) is weakly identifiable.
+\end{proof}
+
+\begin{remark}[Zero widths and reducible nonconstant maps]
+If zero hidden widths are permitted, the submodel $(1, 0, \dots, 0, 1)$ has only the free output bias $c$ and trivial hidden groups, making $x \mapsto c$ identifiable; coordinate padding supplies a weakly identifiable representative in every ambient architecture. At depth $L = 1$, the single layer equals the end-to-end map and every parameter is identifiable. For nonconstant maps, a reducible ambient parameter can still admit a weakly identifiable representative: e.g., $f(x) = \tanh x$ at widths $(1, 2, 1)$ has unused-neuron and clone redundancies, yet padding the identifiable width-$1$ realization $(w, b, a, c) = (1, 0, 1, 0)$ gives a valid witness.
+\end{remark}
+
+\section{Identity-Realization Obstruction: ReLU, Exact GELU, and Polynomials}
+
+\begin{lemma}[Output-bias invariance]\label{lem:bias}
+For any linear latent symmetry $k_{L-1} \in K_{L-1}$, the last-layer equivariance condition $W'_L z + c' = W_L k_{L-1}^{-1} z + c$ for all $z \in \mathbb{R}^{d_{L-1}}$ implies $c' = c$.
+\end{lemma}
+
+\begin{proof}
+Evaluate at $z = 0$ (which need not belong to the range of layer $L-1$) and use $k_{L-1}^{-1}(0) = 0$.
+\end{proof}
+
+\begin{theorem}[Identity-realization obstruction]\label{thm:id}
+Let $\sigma$ be any activation such that a depth-$L$ ($L \ge 2$) MLP with scalar endpoints $(d_0, d_L) = (1, 1)$ realizes $f(x) = x$. Then $f(x) = x$ admits no weakly identifiable representative under either width convention ($d_i \ge 0$ or $d_i \ge 1$).
+\end{theorem}
+
+\begin{proof}
+Let $\tilde{\Theta}$ be any same-depth, same-activation MLP submodel realizing $f(x) = x$ at some parameter $\tilde{\theta}$ with first-layer weights and bias $(W_1, b_1)$ and readout bias $c$. (At least one hidden width must be positive, as width $0$ realizes only constants.) For every $t \in \mathbb{R}$, replacing $(b_1, c)$ by $(b_1 - t W_1, c + t)$ produces a parameter $\tilde{\theta}^{(t)} \in \tilde{\Theta}$ realizing
+\[
+f(x; \tilde{\theta}^{(t)}) = f(x - t; \tilde{\theta}) + t = (x - t) + t = x.
+\]
+By Lemma~\ref{lem:bias}, distinct values of $t$ yield distinct output biases $c + t$ and therefore lie in distinct layer-function orbits. Thus the fiber of $x \mapsto x$ in every candidate submodel $\tilde{\Theta}$ contains a continuum of orbits, ruling out any identifiable representative.
+\end{proof}
+
+\paragraph{ReLU and exact GELU.}
+Both $\ReLU(z) = \max(z, 0)$ and $\GELU(z) = z\Phi(z)$ (with $\Phi$ the standard normal CDF) satisfy $\sigma(z) - \sigma(-z) = z$, giving the depth-$2$, width-$2$ family
+\[
+f_t(x) = \sigma(x - t) - \sigma(t - x) + t = x \qquad (t \in \mathbb{R}).
+\]
+Width $0$ produces only constants, and width $1$ cannot realize $x$ since $a\sigma(wx + b) + c = x$ forces $aw \neq 0$ and makes $\sigma$ affine on $\mathbb{R}$. Thus hidden width $2$ is minimal, and Theorem~\ref{thm:id} disproves Conjecture~1 for both $\ReLU$ and exact $\GELU$ under either width convention.
+
+Moreover, we obtain the exact minimal-width fibers. Since $\sigma(z) \to 0$ as $z \to -\infty$ and one constant plus one varying unit cannot realize $x$, the two slopes must have opposite signs $w_+ > 0 > w_-$ (up to swapping). Using $\sigma(z) = z + o(1)$ as $z \to +\infty$, matching the asymptotics of $\sum_{i=1}^2 a_i \sigma(w_i x + b_i) + c = x$ as $x \to \pm\infty$ forces
+\[
+a_i = \frac{1}{w_i}, \qquad b_i = -c w_i \qquad (i \in \{+, -\}).
+\]
+For $\ReLU$, every triple $(c, w_+, w_-) \in \mathbb{R} \times (0, \infty) \times (-\infty, 0)$ works (a $3$-dimensional fiber). For exact $\GELU$, substituting $u = x - c$ and dividing by $u \neq 0$ leaves $\Phi(w_+ u) + \Phi(w_- u) = 1$, which by strict monotonicity and reflection symmetry of $\Phi$ holds if and only if $w_- = -w_+$ (a $2$-dimensional fiber).
+
+\begin{corollary}[Polynomials and compact-open density of failures]\label{cor:poly}
+For every nonconstant polynomial $p$ of degree $d \ge 1$ with leading coefficient $a_d$, the $(d-1)$st forward difference $\Delta^{d-1} p(x) = \sum_{j=0}^{d-1} (-1)^{d-1-j} \binom{d-1}{j} p(x + j)$ is affine of slope $d! a_d \neq 0$. Scaling and adjusting the readout bias realizes $f(x) = x$ at depth~$2$ and width~$d$, so Theorem~\ref{thm:id} refutes Conjecture~1 for that architecture. In particular, the biased identity activation $\sigma(z) = z$ fails at width~$1$ under linear latent groups. Because nonconstant origin-passing polynomials are dense in the compact-open topology on $C_0(\mathbb{R}) := \{\sigma \in C(\mathbb{R}) : \sigma(0) = 0\}$, no nonempty compact-open subset of $C_0(\mathbb{R})$ satisfies Conjecture~1 across all architectures.
+\end{corollary}
+
+\section{Affirmative Classification Under Zero-Width Admissibility}
+
+\begin{theorem}[$\tanh$ and centered logistic]\label{thm:tanh}
+Let $\sigma = \tanh$ (or any fixed nonzero input/output rescaling $\alpha\tanh(\beta z)$, including centered logistic $s(z) - \tfrac{1}{2} = \tfrac{1}{2}\tanh(z/2)$), with $K_i = \{\pm 1\}^{d_i} \rtimes S_{d_i}$. If zero hidden widths are allowed, every function realized by an MLP of any finite depth and width admits a weakly identifiable representative. If hidden widths must be positive, the same holds for every nonconstant function.
+\end{theorem}
+
+\begin{proof}
+Depth $L = 1$ is immediate, and constants are realized uniquely by the all-zero-width submodel when $d_i = 0$ is allowed. Given a nonconstant realization at depth $L \ge 2$, iteratively: (i) delete any neuron with zero outgoing weight column; (ii) fold any neuron with zero incoming weight row into the next bias; (iii) merge any pair of neurons in the same layer whose incoming affine forms agree up to sign, using $\tanh(-z) = -\tanh(z)$. Each operation strictly reduces the neuron count while preserving the end-to-end map; nonconstancy ensures at least one neuron remains in every hidden layer. The terminal network $\tilde{\theta}$ is \emph{regular} in the sense of Vla\v{c}i\'c and B\"olcskei (2021): every unit structurally depends on the input, reaches a nonzero readout column, and has no signed clones. By Proposition~2 and Lemma~1 of Vla\v{c}i\'c and B\"olcskei (2021), any two regular $\tanh$-networks realizing the same map have equal widths and are related by layerwise signed permutations.
+
+Let $\tilde{\theta}'$ be any competitor of the same reduced widths realizing the same function. Its regular reduction is isomorphic to $\tilde{\theta}$ and hence has the same neuron count; thus no deletion occurs, so $\tilde{\theta}'$ is itself regular and related to $\tilde{\theta}$ by some signed-permutation sequence $(k_1, \dots, k_{L-1})$. Uniqueness of $(k_1, \dots, k_{L-1})$ follows by induction on $i$ from the fixed input: no two surviving units share an incoming affine form up to sign, and $\tanh$ is injective and odd, so matching layer maps fixes $k_i$ uniquely. Coordinate padding yields a weakly identifiable representative in the ambient architecture. Fixed nonzero rescalings absorb into adjacent affine maps.
+\end{proof}
+
+\begin{remark}[Plain logistic]
+Plain logistic $s(x) = (1 + e^{-x})^{-1}$ violates $\sigma(0) = 0$. If it is nevertheless used with linear latent actions fixing $0$, the identity $s(x) = 1 - s(-x)$ produces two width-$1$ realizations with distinct readout biases $0$ and $1$ (and padded copies at every positive width), while width $0$ cannot realize $s$; by Lemma~\ref{lem:bias}, $s(x)$ admits no weakly identifiable representative in that variant.
+\end{remark}
+
+\begin{theorem}[Dense sigmoidal family]\label{thm:sigmoidal}
+For every origin-passing piecewise $C^1$ function $\rho$ with $\rho' \in \BV(\mathbb{R})$ and every $\varepsilon > 0$, there exists an origin-passing activation $\sigma$ with $\|\sigma - \rho\|_\infty < \varepsilon$ such that Conjecture~1 holds at all finite depths and widths with $K_i = S_{d_i}$ (when zero hidden widths are allowed).
+\end{theorem}
+
+\begin{proof}
+We transfer Theorem~1 of Vla\v{c}i\'c and B\"olcskei (2022) to biased hidden layers, affine vector readouts, and unique permutation sequences in five steps.
+\begin{enumerate}[leftmargin=2em,label=\textup{(\arabic*)}]
+\item \emph{Scalar sigmoidal activation.} Theorem~1 of Vla\v{c}i\'c and B\"olcskei (2022) applied to $\rho$ at tolerance $\varepsilon/2$ yields an activation $s$ such that any two scalar-input, activated-scalar-output $s$-networks with no zero weight rows/columns and no exact clone pairs realizing the same map have equal widths and are isomorphic by layerwise permutations. Set $\sigma(z) := s(z) - s(0)$; then $\sigma(0) = 0$ and $\|\sigma - \rho\|_\infty \le \|s - \rho\|_\infty + |s(0) - \rho(0)| < \varepsilon$.
+\item \emph{Reduction and shift to $s$.} Reduce any nonconstant $\sigma$-MLP realizing $F : \mathbb{R}^{d_0} \to \mathbb{R}^{d_L}$ by deleting unused/constant neurons and merging exact clones (identical incoming affine forms) until irreducible. Given two reduced realizations of $F$, convert every hidden activation from $\sigma$ to $s$ by subtracting $s(0)W_i \mathbf{1}$ from each bias after layer~$1$ (including the readout bias). This invertible transformation preserves $F$, nonzero rows/columns, and clone-freeness, and commutes with permutations.
+\item \emph{Generic one-dimensional slicing.} For $(u, v) \in \mathbb{R}^{d_L} \times \mathbb{R}^{d_0}$, consider the scalar map $t \mapsto s(u^\top F(tv))$. Away from finitely many proper hyperplanes, every nonzero row of $W_1$ stays nonzero on $v$, distinct first-layer affine forms remain distinct on $v$, and every nonzero column of $W_L$ has nonzero pairing with $u$. All intermediate layers already satisfy the Vla\v{c}i\'c--B\"olcskei hypotheses, and the single scalar output adds no clones. Hence Vla\v{c}i\'c and B\"olcskei (2022, Theorem~1) gives equal widths and matching parameters up to a permutation sequence $\pi(u, v)$.
+\item \emph{Global permutation sequence.} For each of the finitely many permutation sequences $\pi$, the parameter-matching equations are affine-linear in $(u, v)$ (first weight $W_1 v$, readout $(u^\top W_L, u^\top c)$, interior parameters independent of $(u, v)$). Since a dense open set cannot lie in a finite union of proper affine subspaces, one fixed $\pi$ works for all $(u, v)$, matching the original matrices and biases identically. Any same-width competitor must itself be reduced (by neuron-count equality after reduction), yielding uniqueness up to permutations across the reduced fiber.
+\item \emph{Intertwiner group and uniqueness of $\pi$.} Applying step~(4) to the one-hidden-layer vector-output reduced networks with weight pairs $(A, I)$ and $(I, B)$ and zero biases shows that $\sigma(Ax) = B\sigma(x)$ for invertible $A, B$ forces $A = B \in S_d$, so $K_i = S_{d_i}$. Applying it at width~$1$ with readout~$1$ shows that distinct nonzero incoming affine forms yield distinct ridge functions (since $\sigma$ is nonconstant). Inducting from the input shows that the permutation sequence stabilizing a reduced tuple is unique. Coordinate padding handles nonconstant maps; the all-zero-width submodel handles constants. \qedhere
+\end{enumerate}
+\end{proof}
+
+\section{Verification and References}
+
+The script \texttt{solutions/equivariant\_mlp\_ident/explore.py} verifies analytic sample Jacobians on $257$ deterministic points in $[-5.013, 5.017]$ (avoiding $z = 0$ for $\ReLU$, singular-value cutoff $10^{-10}\sigma_{\max}$), checking:
+(i) minimal $\ReLU$ identity ($36$ tuples, rank $4/7$) and minimal $\GELU$ identity ($18$ tuples, rank $5/7$), with center-shift tangents in the Jacobian kernel;
+(ii) reflected width-$1$ pairs for $\tanh$, centered logistic, and plain logistic (rank $4/4$ each, showing local rank alone does not decide global identifiability);
+(iii) reducible width-$2$ $\tanh$ tuples (unused, padded, cloned: ranks $5/7, 4/7, 4/7$) and constant $\tanh$ tuples (positive-width ranks $2/4, 2/4, 1/4$; zero-width rank $1/1$); and
+(iv) exact integer interpolation of the forward-difference identity for monomials of degrees $1$ through $12$ at three shifts each.
+
+\begin{thebibliography}{9}
+\bibitem{shahverdi2026}
+V.~Shahverdi, G.~L.~Marchetti, G.~B\"okman, and K.~Kohn,
+\emph{Identifiable Equivariant Networks are Layerwise Equivariant},
+\href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645}, ICML 2026 camera-ready.
+
+\bibitem{vlacic2021}
+V.~Vla\v{c}i\'c and H.~B\"olcskei,
+\emph{Affine Symmetries and Neural Network Identifiability},
+Advances in Mathematics \textbf{376} (2021), 107485.
+
+\bibitem{vlacic2022}
+V.~Vla\v{c}i\'c and H.~B\"olcskei,
+\emph{Neural Network Identifiability for a Family of Sigmoidal Nonlinearities},
+Constructive Approximation \textbf{55} (2022), 173--224
+(\href{https://arxiv.org/abs/1906.06994}{arXiv:1906.06994}).
+\end{thebibliography}
+
+\end{document}

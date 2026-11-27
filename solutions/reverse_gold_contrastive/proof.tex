@@ -1,0 +1,231 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\Cl}{Cl}
+\DeclareMathOperator{\Rad}{\mathfrak{R}}
+
+\title{\bfseries Refutation of the Bounded-Fan-Out Mildly Context-Sensitive Contrastive Learnability Conjecture}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: R.~Sengupta,\\
+\emph{A Reverse-Gold Theorem: Positive-Data Identification by Substrate-Bounded Contrastive Learners},\\
+\href{https://arxiv.org/abs/2610.28747}{arXiv:2610.28747}, Section~6.1, Conjecture~\texttt{conj:mcs}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~\texttt{conj:mcs} of Sengupta (\href{https://arxiv.org/abs/2610.28747}{arXiv:2610.28747}) on both of its claimed consequences: the collision bound and the uniform polynomial capacity bound.
+First, quantifying uniformly over admissible distributions forces pointwise orbit purity on every eligible positive.
+A linear, non-erasing fan-out-$2$ multiple context-free grammar (MCFG) over a unary alphabet, equipped with a fixed universal recursive operator whose global closure on all of $\{a\}^*$ satisfies $|\Cl_R(w)| \le |w|+1$, violates the collision bound at every finite score bound $B > 0$ via a four-string closure witness.
+Second, an infinite fan-out-$2$ MCFG and a tree adjoining grammar (TAG) with overtly marked endpoints achieve two in-language training collisions at every positive, with closure size $9$ per target word and $O(K)$ on $L_{\le K}$; on every fixed-depth slice, even the paper's actual approximation gap yields a vacuous misranking bound.
+Third, using the same marked operator, a family of fan-out-$2$ MCFGs with completely pure training orbits ($m^+ = 0$) forces empirical Rademacher capacity $\kappa \ge B^2 N$ for every $N \ge 1$ (and $\kappa \ge B^2 2^{K-2}$ at fixed string length $K$ under a binary-middle lift), refuting any capacity bound polynomial in fan-out alone.
+\end{abstract}
+
+\section{Setup and Pointwise Orbit Purity}
+
+Let $\Sigma$ be a finite alphabet, $L \subseteq \Sigma^*$ a target language, $R : \Sigma^* \to 2^{\Sigma^*}$ a fixed recursive contrast operator (local, universal, and satisfying $R(uv) \supseteq R(u)v \cup uR(v)$ under structural composition), and $R_{\mathrm{train}}(x) \subseteq R(x)$ its dependency-breaking training restriction.
+For $x \in L$ and score bound $B > 0$, write
+\[
+m^+(x) := |R_{\mathrm{train}}(x) \cap L|, \qquad
+m^-(x) := |R_{\mathrm{train}}(x) \setminus L|, \qquad
+D(B, M_0) := \log 2 - \log(1 + M_0 e^{-2B}).
+\]
+These count distinct strings: $y \in L$ means $y$ has \emph{some} derivation in the target grammar, not necessarily one preserving the edited derivation tree.
+A scorer class $\mathcal{H} \subseteq [-B, B]^{\Sigma^*}$ has capacity $\kappa$ if its empirical Rademacher complexity satisfies $\widehat{\Rad}_S(\mathcal{H}) \le \sqrt{\kappa/n}$ for every $n \ge 1$ and every $S \in \mathcal{X}_R^n$, where $\mathcal{X}_R := \supp(p_d) \cup \bigcup_{x \in \supp(p_d)} R_{\mathrm{train}}(x)$.
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:mcs} (\href{https://arxiv.org/abs/2610.28747}{arXiv:2610.28747}, Section~6.1).}
+\emph{For any class $\mathcal{C}$ in the mildly context-sensitive hierarchy whose closure under a fixed multi-component operator $R$ of bounded fan-out is polynomially bounded in input size, there is a hypothesis class $\mathcal{H}$ with capacity $\kappa$ polynomial in the relevant complexity parameter (fan-out for MCFGs, adjunct depth for TAGs, phase depth for minimalist grammars) such that for every $L \in \mathcal{C}$ and every admissible input distribution $p_d$ with $\supp(p_d) \subseteq L$ and support orbit bound $M := \sup_{x \in \supp(p_d)} |R_{\mathrm{train}}(x)| \le M_0$, the pair $(R_{\mathrm{train}}, \mathcal{H})$ is saturatedly realizable and $\mathbb{E}_{p_d}[\log(1 + m^+(x))] \le c$ for a constant $c < D(B, M_0)$.}
+\end{quote}
+
+\begin{proposition}[Quantifier collapse to pointwise orbit purity]\label{prop:purity}
+Fix $L \in \mathcal{C}$, $R_{\mathrm{train}}$, $B > 0$, and $M_0 \ge 1$ with $D(B, M_0) > 0$. Call $x \in L$ \emph{eligible} if $|R_{\mathrm{train}}(x)| \le M_0$ (and $m^-(x) \ge 1$ if admissibility requires boundary support). Then there exists $c < D(B, M_0)$ such that $\mathbb{E}_{p_d}[\log(1 + m^+(x))] \le c$ for every admissible $p_d$ with $M \le M_0$ if and only if $m^+(x) = 0$ for every eligible $x \in L$.
+\end{proposition}
+
+\begin{proof}
+If $m^+(x) = 0$ for all eligible $x$, then $\mathbb{E}_{p_d}[\log(1+m^+(x))] = 0 < D(B, M_0)$, so $c = 0$ suffices.
+Conversely, for any eligible $x \in L$, the point mass $p_d = \delta_x$ satisfies $\supp(p_d) = \{x\} \subseteq L$, $M = |R_{\mathrm{train}}(x)| \le M_0$, and boundary support whenever $m^-(x) \ge 1$. If $m^+(x) \ge 1$, then
+\[
+\mathbb{E}_{\delta_x}[\log(1 + m^+(x))] = \log(1 + m^+(x)) \ge \log 2 > \log 2 - \log(1 + M_0 e^{-2B}) = D(B, M_0),
+\]
+violating any uniform constant $c < D(B, M_0)$.
+\end{proof}
+
+\section{Unary Fan-Out-2 MCFG Counterexample}
+
+Multiple context-free grammars (MCFGs) were introduced by Seki et~al.~\cite{seki1991mcfg}; a fan-out-$2$ MCFG manipulates string pairs via linear, non-deleting concatenation rules.
+
+\begin{theorem}[Unary fan-out-$2$ MCFG refutation]\label{thm:unary}
+There exist a linear, non-erasing fan-out-$2$ MCFG generating $L = \{a^3, a^5, a^7\} \subseteq \{a\}^*$ and a fixed, universal, local, recursive contrast operator $R$ on $\{a\}^*$ satisfying the global closure bound $|\Cl_R(w)| \le |w| + 1$ for every $w \in \{a\}^*$ (and $|\Cl_R(\{a\}^{\le n})| \le n + 1$) such that on $p_d = \delta_{a^7}$, with $M_0 = 3$, boundary support, and saturated realizability in a singleton scorer class of capacity $\kappa = 0$,
+\[
+\mathbb{E}_{p_d}[\log(1 + m^+(x))] = \log 2 > D(B, 3) \qquad (\forall B > 0).
+\]
+\end{theorem}
+
+\begin{proof}
+Over $\Sigma = \{a\}$, take the fan-out-$2$ MCFG with terminal productions
+\[
+P(a, a), \qquad P(aa, aa), \qquad P(aaa, aaa)
+\]
+and start rule $S(u\,a\,v) \leftarrow P(u, v)$. The two components of $P$ are siblings separated by an inert $a$, generating $L = \{a^3, a^5, a^7\}$. Take the singleton class $\mathcal{C} = \{L\}$.
+
+Define $R$ uniformly on $\{a\}^*$ without reference to $L$: at every occurrence of the constant-width template $[aaa]\,a\,[aaa]$ (i.e., substring $a^7$ bracketed into two linked $aaa$ sites around a central $a$),
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item $R_{\mathrm{train}}$ shortens either bracketed component to $aa$ or $a$, leaving its mate fixed;
+\item the joint co-substitution replaces $(aaa, aaa)$ simultaneously by $(a, a)$.
+\end{itemize}
+Every occurrence of $a^7$ inside $u$ or $v$ survives concatenation in $uv$, so $R(uv) \supseteq R(u)v \cup uR(v)$ for arbitrary splits. Every edit strictly decreases string length, so the full iterated closure $\Cl_R(w)$ of any $w \in \{a\}^*$ of length $n$ contains at most one word of each length in $\{0, \dots, n\}$, whence $|\Cl_R(w)| \le n + 1$ (and $|\Cl_R(\{a\}^{\le n})| \le n + 1$).
+
+For $x = a^7$, the entire orbit is summarized in Table~\ref{tab:unary}: both training edits break equality of the generating tuple $(aaa, aaa)$, yet shortening one end by two produces $a^5$, which admits the alternative derivation $S(aa \cdot a \cdot aa)$ shifting the central $a$. All three outputs have length $< 7$ and admit no further edits, so $\Cl_R(a^7) = \{a^7, a^6, a^5, a^3\}$.
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Move & Edited derivation tuple & Yield & Membership \\
+\midrule
+Shorten one end by $1$ ($R_{\mathrm{train}}$) & $(aa, aaa)$ or $(aaa, aa)$ & $a^6$ & $a^6 \notin L$ \\
+Shorten one end by $2$ ($R_{\mathrm{train}}$) & $(a, aaa)$ or $(aaa, a)$ & $a^5$ & $a^5 \in L$ via $P(aa, aa)$ \\
+Shorten both ends by $2$ (joint) & $(a, a)$ & $a^3$ & $a^3 \in L$ (closure only) \\
+\bottomrule
+\end{tabular}
+\caption{Full orbit of $a^7$ under the unary fan-out-$2$ operator of Theorem~\ref{thm:unary}.}\label{tab:unary}
+\end{table}
+
+Thus $|R_{\mathrm{train}}(a^7)| = 2$, $|R(a^7)| = 3$, $m^+(a^7) = 1$, and $m^-(a^7) = 1$. Taking $M_0 = 3$ (covering both $|R_{\mathrm{train}}|$ and $|R|$), $p_d = \delta_{a^7}$, and the singleton class $\mathcal{H} = \{B\mathbf{1}_L - B\mathbf{1}_{L^c}\}$ (which has $\kappa = 0$ and saturatedly realizes $L$), we obtain $\mathbb{E}_{p_d}[\log(1 + m^+(x))] = \log 2 > D(B, 3)$ for all $B > 0$.
+\end{proof}
+
+\section{Infinite Marked MCFG and TAG Counterexamples}
+
+To show that the collision obstruction persists with overtly distinct endpoints, arbitrarily long gaps, full-support distributions, and both MCFGs~\cite{seki1991mcfg} and Tree Adjoining Grammars (TAGs)~\cite{joshi1985tag}, let $\Sigma = \{U_0, U_1, U_2, V_0, V_1, V_2, a, b, c, h\}$ with indices in $\mathbb{Z}/3$. Define a universal factor operator $R_{\mathrm{mark}}$ on $\Sigma^*$: for every factor $U_i w V_j$ with $w \in \{a, b, c, h\}^*$,
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item $R_{\mathrm{train}}$ replaces $U_i$ by $U_{i+r}$ (fixing $V_j$) or $V_j$ by $V_{j+r}$ (fixing $U_i$) for $r \in \{1, 2\} \pmod 3$;
+\item the joint co-substitution replaces $(U_i, V_j)$ simultaneously by $(U_{i+r}, V_{j+r})$ for $r \in \{1, 2\} \pmod 3$.
+\end{itemize}
+Because factors persist under concatenation, $R_{\mathrm{mark}}$ is universal, local (fan-out~$2$), and recursive under every split.
+
+\begin{theorem}[Infinite marked MCFG and TAG refutation]\label{thm:marked}
+Under the fixed operator $R_{\mathrm{mark}}$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{(MCFG)} The fan-out-$2$ MCFG with productions $E_d(U_i, V_{i+d})$ ($i \in \mathbb{Z}/3$, $d \in \{0, 1\}$), $P(\epsilon, \epsilon)$, $P(axb, cy) \leftarrow P(x, y)$, and $S(uxyv) \leftarrow E_d(u, v), P(x, y)$ ($d \in \{0, 1\}$) generates
+\[
+L_{\mathrm{MCFG}} = \{U_i a^n b^n c^n V_{i+d} : n \ge 0,\; i \in \mathbb{Z}/3,\; d \in \{0, 1\}\}.
+\]
+(If strict $\epsilon$-freeness is demanded, replacing $P(\epsilon, \epsilon)$ with $P(ab, c)$ restricts to $n \ge 1$ without changing any orbit or closure count.)
+\item \emph{(TAG)} The TAG with six initial trees $S(U_i, T(h), V_{i+d})$ ($i \in \mathbb{Z}/3$, $d \in \{0, 1\}$) and one auxiliary tree $T(a, T^*, b)$ (foot $T^*$) generates
+\[
+L_{\mathrm{TAG}} = \{U_i a^n h b^n V_{i+d} : n \ge 0,\; i \in \mathbb{Z}/3,\; d \in \{0, 1\}\}.
+\]
+\end{enumerate}
+For both languages, every positive $x \in L$ has $|\Cl_{R_{\mathrm{mark}}}(x)| = 9$ (hence $|\Cl_{R_{\mathrm{mark}}}(L_{\le K})| = O(K)$ on target words of length at most $K$), $|R_{\mathrm{train}}(x)| = 4$, $|R_{\mathrm{mark}}(x)| = 6$, and $m^+(x) = m^-(x) = 2$. Consequently:
+\begin{enumerate}[label=\textup{(\alph*)}]
+\item Every distribution $p_d$ supported on $L$ (including full-support distributions, e.g., weight $2^{-n-1}/6$ on each depth-$n$ word) satisfies $\mathbb{E}_{p_d}[\log(1 + m^+(x))] = \log 3 > D(B, M_0)$ for every $B > 0$ and $M_0 \ge 4$.
+\item On any uniform six-string fixed-depth slice $S_n$, every scorer $s : \Sigma^* \to [-B, B]$ incurs mean InfoNCE loss strictly greater than $\log 3$. Whenever the common loss floor $f := \log(1 + 4e^{-2B})$ satisfies $f < \log 2$, the actual approximation-gap ratio $a_{\mathcal{H}}/(\log 2 - f) \ge (\log 3 - f)/(\log 2 - f) > 1$ yields a vacuous misranking bound, even though $B\mathbf{1}_L - B\mathbf{1}_{L^c}$ ranks every negative correctly.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Each $x = U_i w V_{i+d} \in L$ contains exactly one linked factor, with unique offset $d \in \{0, 1\} \pmod 3$. All four training edits change $j - i \pmod 3$ to $d \pm 1$: two produce the other licensed offset $1 - d \in \{0, 1\}$ (in $L$), and two produce offset $2$ (outside $L$). Both joint edits preserve $d$. Hence $m^+(x) = m^-(x) = 2$ everywhere on $L$, and the closure $\Cl_{R_{\mathrm{mark}}}(x)$ consists of the $9$ strings $\{U_{i'} w V_{j'} : i', j' \in \mathbb{Z}/3\}$. Since each length $K$ has at most one depth $n$, we have $|\Cl_{R_{\mathrm{mark}}}(L_{\mathrm{MCFG},\le K})| \le 9(\lfloor (K-2)/3 \rfloor + 1)$ and $|\Cl_{R_{\mathrm{mark}}}(L_{\mathrm{TAG},\le K})| \le 9(\lfloor (K-3)/2 \rfloor + 1)$, both $O(K)$. This proves~(a).
+
+For~(b), fix a slice $S_n = \{U_i w_n V_{i+d} : i \in \mathbb{Z}/3,\; d \in \{0, 1\}\}$ and any scorer $s$, writing $s_x := s(x)$. Dropping the two positive negative-neighbor exponentials from the InfoNCE loss at $x \in S_n$ and applying the AM--GM inequality to the self term $1$ and the two in-language training neighbors yields
+\[
+\ell(s; x)
+= \log\!\biggl(1 + \sum_{y \in R_{\mathrm{train}}(x)} e^{s_y - s_x}\biggr)
+> \log\!\biggl(1 + \sum_{y \in R_{\mathrm{train}}(x) \cap S_n} e^{s_y - s_x}\biggr)
+\ge \log 3 + \frac{1}{3} \sum_{y \in R_{\mathrm{train}}(x) \cap S_n} (s_y - s_x).
+\]
+The collision graph on $S_n$ is symmetric and $2$-regular (each edge flips the offset between $0$ and $1$ by shifting one endpoint). Averaging over $x \in S_n$ cancels the sum $\sum (s_y - s_x)$ identically, giving $\frac{1}{6}\sum_{x \in S_n} \ell(s; x) > \log 3$. Subtracting the common loss floor $f = \log(1 + 4e^{-2B})$ gives $a_{\mathcal{H}} \ge \log 3 - f$, hence $a_{\mathcal{H}}/(\log 2 - f) \ge (\log 3 - f)/(\log 2 - f) > 1$ whenever $f < \log 2$.
+\end{proof}
+
+\begin{remark}[Target closure versus global closure on $\Sigma^*$]
+For $R_{\mathrm{mark}}$, every target word has a single linked factor, so $|\Cl_{R_{\mathrm{mark}}}(x)| = 9$ and $|\Cl_{R_{\mathrm{mark}}}(L_{\le K})| = O(K)$. By contrast, an off-target string containing $m$ independent linked factors (such as $U_0 a V_0 U_1 b V_1$, with $m = 2$) has closure size $9^m$ (e.g., $81$). The unary MCFG operator of Theorem~\ref{thm:unary} avoids even this off-target blow-up by satisfying $|\Cl_R(w)| \le |w| + 1$ globally on every string $w \in \Sigma^*$.
+\end{remark}
+
+\section{Independent Capacity Obstruction Under Pure Training Orbits}
+
+Even when training orbits are completely pure ($m^+ \equiv 0$, so the collision bound holds with $c = 0$), the claimed uniform polynomial capacity bound fails independently.
+
+\begin{theorem}[Unbounded capacity with fan-out~$2$ and pure training orbits]\label{thm:capacity}
+Fix $R_{\mathrm{mark}}$ and consider the class of finite fan-out-$2$ MCFG languages
+\[
+\mathcal{C}_{\mathrm{cap}} := \{L_d : N \ge 1,\; d = (d_1, \dots, d_N) \in \{0, 1\}^N\},
+\qquad
+L_d := \{U_i a^t V_{i+d_t} : 1 \le t \le N,\; i \in \mathbb{Z}/3\}.
+\]
+Every $L_d \in \mathcal{C}_{\mathrm{cap}}$ has $|\Cl_{R_{\mathrm{mark}}}(x)| = 9$ for all $x \in L_d$, $|\Cl_{R_{\mathrm{mark}}}(L_{d,\le K})| \le 9K$, pure training orbits ($m^+(x) = 0$, $m^-(x) = 4$), and membership-preserving co-substitutions ($|R_{\mathrm{mark}}(x)| = 6$).
+Yet any bounded scorer class $\mathcal{H} \subseteq [-B, B]^{\Sigma^*}$ that saturatedly realizes $(R_{\mathrm{train}}, L_d)$ for every $L_d \in \mathcal{C}_{\mathrm{cap}}$ and admissible $p_d$ (with fixed $M_0 = 6$) must satisfy
+\[
+\kappa \ge B^2 N \qquad \text{for every } N \ge 1.
+\]
+In particular, no finite capacity---and no polynomial in fan-out alone---can bound $\mathcal{H}$ uniformly over $\mathcal{C}_{\mathrm{cap}}$.
+\end{theorem}
+
+\begin{proof}
+Each $L_d$ is generated by the fan-out-$2$ MCFG with $E_0(U_i, V_i)$, $E_1(U_i, V_{i+1})$, and start rules $S(u a^t v) \leftarrow E_{d_t}(u, v)$ ($1 \le t \le N$). At each length $t+2$, only one offset $d_t$ is licensed, so every one-end edit lands outside $L_d$ ($m^+ = 0$, $m^- = 4$) while both joint edits preserve $d_t$.
+
+Fix $N \ge 1$. For each $d \in \{0, 1\}^N$, let $p_d$ be uniform on the $N$ support positives $x_t^{(d)} := U_0 a^t V_{d_t}$ ($1 \le t \le N$), and form the fixed probe sample $S := (z_1, \dots, z_N)$ with $z_t := U_0 a^t V_0$. For each $t$:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item if $d_t = 0$, then $z_t = x_t^{(d)} \in \supp(p_d) \subseteq L_d$;
+\item if $d_t = 1$, then $z_t \in R_{\mathrm{train}}(x_t^{(d)}) \setminus L_d$ (via $V_1 \mapsto V_0$).
+\end{itemize}
+Saturated realizability of $L_d$ therefore provides $s_d \in \mathcal{H}$ with $s_d(z_t) = +B$ if $d_t = 0$ and $s_d(z_t) = -B$ if $d_t = 1$. Moreover, $S \in \mathcal{X}_R^N$ even for the single all-zero target $L_{\mathbf{0}}$ (since $z_t \in \supp(p_{\mathbf{0}})$). For every sign vector $\sigma \in \{\pm 1\}^N$, selecting $d_t = \mathbf{1}_{\sigma_t = -1}$ attains $\frac{1}{N}\sum_{t=1}^N \sigma_t s_d(z_t) = B$. Taking the expectation over $\sigma$ gives $\widehat{\Rad}_S(\mathcal{H}) = B$, so the worst-case capacity bound $\widehat{\Rad}_S(\mathcal{H}) \le \sqrt{\kappa/N}$ forces $B \le \sqrt{\kappa/N}$, i.e., $\kappa \ge B^2 N$.
+\end{proof}
+
+\begin{remark}[Unbounded grammar size and binary-middle lift]
+Theorem~\ref{thm:capacity} uses grammars whose description size grows with $N$ at fixed fan-out~$2$, which is permitted because Conjecture~\texttt{conj:mcs} imposes no bound on grammar size and asks for $\kappa$ polynomial in fan-out alone. Replacing the unary middles $a^t$ by all $2^{K-2}$ binary strings $w \in \{a, b\}^{K-2}$ at a fixed string length $K \ge 2$ (with rules $S(uwv) \leftarrow E_{d_w}(u, v)$) yields $\kappa \ge B^2 2^{K-2}$ even at fixed length $K$ (while $|\Cl_{R_{\mathrm{mark}}}(L_d)| = 9 \cdot 2^{K-2}$, whereas the unary-middle family keeps $|\Cl_{R_{\mathrm{mark}}}(L_{d,\le K})| \le 9K$ linear in $K$). Theorem~\ref{thm:capacity} also holds if ``dependency-breaking'' is interpreted semantically as global ungrammaticality, since every training neighbor here is already out-of-language.
+\end{remark}
+
+\section{Verification and Relation to Proved Results}
+
+\paragraph{Computational verification.}
+The companion script \texttt{explore.py} (Python standard library only, in \texttt{solutions/reverse\_gold\_contrastive/}) checks:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item Theorem~\ref{thm:unary}: the witness $a^7$ has $2$ training neighbors ($1$ in-language, $1$ out-of-language), $1$ joint co-substitution, and closure size $4$; the global unary closure bound $|\Cl_R(a^n)| \le n+1$ holds for all $65$ lengths $0 \le n \le 64$.
+\item Theorem~\ref{thm:marked}: all $246$ MCFG positives and $246$ TAG positives across depths $0 \le n \le 40$ satisfy $|R_{\mathrm{train}}| = 4$, $m^+ = m^- = 2$, $2$ joint moves, and closure size $9$; the off-target two-link string $U_0 a V_0 U_1 b V_1$ has closure size $81$; at $B = 2$, $\log 3 \approx 1.098612289$ exceeds both $D(2, 4) \approx 0.622444054$ and $D(2, 6) \approx 0.588882815$.
+\item Theorem~\ref{thm:capacity}: all $510$ binary assignments across $N = 1, \dots, 8$ have pure training orbits and force the prescribed $\pm B$ signs on the probe sample.
+\end{itemize}
+
+\paragraph{Impact on \href{https://arxiv.org/abs/2610.28747}{arXiv:2610.28747}.}
+The paper's proved results---its agnostic misranking theorem (\texttt{thm:main}), collision bound (\texttt{prop:collision}), and strictly $2$-local worked example---remain intact. What fails in Conjecture~\texttt{conj:mcs} is inferring either small orbit collision or uniformly bounded capacity from bounded fan-out and polynomial closure alone.
+
+\begin{thebibliography}{9}
+\bibitem{joshi1985tag}
+A.~K.~Joshi.
+Tree adjoining grammars: How much context-sensitivity is required to provide reasonable structural descriptions?
+In \emph{Natural Language Parsing}, pages 206--250. Cambridge University Press, 1985.
+
+\bibitem{seki1991mcfg}
+H.~Seki, T.~Matsumura, M.~Fujii, and T.~Kasami.
+On multiple context-free grammars.
+\emph{Theoretical Computer Science}, 88(2):191--229, 1991.
+
+\bibitem{sengupta2026reverse}
+R.~Sengupta.
+A Reverse-Gold Theorem: Positive-Data Identification by Substrate-Bounded Contrastive Learners.
+\href{https://arxiv.org/abs/2610.28747}{arXiv:2610.28747}, 2026.
+\end{thebibliography}
+
+\end{document}

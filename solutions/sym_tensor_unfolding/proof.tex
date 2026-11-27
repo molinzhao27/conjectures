@@ -1,0 +1,347 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Sym}{Sym}
+\DeclareMathOperator{\Mat}{Mat}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\Spec}{Spec}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\GOTE}{GOTE}
+
+\title{\bfseries Resolution of the Recursive and Rectangular Symmetric Tensor Unfolding Conjectures}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: T.~Szwagier, X.~Mai, and J.~H.~de M.~Goulart,\\
+\emph{A Random Matrix Analysis of Symmetric Tensor Unfolding},\\
+\href{https://arxiv.org/abs/2611.05137}{arXiv:2611.05137}, Appendices~D (\texttt{conj:recursive}) and~E (\texttt{conj:transition})\\[0.35em]
+Companion verification script: \texttt{solutions/sym\_tensor\_unfolding/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve the two open conjectures of Szwagier, Mai, and Goulart (\href{https://arxiv.org/abs/2611.05137}{arXiv:2611.05137}) on spiked Gaussian Orthogonal Tensor Ensemble ($\GOTE_{p,n}$) unfoldings.
+First, Conjecture~\texttt{conj:recursive} (Appendix~D) is \emph{false as printed}: under the paper's standing convention $p = 2q$ with $q \ge 1$ (Section~2.1), the case $q = 1$ ($p = 2$) has $\Mat_1(\hat u) = \hat u \in \mathbb{R}^{n \times 1}$, so the recursive squared overlap converges almost surely to $(1 - \tau^{-2})^+ < 1$ (for example, $3/4$ at $\tau = 2$).
+For every fixed even order $p = 2q \ge 4$ ($q \ge 2$) and every fixed supercritical strength $\tau > 1$, we \emph{prove} exact recovery $|\hat v^\top v|^2 \to 1$ almost surely by combining the paper's isotropic deterministic equivalent with Gaussian concentration of resolvent bilinear forms over a product net. The fixed subcritical and critical regimes $\tau \le 1$ for $q \ge 2$ remain open here, while any reading of $\tau = 1$ covering arbitrary sequences $\tau_n \to 1$ fails by diagonalization from $\tau_n \downarrow 1$.
+Second, we \emph{prove} Conjecture~\texttt{conj:transition} (Appendix~E) in full for every fixed rectangular split $1 \le k < p/2$ (both odd and even $p$), establishing both the sharp left-singular-vector phase transition $(1 - \tau_\ell^{-4})^+$ (including at $\tau_\ell = 1$) and the smooth right-singular-vector crossover $\tau_r^2 / (1 + \tau_r^2)$ via an exact block-exchange covariance estimate and smooth-maximum Gaussian interpolation to a rank-one deformed GOE matrix.
+\end{abstract}
+
+\section{Setup, Normalizations, and Verdicts}
+
+Consider the rank-one spiked symmetric tensor model of fixed order $p \ge 2$,
+\[
+\mathcal{X} = \lambda\, v^{\otimes p} + \mathcal{Z}, \qquad
+\mathcal{Z} \sim \GOTE_{p,n}, \qquad
+v \in \mathbb{S}^{n-1}, \qquad \lambda > 0,
+\]
+where $v$ and $\lambda$ are deterministic before sampling $\mathcal{Z}$. Write $H_j := \Sym^j(\mathbb{R}^n)$ with the inherited Euclidean tensor inner product, $n_j := \dim(H_j) = \binom{n+j-1}{j}$, and $P_j : (\mathbb{R}^n)^{\otimes j} \to H_j$ for the orthogonal projection. For a nondecreasing multi-index $A$ of length $j$ with index multiplicities $(A_1, \dots, A_n)$, let $d_A := j! / \prod_{i=1}^n A_i!$ be the cardinality of its permutation orbit $\mathfrak{S}_A$. The canonical orthonormal basis of $H_j$ consists of $d_A^{-1/2}\sum_{\mathbf{j} \in \mathfrak{S}_A} E_{\mathbf{j}}$; let $U_j : \mathbb{R}^{n_j} \to (\mathbb{R}^n)^{\otimes j}$ be the corresponding isometry ($U_j^\top U_j = I_{n_j}$, $U_j U_j^\top = P_j$), and write $v^{\odot j} := U_j^\top v^{\otimes j} \in \mathbb{S}^{n_j - 1}$.
+
+The $\GOTE_{p,n}$ noise tensor is $\mathcal{Z} = \sqrt{p/n}\, P_p \mathcal{G}$ for an ordered array $\mathcal{G} \in (\mathbb{R}^n)^{\otimes p}$ of i.i.d.\ $\mathcal{N}(0,1)$ entries; equivalently, $\mathcal{Z} = \sqrt{p/n}\, U_p g$ with $g \sim \mathcal{N}(0, I_{n_p})$. For $1 \le k \le p/2$ and $b := p - k$, let $\Mat_k : (\mathbb{R}^n)^{\otimes p} \to \mathbb{R}^{n^k \times n^b}$ group the first $k$ modes into rows and the remaining $b$ modes into columns, and let
+\[
+\Phi_k(\mathcal{T}) := U_k^\top \Mat_k(\mathcal{T}) U_b \in \mathbb{R}^{n_k \times n_b},
+\qquad
+\bigl(\Phi_k(\mathcal{T})\bigr)_{A,B} = \sqrt{d_A d_B}\, \mathcal{T}_{A+B},
+\]
+be the compact symmetric unfolding of~\cite{Szwagier2026}. All limits of random overlaps below are almost sure as $n \to \infty$.
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \textbf{Conjecture~\texttt{conj:recursive} (Appendix~D of~\cite{Szwagier2026}):} \emph{False as printed} at $q = 1$ ($p = 2$), since Section~2.1 of~\cite{Szwagier2026} fixes $p = 2q$ for any positive integer $q \ge 1$ and \texttt{conj:recursive} states no $q \ge 2$ restriction. For every fixed $q \ge 2$ ($p \ge 4$) and fixed $\tau > 1$, exact recovery $|\hat v^\top v|^2 \to 1$ is \emph{proved} (Theorem~\ref{thm:recursive}). Fixed $\tau \le 1$ ($q \ge 2$) remains \emph{open}, while arbitrary sequences $\tau_n \to 1$ fail by diagonalization (Proposition~\ref{prop:crit-seq}).
+\item \textbf{Conjecture~\texttt{conj:transition} (Appendix~E of~\cite{Szwagier2026}):} \emph{Proved in full} for every fixed integer $1 \le k < p/2$, including odd $p \ge 3$, even $p \ge 4$, the critical point $\tau_\ell = 1$, and uniform tracking across scales (Theorem~\ref{thm:rect}).
+\end{itemize}
+
+\section{Recursive Unfolding (\texttt{conj:recursive})}
+
+For even $p = 2q$ ($q \ge 1$), set $\alpha_{p,q} := \sqrt{q!/(p-1)!}$, $c_n := \alpha_{p,q}\, n^{(p-2)/4}$, $M := \Phi_q(\mathcal{Z}) / c_n$, $u := v^{\odot q}$, and $\tau := \lambda / c_n$. In~\cite{Szwagier2026}, Theorem~\texttt{thm:DE\_symmetric} establishes the isotropic deterministic equivalent $(M - zI)^{-1} \leftrightarrow s_{\mathrm{sc}}(z) I_{n_q}$ at fixed $z \in \mathbb{C} \setminus \mathbb{R}$ where $s_{\mathrm{sc}}(z) = -(z - \sqrt{z^2 - 4})/2$; Proposition~\texttt{prop:spectral\_norm} shows $\|M\|_{\mathrm{op}} \to 2$ almost surely; and Theorem~\texttt{thm:transition} shows that the leading eigenpair $(\hat z, \hat u)$ of $M + \tau u u^\top$ satisfies $\hat z \to z_* := \tau + \tau^{-1}$ and $|\hat u^\top u|^2 \to 1 - \tau^{-2}$ almost surely for $\tau > 1$ (and $\hat z \to 2$, $|\hat u^\top u|^2 \to 0$ for $\tau \le 1$).
+
+\begin{remark}[Counterexample at $q = 1$, $p = 2$]
+Section~2.1 of~\cite{Szwagier2026} assumes $p = 2q$ for a fixed positive integer $q \ge 1$ (explicitly including $p = 2$, $q = 1$, $\alpha_{2,1} = 1$ in Sections~2.2 and~3.3), and Conjecture~\texttt{conj:recursive} states no restriction $q \ge 2$. When $q = 1$, $\tau = \lambda$ and $\Mat_1(\hat u) = \hat u \in \mathbb{R}^{n \times 1}$, whose leading left singular vector is $\hat v = \pm \hat u$. By Theorem~\texttt{thm:transition} (classical GOE), $|\hat v^\top v|^2 = |\hat u^\top v|^2 \to (1 - \tau^{-2})^+$ almost surely for every fixed $\tau > 0$ (e.g., $3/4 < 1$ at $\tau = 2$), refuting \texttt{conj:recursive} as stated.
+\end{remark}
+
+\begin{theorem}[Supercritical recursive unfolding for $q \ge 2$]\label{thm:recursive}
+Fix an integer $q \ge 2$ ($p = 2q \ge 4$) and a deterministic strength $\tau = \lambda / c_n > 1$. Let $\hat u \in \mathbb{S}^{n_q - 1}$ be a leading eigenvector of $M + \tau u u^\top$ (so $U_q \hat u$ is a leading symmetric eigenvector of $\Mat_q(\mathcal{X})$), and let $\hat v \in \mathbb{S}^{n-1}$ be a leading left singular vector of $L(\hat u) := \Mat_1(U_q \hat u) \in \mathbb{R}^{n \times n^{q-1}}$. Then $|\hat v^\top v|^2 \to 1$ almost surely.
+\end{theorem}
+
+\begin{proof}
+Because $U_q$ is an isometry and $\Mat_1$ is a reshaping, $L$ preserves Frobenius norm: $\|L(h)\|_F = \|h\|_2$, hence $\|L(h)\|_{\mathrm{op}} \le \|h\|_2$. Set $R(z) := (M - zI)^{-1}$. We first show that for every fixed $z \in \mathbb{C}$ with $\eta := \Im z > 0$,
+\begin{equation}\label{eq:res-op}
+\bigl\|L\bigl((R(z) - s_{\mathrm{sc}}(z)I)u\bigr)\bigr\|_{\mathrm{op}} \longrightarrow 0
+\qquad \text{almost surely.}
+\end{equation}
+
+\emph{Step~1 (Deterministic bias).} We claim $\|(\mathbb{E} R(z) - s_{\mathrm{sc}}(z)I)u\|_2 = o(1)$. Otherwise, along a subsequence, normalizing either the real or imaginary part of this deterministic difference gives deterministic unit vectors $a_n \in \mathbb{S}^{n_q - 1}$ with $|a_n^\top(\mathbb{E} R(z) - s_{\mathrm{sc}}(z)I)u|$ bounded away from zero. Yet $|a_n^\top R(z) u| \le \eta^{-1}$ is uniformly bounded and $a_n^\top(R(z) - s_{\mathrm{sc}}(z)I)u \to 0$ almost surely by Theorem~\texttt{thm:DE\_symmetric} of~\cite{Szwagier2026}, contradicting bounded convergence. Since $\|L(h)\|_{\mathrm{op}} \le \|h\|_2$, the deterministic mean term in~\eqref{eq:res-op} tends to zero.
+
+\emph{Step~2 (Gaussian concentration over a product net).} Write $\mathcal{Z} = \sqrt{p/n}\, U_p g$ with $g \sim \mathcal{N}(0, I_{n_p})$. Since $U_p g \in H_p \subset H_q \otimes H_q$, Proposition~\texttt{prop:eigenstructure} of~\cite{Szwagier2026} gives $\|\Phi_q(U_p g)\|_F = \|\Mat_q(U_p g)\|_F = \|g\|_2$, so $g \mapsto M(g)$ has Frobenius Lipschitz constant
+\[
+\frac{\sqrt{p/n}}{c_n} = \sqrt{\frac{(2q)!}{q!}}\, n^{-q/2} = O(n^{-q/2}).
+\]
+For any $a \in \mathbb{R}^{n_q}$ with $\|a\|_2 \le 1$, the resolvent identity $R(M_1) - R(M_2) = R(M_1)(M_2 - M_1)R(M_2)$ and $\|R(z)\|_{\mathrm{op}} \le \eta^{-1}$ imply
+\[
+\bigl|a^\top\bigl(R(M_1) - R(M_2)\bigr)u\bigr|
+\le \eta^{-2} \|M_1 - M_2\|_F
+= \eta^{-2}\frac{\sqrt{p/n}}{c_n}\|g_1 - g_2\|_2.
+\]
+Hence both real and imaginary parts of $a^\top R(z) u$ are $L_n$-Lipschitz in $g$ with $L_n = O(\eta^{-2} n^{-q/2})$.
+
+Let $\mathcal{N}_1 \subset \mathbb{S}^{n-1}$ and $\mathcal{N}_2 \subset \mathbb{S}^{n^{q-1}-1}$ be $1/4$-nets with $|\mathcal{N}_1| \le 9^n$ and $|\mathcal{N}_2| \le 9^{n^{q-1}}$. For $(x, y) \in \mathcal{N}_1 \times \mathcal{N}_2$, define $a_{x,y} := U_q^\top(x \otimes y)$; then $\|a_{x,y}\|_2 \le 1$ and $x^\top L(h) y = a_{x,y}^\top h$. For any fixed $\varepsilon > 0$, Gaussian Lipschitz concentration yields
+\[
+\Pr\bigl(|a_{x,y}^\top(\Re R(z) - \mathbb{E}\Re R(z))u| > \varepsilon\bigr) \le 2\exp(-c_{q,z,\varepsilon} n^q),
+\]
+and likewise for $\Im R(z)$, with $c_{q,z,\varepsilon} > 0$. Because $q \ge 2$, $|\mathcal{N}_1||\mathcal{N}_2| \le 9^{n + n^{q-1}} = \exp(O(n^{q-1}))$, so the union bound is summable in $n$. By the $1/4$-net inequality $\|A\|_{\mathrm{op}} \le 2\max_{(x,y)\in\mathcal{N}_1\times\mathcal{N}_2} |x^\top A y|$ for real matrices $A$, applying Borel--Cantelli along a countable sequence $\varepsilon_m \downarrow 0$ and combining with Step~1 yields~\eqref{eq:res-op}.
+
+\emph{Step~3 (Passage to the real outlier).} Almost surely $\|M\|_{\mathrm{op}} \to 2$ and $\hat z \to z_* = \tau + \tau^{-1} > 2$, so both $z_*$ and $\hat z$ are eventually at distance at least $\delta := (z_* - 2)/2 > 0$ from $\Spec(M)$. Apply~\eqref{eq:res-op} simultaneously at $z_j := z_* + i/j$ for all integers $j \ge 1$. On the event $\|M\|_{\mathrm{op}} \le 2 + \delta$, $\|R(z_*) - R(z_j)\|_{\mathrm{op}} \le (j\delta^2)^{-1}$ uniformly in $j$, while $s_{\mathrm{sc}}(z_j) \to s_{\mathrm{sc}}(z_*) = -1/\tau$. Sending $n \to \infty$ and then $j \to \infty$ transfers~\eqref{eq:res-op} to $z_*$. Replacing $z_*$ by $\hat z$ via $\|R(\hat z) - R(z_*)\|_{\mathrm{op}} \le |\hat z - z_*|/\delta^2 \to 0$ gives
+\[
+\bigl\|L\bigl((R(\hat z) - s_{\mathrm{sc}}(z_*)I)u\bigr)\bigr\|_{\mathrm{op}} \longrightarrow 0
+\qquad \text{almost surely.}
+\]
+
+\emph{Step~4 (Completion).} Orient $\hat u$ so that $\rho_n := \langle u, \hat u \rangle \ge 0$; by Theorem~\texttt{thm:transition} of~\cite{Szwagier2026}, $\rho_n \to \sqrt{1 - \tau^{-2}} > 0$. Whenever $\hat z \notin \Spec(M)$, the eigenvector identity $(M + \tau uu^\top)\hat u = \hat z \hat u$ yields $\hat u = -\tau \rho_n R(\hat z) u$. Using $L(u) = v(v^{\otimes(q-1)})^\top$ and $-\tau s_{\mathrm{sc}}(z_*) = 1$, we obtain
+\[
+\bigl\|L(\hat u) - \rho_n v(v^{\otimes(q-1)})^\top\bigr\|_{\mathrm{op}}
+= \tau \rho_n \bigl\|L\bigl((R(\hat z) - s_{\mathrm{sc}}(z_*)I)u\bigr)\bigr\|_{\mathrm{op}} \longrightarrow 0
+\qquad \text{almost surely.}
+\]
+Therefore $L(\hat u)L(\hat u)^\top = \rho_n^2 v v^\top + o_{\mathrm{op}}(1)$ with $\rho_n^2$ bounded away from zero, whence $|\hat v^\top v|^2 \to 1$ almost surely.
+\end{proof}
+
+\begin{remark}[Remainder lower bound and open $\tau \le 1$ regime]
+Decomposing $\hat u = \rho_n u + \sqrt{1 - \rho_n^2}\, w$ with $w \perp u$ and $\|w\|_2 = 1$, Theorem~\ref{thm:recursive} establishes $\|L(w)\|_{\mathrm{op}} = o(1)$. Since $\|L(w)\|_F = 1$ and $\rank(L(w)) \le n$, one always has $\|L(w)\|_{\mathrm{op}} \ge n^{-1/2}$, matching the $O(n^{-1/2})$ asymmetric-model rate of Montanari and Richard~\cite[Theorem~5]{Montanari2014}.
+For fixed $\tau \le 1$ ($q \ge 2$), the spectral gap between $\hat z$ and the noise bulk closes, so Step~3 does not apply; the fixed subcritical and critical cases of \texttt{conj:recursive} for $q \ge 2$ remain open here.
+\end{remark}
+
+\begin{proposition}[Critical sequences approaching from above]\label{prop:crit-seq}
+For every fixed $q \ge 2$, there exists a deterministic sequence $\tau_n \downarrow 1$ such that the recursive unfolding estimator satisfies $|\hat v^\top v|^2 \to 1$ almost surely.
+\end{proposition}
+
+\begin{proof}
+Couple the countable family of fixed strengths $1 + 1/j$ ($j \ge 1$) on a single sequence of noise tensors $\mathcal{Z}_n$. By Theorem~\ref{thm:recursive}, there exist strictly increasing deterministic indices $N_j$ such that $\Pr(\inf_{n \ge N_j} |\hat v_{n,1+1/j}^\top v|^2 < 1 - 1/j) \le 2^{-j}$. Setting $\tau_n := 1 + 1/j$ on $N_j \le n < N_{j+1}$ gives $\tau_n \downarrow 1$ and, by Borel--Cantelli, $|\hat v_n^\top v|^2 \to 1$ almost surely. This leaves fixed $\tau = 1$ open.
+\end{proof}
+
+\section{Rectangular Phase Transition (\texttt{conj:transition})}
+
+Fix $p \ge 3$ and an integer $1 \le k < p/2$, and set $b := p - k > k$. Put $m := n_k = \binom{n+k-1}{k}$, $N := n_b = \binom{n+b-1}{b}$, $D := \binom{p}{k}$, and $s := \sqrt{mN}$. Since $b > k$, $m/N = \Theta(n^{-(b-k)}) \to 0$ polynomially. Rescale to unit noise coordinates:
+\[
+\sigma^2 := \frac{k!\,b!}{n(p-1)!} = \frac{p}{nD}, \qquad
+W := \frac{\Phi_k(\mathcal{Z})}{\sigma} \in \mathbb{R}^{m \times N}, \qquad
+\ell := \frac{\lambda}{\sigma}.
+\]
+Then $W = \sqrt{D}\,\Phi_k(U_p g)$ for $g \sim \mathcal{N}(0, I_{n_p})$. For $|A| = k$ and $|B| = b$, $\Var(W_{A,B}) = D\, d_A d_B / d_{A+B} = \prod_{i=1}^n \binom{A_i + B_i}{A_i}$, and distinct rows in a fixed column $B$ have distinct multiset sums $A+B$ and hence zero covariance. Summing over $|B| = b$ extracts $[z^b]\prod_{i=1}^n (1-z)^{-1-A_i} = [z^b](1-z)^{-(n+k)}$, giving the exact centering identity
+\begin{equation}\label{eq:exact-center}
+\mathbb{E}[W W^\top] = h I_m, \qquad h := \binom{n+p-1}{b}, \qquad \frac{h}{N} \longrightarrow 1.
+\end{equation}
+We center by the exact $h$ because $h - N$ can be large compared with $s$.
+
+\subsection{Uniform Block-Exchange Covariance Bound}
+
+For a unit vector $x \in \mathbb{R}^m \cong H_k$, define $T_x : H_p \to H_b$ by $T_x g := W^\top x$. Its adjoint is $T_x^* f = \sqrt{D}\,P_p(x \otimes f)$ (identifying coordinates with symmetric tensors via $U_k, U_b, U_p$), so $\|T_x\|_{\mathrm{op}} \le \sqrt{D}$.
+
+\begin{lemma}[Block-exchange covariance estimate]\label{lem:exchange}
+Uniformly over unit vectors $x, y \in H_k$,
+\begin{equation}\label{eq:TxTy}
+\|T_x T_y^* - \langle x, y \rangle I_N\|_F \le C_p\, n^{(b-1)/2}.
+\end{equation}
+Consequently, setting $B_x := T_x^* T_x$ (which is positive semidefinite of rank at most $N$, operator norm at most $D$, and trace $h$), we have uniformly in $x, y \in \mathbb{S}^{m-1}$:
+\begin{equation}\label{eq:trBxBy}
+\tr(B_x B_y) = \|T_x T_y^*\|_F^2 = N\bigl(\langle x, y \rangle^2 + O_p(n^{-1/2})\bigr).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+On $H_b$, $T_x T_y^* = D\,(\langle x| \otimes I_{n^b})\, P_p\, (|y\rangle \otimes I_{n^b})$. Group the symmetrizing permutations in $P_p$ by the number $j \in \{0, \dots, k\}$ of slots exchanged between the first $k$ modes and the last $b$ modes. Because $x, y$ and inputs/outputs in $H_b$ are symmetric, internal permutations within each block have no effect; there are $\binom{k}{j}\binom{b}{j}$ subset choices with $j$ exchanges out of $D = \binom{p}{k}$ partitions, so the prefactor $D$ leaves coefficient $\binom{k}{j}\binom{b}{j}$.
+At $j = 0$, the term is $\langle x, y \rangle I_N$.
+For $1 \le j \le k$, the $k - j$ unexchanged indices contract between $x$ and $y$, forming the $n^j \times n^j$ matrix $(C_j)_{I,J} = \sum_H y_{IH} x_{JH}$ with $\|C_j\|_F \le \|y\|_F \|x\|_F = 1$, while the remaining $b - j$ indices pass through identically. Compressing $C_j \otimes I_{n^{b-j}}$ (up to transpose) to $H_b$ does not increase Frobenius norm, giving a contribution at most $n^{(b-j)/2} \le n^{(b-1)/2}$. Summing over $j = 1, \dots, k$ proves~\eqref{eq:TxTy}. Cyclicity gives $\tr(B_x B_y) = \|T_x T_y^*\|_F^2$, and expanding around $\langle x, y \rangle I_N$ with $N = \Theta_p(n^b)$ gives~\eqref{eq:trBxBy}.
+\end{proof}
+
+\subsection{Deformed Upper Edge via Gaussian Interpolation}
+
+Set $H := (W W^\top - h I_m) / s$. Fix a deterministic unit vector $a \in \mathbb{S}^{m-1}$ and $d \ge 0$, and let
+\[
+f(d) := \begin{cases}
+2, & 0 \le d \le 1,\\
+d + d^{-1}, & d > 1.
+\end{cases}
+\]
+
+\begin{proposition}[Deformed upper edge]\label{prop:edge}
+Almost surely, simultaneously for all fixed $d \ge 0$,
+\begin{equation}\label{eq:edge}
+\lambda_{\max}(H + d\,a a^\top) \longrightarrow f(d).
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Fix $0 < \varepsilon < 1/4$ and take an $\varepsilon$-net $\mathcal{N} \subset \mathbb{S}^{m-1}$ of cardinality $K \le (1 + 2/\varepsilon)^m$. Compare the two random fields on $\mathcal{N}$:
+\[
+F_x := x^\top H x = \frac{g^\top B_x g - \tr(B_x)}{s}, \qquad
+Y_x := x^\top G_m x,
+\]
+where $G_m$ is an independent $m \times m$ standard GOE matrix (off-diagonal variance $1/m$, diagonal variance $2/m$), so $\Cov(Y_x, Y_y) = C_{xy} := 2\langle x, y \rangle^2 / m$.
+
+\emph{Net comparison.} For any smooth $u$ with bounded first derivatives, Gaussian integration by parts on one factor of $g$ gives
+\[
+\mathbb{E}[F_x u(F)] = \sum_{y \in \mathcal{N}} \mathbb{E}[\Gamma_{xy}\,\partial_y u(F)],
+\qquad
+\Gamma_{xy} := \frac{2\, g^\top B_x B_y g}{s^2}.
+\]
+By~\eqref{eq:trBxBy}, $|\mathbb{E}\Gamma_{xy} - C_{xy}| \le C_p / (m\sqrt{n})$. The symmetric part $A_{xy} := \frac{1}{2}(B_x B_y + B_y B_x)$ satisfies $\|A_{xy}\|_{\mathrm{op}} \le D^2$ and $\|A_{xy}\|_F \le D^2 \sqrt{N}$. Diagonalizing a symmetric matrix $A$ and bounding the centered $\chi^2$ MGF yields the standard quadratic-form tail inequality
+\[
+\Pr\bigl(|g^\top A g - \tr(A)| > C(\|A\|_F \sqrt{t} + \|A\|_{\mathrm{op}} t)\bigr) \le 2e^{-t} \qquad (\forall t \ge 0).
+\]
+Taking a union bound over the $K^2 \le (1 + 2/\varepsilon)^{2m}$ pairs $(x, y)$ and integrating the tail gives
+\begin{equation}\label{eq:Gamma-err}
+\mathbb{E}\max_{x, y \in \mathcal{N}} |\Gamma_{xy} - C_{xy}|
+\le \frac{C_{p,\varepsilon}}{m}\left(n^{-1/2} + \sqrt{\frac{m}{N}} + \frac{m}{N}\right).
+\end{equation}
+Define the smooth maximum $S_\beta(z) := \beta^{-1}\log\sum_{x \in \mathcal{N}} e^{\beta(z_x + d\langle a, x \rangle^2)}$ and $Z_t := \sqrt{t}\,F + \sqrt{1-t}\,Y$ ($0 < t < 1$), following the smooth-maximum interpolation method for Gaussian quadratic forms~\cite{Koike2021}. Explicitly, $\sum_{x,y} |\partial_x \partial_y S_\beta(z)| \le 2\beta$. Differentiating $\mathbb{E} S_\beta(Z_t)$ and integrating by parts conditionally on $Y$ for $F$ and on $F$ for $Y$ gives
+\[
+\frac{d}{dt}\,\mathbb{E} S_\beta(Z_t)
+= \frac{1}{2}\sum_{x, y \in \mathcal{N}} \mathbb{E}\bigl[(\Gamma_{xy} - C_{xy})\,(\partial_x \partial_y S_\beta)(Z_t)\bigr].
+\]
+Integrating over $t \in [0, 1]$ and comparing $S_\beta$ with the net maximum yields
+\[
+\Bigl|\mathbb{E}\max_{x \in \mathcal{N}}(F_x + d\langle a, x \rangle^2) - \mathbb{E}\max_{x \in \mathcal{N}}(Y_x + d\langle a, x \rangle^2)\Bigr|
+\le \frac{2\log K}{\beta} + \beta\,\mathbb{E}\max_{x,y}|\Gamma_{xy} - C_{xy}|.
+\]
+Setting $\beta := m\log n$, both errors vanish as $n \to \infty$ at each fixed $\varepsilon$ because $m/N = \Theta(n^{-(b-k)})$ decays polynomially.
+
+\emph{Passage off the net and expectation limit.} On a $1/4$-net of size $\le 9^m$, applying the quadratic tail bound to $B_x$ ($\|B_x\|_F \le D\sqrt{N}$, $\|B_x\|_{\mathrm{op}} \le D$) at $t = m\log 9 + m + u$ gives, outside probability $2e^{-m-u}$,
+\[
+\|H\|_{\mathrm{op}} \le \frac{C_p}{s}\bigl(\sqrt{N(m+u)} + m + u\bigr) \qquad (\forall u \ge 0).
+\]
+Integrating in $u$ gives $\sup_n \mathbb{E}\|H\|_{\mathrm{op}}^2 < \infty$, and $u = 0$ gives $\|H\|_{\mathrm{op}} = O(1)$ almost surely; the same moment bound holds for $G_m$. Replacing $\lambda_{\max}$ by the $\varepsilon$-net maximum incurs error at most $2\varepsilon$ times the deformed operator norm. Letting $n \to \infty$ and then $\varepsilon \downarrow 0$ shows $\mathbb{E}\lambda_{\max}(H + daa^\top) - \mathbb{E}\lambda_{\max}(G_m + daa^\top) \to 0$. By the rank-one GOE edge theorem of Capitaine, Donati-Martin, and F\'eral~\cite{Capitaine2009} (covering all $d \ge 0$, including $d = 1$) and uniform integrability from the second-moment bound, $\mathbb{E}\lambda_{\max}(H + daa^\top) \to f(d)$.
+
+\emph{Almost-sure upgrade.} Write $S := \|[W,\ \sqrt{sd}\,a]\|_{\mathrm{op}}$, so $\lambda_{\max}(H + daa^\top) = (S^2 - h)/s$. As a function of $g$, $S$ is $\sqrt{D}$-Lipschitz because $\Phi_k$ preserves Frobenius norm up to $\sqrt{D}$. Gaussian concentration gives $|S - \mathbb{E} S| = O(\sqrt{\log n})$ almost surely and $\Var(S) = O(1)$, while~\eqref{eq:exact-center} and $\mathbb{E}\|H\|_{\mathrm{op}} = O(1)$ yield $\mathbb{E} S = O(\sqrt{N})$. Hence $(S^2 - \mathbb{E}[S^2])/s = O(\sqrt{N\log n}/s) = o(1)$ almost surely, proving~\eqref{eq:edge} for each fixed $d \ge 0$. Taking a countable intersection over rational $d \ge 0$ and using the $1$-Lipschitz dependence of $\lambda_{\max}(H + daa^\top)$ on $d$ yields~\eqref{eq:edge} simultaneously for all $d \ge 0$.
+\end{proof}
+
+\subsection{Extracting Both Singular-Vector Overlaps}
+
+\begin{theorem}[Rectangular phase transition, \texttt{conj:transition}]\label{thm:rect}
+Fix $p \ge 3$ and an integer $1 \le k < p/2$. Let $(\hat v_\ell, \hat v_r) \in \mathbb{S}^{n_k-1} \times \mathbb{S}^{n_{p-k}-1}$ be leading left and right singular vectors of $\Phi_k(\lambda v^{\otimes p} + \mathcal{Z})$ with $\mathcal{Z} \sim \GOTE_{p,n}$. Writing
+\begin{align*}
+\tau_\ell &:= \frac{\lambda}{\gamma_{\ell,p,k}\, n^{(p-2)/4}}, &
+\gamma_{\ell,p,k} &:= \left(\frac{k!(p-k)!}{(p-1)!^2}\right)^{1/4},\\
+\tau_r &:= \frac{\lambda}{\gamma_{r,p,k}\, n^{(p-k-1)/2}}, &
+\gamma_{r,p,k} &:= \left(\frac{k!}{(p-1)!}\right)^{1/2},
+\end{align*}
+one has, almost surely for every fixed $\tau_\ell \ge 0$ (including $\tau_\ell = 1$) and every fixed $\tau_r \ge 0$,
+\begin{equation}\label{eq:rect-limits}
+|\hat v_\ell^\top v^{\odot k}|^2 \longrightarrow (1 - \tau_\ell^{-4})^+
+\qquad \text{and} \qquad
+|\hat v_r^\top v^{\odot(p-k)}|^2 \longrightarrow \frac{\tau_r^2}{1 + \tau_r^2}.
+\end{equation}
+More generally, for any deterministic sequence $\lambda_n \ge 0$, $|\hat v_\ell^\top v^{\odot k}|^2 - (1 - \tau_{\ell,n}^{-4})^+ \to 0$ and $|\hat v_r^\top v^{\odot(p-k)}|^2 - \tau_{r,n}^2/(1 + \tau_{r,n}^2) \to 0$ almost surely.
+\end{theorem}
+
+\begin{proof}
+Set $a := v^{\odot k} \in \mathbb{S}^{m-1}$, $c := v^{\odot b} \in \mathbb{S}^{N-1}$, $V := W + \ell a c^\top = \Phi_k(\mathcal{X})/\sigma$, $t_n := \ell^2 / s$, and $r_n := \ell / \sqrt{N}$, so $r_n^2 = t_n \sqrt{m/N}$.
+
+For any fixed $x \in \mathbb{S}^{m-1}$, $x^\top W c = \langle T_x^* c, g \rangle$ is centered Gaussian with variance $\|T_x^* c\|_2^2 \le D$; a $1/2$-net of $\mathbb{S}^{m-1}$ of size $\le 5^m$ gives $\|W c\|_2 = O(\sqrt{m})$ almost surely. Expanding $VV^\top$ gives
+\[
+\frac{V V^\top - h I_m}{s} = H + t_n a a^\top + E_n,
+\qquad
+E_n := \frac{\ell}{s}\bigl((Wc)a^\top + a(Wc)^\top\bigr),
+\]
+with $\|E_n\|_{\mathrm{op}} \le 2\ell \|Wc\|_2 / s = O(r_n)$ almost surely.
+
+\emph{Left overlap.} Let $x_n = \hat v_\ell$. If $t_n \to t \in [0, \infty)$, then $r_n \to 0$ and $\|E_n\|_{\mathrm{op}} = o(1)$, so $x_n^\top(H + taa^\top)x_n = \lambda_{\max}(H + taa^\top) + o(1)$. For any $\delta > 0$, testing $x_n$ against $H + (t \pm \delta)aa^\top$ bounds $|a^\top x_n|^2$ between the backward and forward difference quotients of $d \mapsto \lambda_{\max}(H + daa^\top)$ at $t$ with step $\delta$, up to $o(1)/\delta$ (for $t = 0$, use nonnegativity and the forward quotient). Applying Proposition~\ref{prop:edge} as $n \to \infty$ and then sending $\delta \downarrow 0$ yields $|a^\top x_n|^2 \to f'(t) = (1 - t^{-2})^+$, since $f$ is continuously differentiable on $[0, \infty)$ including $f'(1) = 0$. If $t_n \to \infty$, then $\|H + E_n\|_{\mathrm{op}} / t_n = O(t_n^{-1} + \sqrt{m}/\ell) = o(1)$, so the Rayleigh principle yields $|a^\top x_n|^2 \to 1$.
+
+\emph{Right overlap.} Let $s_1 := \|V\|_{\mathrm{op}}$. By the triangle inequality on $VV^\top$,
+\[
+|s_1^2 - (h + \ell^2)| \le s\|H\|_{\mathrm{op}} + 2\ell \|Wc\|_2 = O\bigl(\sqrt{mN} + \ell\sqrt{m}\bigr) = o(N + \ell^2)
+\]
+uniformly in $\ell \ge 0$ since $m/N \to 0$ and $h/N \to 1$. Hence $s_1^2 / (N + \ell^2) \to 1$ almost surely. For $y_n = V^\top x_n / s_1 = \hat v_r$,
+\[
+|c^\top y_n| = \frac{|\ell\,a^\top x_n + (Wc)^\top x_n|}{s_1}.
+\]
+Because $|(Wc)^\top x_n| / s_1 = O(\sqrt{m/(N+\ell^2)}) \to 0$, we obtain $|c^\top y_n|^2 \to 0$ whenever $r_n \to 0$. Whenever $r_n \to r \in (0, \infty]$, we have $t_n = r_n^2 \sqrt{N/m} \to \infty$, hence $|a^\top x_n| \to 1$ and $|c^\top y_n|^2 = r_n^2 / (1 + r_n^2) + o(1)$.
+
+\emph{Constants and tracking.} Since $m \sim n^k / k!$, $N \sim n^b / b!$, and $\sigma^2 = k!b!/(n(p-1)!)$,
+\[
+\sigma (mN)^{1/4} \sim \gamma_{\ell,p,k}\, n^{(p-2)/4}, \qquad
+\sigma \sqrt{N} \sim \gamma_{r,p,k}\, n^{(b-1)/2},
+\]
+so $t_n \sim \tau_{\ell,n}^2$ and $r_n \sim \tau_{r,n}$. Passing to convergent subsequences in $[0, \infty]$ establishes~\eqref{eq:rect-limits} and uniform tracking for arbitrary deterministic sequences $\lambda_n \ge 0$.
+\end{proof}
+
+\section{Reproducible Numerical Checks}
+
+Running the verification script from the project root via
+\begin{quote}\small\ttfamily
+VECLIB\_MAXIMUM\_THREADS=1 OPENBLAS\_NUM\_THREADS=1\\
+.venv/bin/python -B solutions/sym\_tensor\_unfolding/explore.py
+\end{quote}
+(seed \texttt{261105137}) checks compact vs.\ dense singular values, the exact centering~\eqref{eq:exact-center}, and the block-exchange expansion in Lemma~\ref{lem:exchange} on all nine $(p, k)$ pairs ($2 \le p \le 6$, $1 \le k \le \lfloor p/2 \rfloor$) to tolerance $2 \times 10^{-13}$, then simulates 432 independent GOTE tensors across 18 $(p, k, n)$ settings (24 repetitions each, 120 grid rows, 2,880 spiked fits; Table~\ref{tab:checks}). Finite-size effects are noticeable at small $n$ for high-order splits; standard errors reflect only Monte Carlo uncertainty around the finite-$n$ mean.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+$(p, k, n)$ & Scale \& $\tau$ & Lifted / left overlap (SE) & Recursive / right overlap (SE) & Limit \\
+\midrule
+$(2, 1, 160)$ & $L = 2.0$ & $0.7360\ (0.0058)$ & $0.7360\ (0.0058)$ & $0.75$ / $0.75$ \\
+$(4, 2, 28)$  & $L = 0.6$ & $0.0072\ (0.0021)$ & $0.0394\ (0.0161)$ & $0$ / open \\
+$(4, 2, 28)$  & $L = 2.0$ & $0.7035\ (0.0074)$ & $0.9688\ (0.0020)$ & $0.75$ / $1$ \\
+$(6, 3, 12)$  & $L = 2.0$ & $0.3884\ (0.0269)$ & $0.9264\ (0.0184)$ & $0.75$ / $1$ \\
+$(3, 1, 64)$  & $L = 0.6$ & $0.0191\ (0.0050)$ & $0.0019\ (0.0006)$ & $0$ / $0$ \\
+$(3, 1, 64)$  & $L = 2.0$ & $0.9010\ (0.0031)$ & $0.3788\ (0.0055)$ & $0.9375$ / $0$ \\
+$(3, 1, 64)$  & $R = 1.0$ & $0.9413\ (0.0018)$ & $0.4738\ (0.0048)$ & $1$ / $0.5$ \\
+$(5, 2, 16)$  & $R = 2.0$ & $0.9084\ (0.0043)$ & $0.6822\ (0.0078)$ & $1$ / $0.8$ \\
+\bottomrule
+\end{tabular}
+\caption{Representative squared-overlap means and Monte Carlo SEs from \texttt{explore.py} ($L$ fixes $\tau$ or $\tau_\ell$; $R$ fixes $\tau_r$).}
+\label{tab:checks}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Capitaine2009}
+M.~Capitaine, C.~Donati-Martin, and D.~F\'eral,
+\emph{The largest eigenvalues of finite rank deformation of large Wigner matrices: Convergence and nonuniversality of the fluctuations},
+Ann.\ Probab.\ \textbf{37}(1):1--47, 2009 (\href{https://arxiv.org/abs/0706.0136}{arXiv:0706.0136}).
+
+\bibitem{Feldman2023}
+M.~J.~Feldman,
+\emph{Spiked singular values and vectors under extreme aspect ratios},
+J.\ Multivariate Anal.\ \textbf{196}:105187, 2023.
+
+\bibitem{Koike2021}
+Y.~Koike,
+\emph{Notes on the dimension dependence in high-dimensional central limit theorems for hyperrectangles},
+Jpn.\ J.\ Stat.\ Data Sci.\ \textbf{4}:257--297, 2021 (\href{https://arxiv.org/abs/1709.00353}{arXiv:1709.00353}).
+
+\bibitem{Montanari2014}
+A.~Montanari and E.~Richard,
+\emph{A statistical model for tensor PCA},
+Advances in Neural Information Processing Systems (NeurIPS), 2014 (\href{https://arxiv.org/abs/1411.1076}{arXiv:1411.1076}).
+
+\bibitem{Szwagier2026}
+T.~Szwagier, X.~Mai, and J.~H.~de M.~Goulart,
+\emph{A Random Matrix Analysis of Symmetric Tensor Unfolding},
+\href{https://arxiv.org/abs/2611.05137}{arXiv:2611.05137}.
+
+\end{thebibliography}
+
+\end{document}

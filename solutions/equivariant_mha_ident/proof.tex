@@ -1,0 +1,184 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\GL}{GL}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\softmax}{softmax}
+
+\title{\bfseries Weak Identifiability of Softmax Multi-Head Attention Networks}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: V.~Shahverdi, G.~L.~Marchetti, G.~B\"okman, and K.~Kohn,\\
+\emph{Identifiable Equivariant Networks are Layerwise Equivariant},\\
+\href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645} (v1, v2, and ICML 2026 camera-ready), Section~5.2\\[0.35em]
+Companion verification script: \texttt{solutions/equivariant\_mha\_ident/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve the multi-head attention (MHA) weak-identifiability problem posed in Section~5.2 of Shahverdi, Marchetti, B\"okman, and Kohn (\href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645}).
+On expanding-width pure-attention stacks, both the fixed-parameter weak-identifiability conjecture and the weaker representative version are \emph{false generically}.
+Specifically, any depth-$2$ pure-attention function with scalar input tokens whose output token rows span a space of dimension at least~$2$ admits no identifiable realization in any depth-$2$ MHA submodel, because the last-layer per-head block rank multiset can be altered without changing the end-to-end map.
+On the $(1, 3, 3)$ architecture with two hidden heads and $n \ge 2$ tokens, this obstruction holds on an open, dense, full-measure subset; moreover, the same explicit parameter is end-to-end equivariant under $g = \diag(1, 1, 2)$ on outputs yet admits no invertible token-wise hidden lift.
+In sharp contrast, at constant token width $d_0 = \dots = d_L = d \ge 1$ and sequence length $n \ge 2$, we prove that ordinary layer-function identifiability holds \emph{generically} (on an open dense set with Lebesgue-null complement) at every finite depth $L \ge 1$, against arbitrary competitors.
+\end{abstract}
+
+\section{Architecture and Formal Definitions}
+
+Following Section~5.2 of \href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645}, represent sequences of $n$ tokens as row matrices. Layer $i \in \{1, \dots, L\}$ takes a flattened array $X \in \mathbb{R}^{n \times (h_{i-1} d_{i-1})}$, aggregates across incoming heads via $Z = X O_i$ with $O_i \in \mathbb{R}^{(h_{i-1} d_{i-1}) \times d_{i-1}}$, and outputs the concatenated heads
+\[
+H_{ij} = T_{A_{ij}}(Z)\, V_{ij}, \qquad
+T_A(Z) := \softmax_{\mathrm{row}}(Z A Z^\top) Z \qquad (j = 1, \dots, h_i),
+\]
+where $A_{ij} \in \mathbb{R}^{d_{i-1} \times d_{i-1}}$ and $V_{ij} \in \mathbb{R}^{d_{i-1} \times d_i}$ are unrestricted, $h_0 = h_L = 1$, and there are no biases, masks, skip connections, or normalizations. Note that head aggregation occurs at the start of the next layer with aggregate width $d_i$.
+
+At each internal boundary $i \in \{1, \dots, L-1\}$, the latent symmetry group $K_i = \GL(d_i)^{h_i} \rtimes S_{h_i}$ permutes the $h_i$ heads and applies an invertible linear map within each head, identically across all $n$ tokens; endpoint groups $K_0, K_L$ are trivial.
+Under Definitions~3.4 and~3.5 of \href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645}:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item A parameter $\theta \in \Theta$ is \emph{identifiable} if for every competitor $\theta' \in \Theta$ defining the same end-to-end map, there is a unique sequence $(k_1, \dots, k_{L-1}) \in K_1 \times \dots \times K_{L-1}$ such that $f'_i = k_i \circ f_i \circ k_{i-1}^{-1}$ on the entire ambient domain of layer $i$ ($k_0 = I, k_L = I$).
+\item A parameter $\theta$ is \emph{weakly identifiable} if it is the image of an identifiable parameter $\tilde{\theta}$ of a same-depth, same-class MHA submodel with linear embeddings $\alpha_i$ ($\alpha_i^*\alpha_i = I$), injective group homomorphisms, trivial endpoint maps, and $f_i(\cdot; \beta_i(\tilde{\theta}_i)) = \alpha_i \tilde{f}_i(\alpha_{i-1}^* \cdot; \tilde{\theta}_i)$. In particular, any such submodel realizes the same end-to-end function.
+\end{itemize}
+(The camera-ready source contains a disabled conjecture requiring every $\theta$ to be weakly identifiable directly; the active §5.2 text in arXiv~v1 and~v2 weakens this to existence of a weakly identifiable equal-function representative. Both fail on expanding widths.)
+
+\section{Generic Refutation on Expanding-Width Architectures}
+
+\subsection{Output-span rank-multiset obstruction}
+
+\begin{theorem}[Output-span obstruction]\label{thm:span}
+Fix $L = 2$ and scalar input tokens ($d_0 = 1$). If the rows of the outputs of a depth-$2$ MHA network, taken over all inputs and token positions, span a subspace of dimension at least $2$, then the end-to-end function has no identifiable realization in any depth-$2$ MHA architecture of this class (allowing arbitrary hidden head count $h$ and width $d$). Consequently, no representative of the function is weakly identifiable.
+\end{theorem}
+
+\begin{proof}
+Consider any depth-$2$ realization with hidden head count $h$ and width $d$. Because $d_0 = 1$, each first-layer value matrix $V_{1j} \in \mathbb{R}^{1 \times d}$ has rank at most~$1$, so all reachable token rows in head $j$ lie in a subspace $U_j \subseteq \mathbb{R}^d$ with $\dim U_j \le 1$. Partition $O_2$ into vertical blocks $P_1, \dots, P_h \in \mathbb{R}^{d \times d}$ and set $V := V_{21} \in \mathbb{R}^{d \times d_2}$. Every output row lies in the row space of $V$, so $\rank(V) \ge 2$ and hence $d \ge 2$.
+\begin{enumerate}[leftmargin=2em,label=\textup{(\arabic*)}]
+\item Let $\Pi_j$ be the orthogonal projector onto $U_j$ ($0$ if $U_j = 0$) and set $P_j^0 := \Pi_j P_j$. Every reachable hidden array $H$ satisfies $H_j \Pi_j = H_j$, so replacing $P_j$ by $P_j^0$ preserves every projected token $Z = \sum_j H_j P_j$ and thus the end-to-end map. Each product $P_j^0 V$ now has rank at most~$1$.
+\item Since the end-to-end map is nonzero, some $P_s^0 V \neq 0$. Choose a unit column $u \in U_s^\perp \subseteq \mathbb{R}^d$ (existing since $\dim U_s \le 1 < 2 \le d$) and a row $w \in \mathbb{R}^{1 \times d}$ such that $wV$ lies outside the $1$-dimensional row space of $P_s^0 V$ (existing since $\rank(V) \ge 2$). Replace only $P_s^0$ by $P_s^1 := P_s^0 + u w$. Because $H_s u = 0$ on reachable inputs, the end-to-end map is unchanged, while $P_s^1 V = P_s^0 V + u(wV)$ has rank~$2$ (it retains its nonzero image on $U_s$ and sends $u^\top$ to $wV$).
+\item Feed layer~$2$ constant-token hidden arrays whose only nonzero head is head $j$, with common row $x \in \mathbb{R}^{1 \times d}$. Since row-wise softmax leaves constant rows fixed, layer~$2$ outputs $x P_j V$ in every row. Any $k_1 \in K_1 = \GL(d)^h \rtimes S_h$ permutes these $h$ linear maps and precomposes each by an invertible matrix, preserving the rank multiset $\{\rank(P_j V)\}_{j=1}^h$. Because the two equal-function realizations have different rank multisets (maximum rank $\le 1$ vs.~$2$), they belong to distinct layer-function orbits.
+\end{enumerate}
+By transitivity of the group action, no parameter in this fiber is identifiable. Because every candidate submodel has the same scalar input, output, depth, and MHA layer rule, applying this argument inside the submodel refutes weak identifiability for every representative.
+\end{proof}
+
+\subsection{Explicit open dense counterexample and equivariance-lift refutation}
+
+Take $n \ge 2$, $(d_0, d_1, d_2) = (1, 3, 3)$, $(h_0, h_1, h_2) = (1, 2, 1)$, and let $e_j \in \mathbb{R}^{1 \times 3}$ be the $j$-th standard basis row. Set
+\begin{equation}\label{eq:counterex}
+O_1 = [1], \quad A_{11} = [1], \quad A_{12} = [2], \quad V_{11} = e_1, \quad V_{12} = e_2,
+\qquad
+O_2 = \begin{bmatrix} I_3 \\ I_3 \end{bmatrix}, \quad A_{21} = V_{21} = I_3.
+\end{equation}
+On the all-ones input $\mathbf{1}$, every output row is $(1, 1, 0)$. On $(1, 0, \dots, 0)^\top$, the projected special row is $(p_1, p_2, 0)$ with $p_a := e^a / (n - 1 + e^a)$ ($p_2 > p_1$), while every other projected row is $(1/n, 1/n, 0)$. Every output row places strictly positive weight on the special row and therefore has second coordinate strictly larger than its first. Hence the output rows span a $2$-dimensional subspace, and Theorem~\ref{thm:span} applies. Concretely, replacing the two $I_3$ blocks of $O_2$ by $e_1^\top e_1$ and $e_2^\top e_2$ preserves the end-to-end map while changing the last-layer rank multiset from $\{3, 3\}$ to $\{1, 1\}$.
+
+The $2 \times 2$ determinant of the first two coordinates of output row~$1$ on these two fixed inputs is real-analytic in all weights and nonzero at~\eqref{eq:counterex}, hence nonzero on an open, dense, full-measure subset. Intersecting with maximal-rank weights and distinct first-layer scores yields \emph{generic failure} of weak identifiability in $(1, 3, 3)$.
+
+\begin{proposition}[Failure of equivariance lift]\label{prop:lift}
+The parameter~\eqref{eq:counterex} is end-to-end equivariant under $g = \diag(1, 1, 2)$ on output tokens (and trivial action on inputs), yet admits no invertible token-wise hidden lift $M \in \GL(6)$ (in particular, no lift in $K_1$). The same determinant obstruction holds generically in $(1, 3, 3)$.
+\end{proposition}
+
+\begin{proof}
+Every output row of~\eqref{eq:counterex} has third coordinate $0$, so $g = \diag(1, 1, 2)$ fixes every end-to-end output (and postcomposition by $g$ is absorbed by $V_{21}$ in every MHA submodel). Suppose an invertible $M \in \GL(6)$ satisfied $f_2(HM) = f_2(H)g$ for all $H \in \mathbb{R}^{n \times 6}$. Constant-token hidden arrays force $M O_2 = O_2 g$. Since $O_2$ is surjective, $Z = H O_2$ ranges over all of $\mathbb{R}^{n \times 3}$, giving $T_{I_3}(Z g) = T_{I_3}(Z) g$ for every $Z$. Taking $Z$ with first row $e_3$ and all other rows $0$ yields third coordinate $2p_4$ on the left and $2p_1$ on the right, contradicting $p_4 \neq p_1$. (Equivalently, changing $V_{21}$ from $I_3$ to $g$ gives an equal-function competitor outside the $K_1$-orbit.)
+
+Generically in $(1, 3, 3)$, the two incoming value lines mapped through $O_2 V$ span a $2$-dimensional plane; let $g$ fix that plane pointwise and double its orthogonal complement ($\det g = 2$). When $O_2$ is surjective and $A = A_{21}, V = V_{21}$ are invertible, constant tokens force $M O_2 = O_2 R$ with $R = V g V^{-1}$ ($\det R = 2$), while Lemma~\ref{lem:single} below forces $R A R^\top = A$, contradicting $(\det R)^2 = 1$.
+\end{proof}
+
+\section{Single-Head Test, Orbit Criterion, and Degeneracies}
+
+\begin{lemma}[Single-head determination and exact orbit test]\label{lem:single}
+Write a single head on flattened inputs as $T_E(X) D$ with $E = O A O^\top$ and $D = O V$. Constant-token inputs determine $D$. For $n \ge 2$, if $D \neq 0$ then the map $X \mapsto T_E(X) D$ uniquely determines $E$. Consequently, a sequence $M_i \in K_i$ (block permutation $\pi_i$ with invertible feature blocks $D_{ij}$, $M_0 = M_L = I$) relates two layer-function tuples with effective parameters $(E_{ij}, C_{ij}) = (O_i A_{ij} O_i^\top, O_i V_{ij})$ if and only if, for all $i, j$,
+\[
+C'_{i, \pi_i(j)} = M_{i-1}^{-1} C_{ij} D_{ij}, \qquad
+E'_{i, \pi_i(j)} = M_{i-1}^{-1} E_{ij} M_{i-1}^{-\top}
+\]
+(omitting the $E$-equation whenever $C_{ij} = 0$ or $n = 1$).
+\end{lemma}
+
+\begin{proof}
+Constant rows evaluate $T_E(X)D$ to $xD$, fixing $D$. For $n \ge 2$, feed $n - 1$ copies of a row $x$ and one row $x + v$; each common row outputs
+\[
+x D + \sigma_n(x E v^\top)\, v D, \qquad
+\sigma_n(s) := \frac{1}{1 + (n - 1)e^{-s}}.
+\]
+If $D \neq 0$, then $\{v : vD \neq 0\}$ is dense; strict monotonicity of $\sigma_n$ determines $x E v^\top$ for all $x$ and dense $v$, hence determines $E$. Applying this headwise yields the orbit equations.
+\end{proof}
+
+\begin{remark}[Parameter freedoms and the $n = 2$ opposite-score exception]
+Within any layer, replacing $(O_i, A_{ij}, V_{ij})$ by $(O_i R,\, R^{-1} A_{ij} R^{-\top},\, R^{-1} V_{ij})$ for any $R \in \GL(d_{i-1})$ leaves every layer function unchanged (just as query/key factorization $A = QK^\top$ leaves $A$ unchanged). Tied scores allow redistributing $\sum_j V_{ij} P_{ij}$, and zero outgoing blocks allow arbitrary upstream changes. Furthermore, at $n = 2$, $T_A(X) + T_{-A}(X)$ outputs the row sum on both rows. Taking depth~$2$, constant width $d$, first-layer heads $(I, I)$ and $(-I, I)$, $O_1 = I$, $O_2 = [I; I]$, and $(A_{21}, V_{21}) = (I, I)$ produces a map doubling the row mean, intertwining input doubling $X \mapsto 2X$ with output doubling. Any $K_1$-lift would double both heads (by constant tokens), scaling effective first-layer scores from $\pm I$ to $4I$, violating Lemma~\ref{lem:single}. Thus even square invertible weights with distinct scores can fail at exceptional parameters.
+\end{remark}
+
+\section{Generic Identifiability at Constant Width}
+
+\begin{theorem}[Generic constant-width identifiability]\label{thm:constwidth}
+Fix $n \ge 2$, depth $L \ge 1$, arbitrary internal head counts $h_1, \dots, h_{L-1} \ge 1$ ($h_0 = h_L = 1$), and constant width $d_0 = \dots = d_L = d \ge 1$. On an open dense subset of the parameter space with Lebesgue-null complement, every parameter $\theta$ is identifiable: every same-architecture competitor $\theta'$ (even exceptional) realizing the same end-to-end map is related to $\theta$ by a unique sequence in $K_1 \times \dots \times K_{L-1}$.
+\end{theorem}
+
+\begin{proof}
+We proceed in five steps.
+
+\emph{Step 1: Normalization in output coordinates.}
+Partition $O_{i+1}$ into vertical blocks $P_{ij} \in \mathbb{R}^{d \times d}$ ($i < L$), set $S_i := \sum_j V_{ij} P_{ij}$ ($i < L$), $S_L := V_{L1}$, and $U_i := S_i \cdots S_L$. On constant tokens, the end-to-end map multiplies every row on the right by $C := O_1 U_1$. Generically $C$ is invertible, and since any equal-function competitor shares $C$, its square factors $O'_1$ and $S'_i$ are automatically invertible. Changing coordinates to $Y = Z U_i$ writes the stack as $Y_0 = X C$ followed by $L$ normalized blocks
+\[
+B_i(Y) = \sum_{j=1}^{h_i} T_{a_{ij}}(Y)\, b_{ij}, \qquad \sum_{j=1}^{h_i} b_{ij} = I_d,
+\]
+where $a_{ij} := U_i^{-1} A_{ij} U_i^{-\top}$, $D_{ij} := U_i^{-1} V_{ij}$, and $b_{ij} := D_{ij} P_{ij} U_{i+1}$ for $i < L$ ($D_{L1} = b_{L1} = I_d$). Generically (defined by nonvanishing polynomials on raw weights), every $b_{ij}$ is invertible, every $a_{ij} \neq 0$, within each layer no two scores satisfy $a_{ij} = \pm a_{ik}$ ($j \neq k$), and at $n = 2$ every nonempty subset sum satisfies $\sum_{j \in J} b_{ij} \neq 0$ (attainable simultaneously with positive scalar multiples of $I_d$).
+
+\emph{Step 2: Extracting the first block.}
+Feed $Y_0$ with $n - 1$ rows equal to $m/t$ and one special row $m/t + t v$ ($t \downarrow 0$). In block~$1$, head $j$ assigns the special token probability $\sigma_n(m a_j v^\top)$ on common rows and $\sigma_n(m a_j v^\top + t^2 v a_j v^\top)$ on the special row. Hence every row leaving block~$1$ equals
+\[
+\frac{m}{t} + t\, R_1(m, v) + O(t^3), \qquad
+R_1(m, v) := \sum_{j=1}^{h_1} \sigma_n(m a_j v^\top)\, v b_j.
+\]
+Every subsequent block forms convex combinations of rows within $O(t^3)$ of a common vector and sums its feature matrices to $I_d$, preserving this expansion verbatim. Thus the end-to-end map determines $R_1(m, v)$ identically.
+
+\emph{Step 3: Recovering unordered score/coefficient pairs.}
+Compare $R_1$ for $\theta$ and a competitor $\theta'$. Excluding the zeros of finitely many nonzero bilinear forms gives a dense open set of pairs $(m, v)$ on which the frequencies $q_a := m a v^\top$ over the combined score lists have no coincidences or sign coincidences except those forced by equal or opposite matrices. Replacing $m$ by $sm$ gives a scalar identity in $\sigma_n(s q_a)$ with row coefficients $v b$.
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item For $n > 2$, the meromorphic continuations of $\sigma_n(sq)$ for distinct nonzero real $q$ have simple poles on the distinct vertical lines $\operatorname{Re} s = \log(n - 1)/q$, so they together with $1$ are linearly independent. Each of the $h_1$ distinct nonzero scores $a_j$ (having invertible $b_j$, so $v b_j \neq 0$ generically) must be matched in $\theta'$ with equal coefficient; equal head counts force a bijection, and varying $v$ recovers every $b_j$.
+\item For $n = 2$, use $\sigma_2(-s) = 1 - \sigma_2(s)$. The functions $\sigma_2(qs)$ ($q > 0$) and $1$ are linearly independent: the nearest upper-half-plane pole $i\pi / q_{\max}$ isolates the largest frequency, and iterating peels off all terms. Thus each $a_j$ matches a unique competitor score $\pm a_j$ with coefficient $\pm b_j$. Collecting the constant terms from any flipped subset $J$ forces $v \sum_{j \in J} b_j = 0$ for generic $v$, hence $\sum_{j \in J} b_j = 0$; the subset-sum condition forces $J = \varnothing$, giving exact recovery.
+\end{itemize}
+
+\emph{Step 4: Peeling subsequent blocks.}
+Two-type sequences are parametrized by pairs of rows in $\mathbb{R}^{2d}$, and every block preserves this family. In raw coordinates, evaluate the unnormalized block $Z \mapsto \sum_j T_{A_{ij}}(Z) V_{ij} P_{ij}$ at $A_{ij} = I_d$, $V_{ij} P_{ij} = I_d / h_i$, and the row pair $(r e_1, -r e_1)$. Cross-type attention probabilities are $O_n(e^{-2r^2})$, while differentiating them and multiplying by row differences contributes $O(r^2)$, so the $2d \times 2d$ Jacobian converges to $I_{2d}$ as $r \to \infty$. Fixing finite $r$ where its determinant is nonzero defines a real-analytic function of the raw weights that is nonzero generically. By the inverse function theorem and invertibility of $U_i, U_{i+1}$, each nonfinal block's two-type image contains an open subset of $\mathbb{R}^{2d}$. Since $B_1 = B'_1$, the remaining tails agree on that open set, and hence on all of $\mathbb{R}^{2d}$ by real-analyticity. Iterating Steps~2--4 recovers all normalized blocks up to separate head permutations.
+
+\emph{Step 5: Unique lift to $K_1 \times \dots \times K_{L-1}$.}
+After aligning matched head indices in each layer $i < L$, invertibility of $b_{ij} = D_{ij} P_{ij} U_{i+1} = D'_{ij} P'_{ij} U'_{i+1}$ implies invertibility of $D_{ij}, D'_{ij}, P_{ij}, P'_{ij}$. Right-multiplying head $j$ by $D_{ij}^{-1} D'_{ij} \in \GL(d)$ transforms head $j$ of $\theta$ to head $j$ of $\theta'$ in common normalized inputs and satisfies $(D_{ij}^{-1} D'_{ij}) P'_{ij} U'_{i+1} = P_{ij} U_{i+1}$, ensuring identical normalized inputs to layer $i+1$ on all hidden arrays. Since $X C$ is shared and $D_{L1} = I_d$, this yields a transporter in $K_1 \times \dots \times K_{L-1}$ with trivial endpoints. For uniqueness, induct from $i = 1$: once $k_{i-1}$ is fixed, both layers receive the same full-range normalized input $Y$ (since $O_1$ is invertible and each $O_i$ is surjective); constant tokens fix the feature map for any head match $j \mapsto k$ as $D_{ij}^{-1} D'_{ik}$, and Lemma~\ref{lem:single} forces $a_{ij} = a'_{ik}$, fixing the permutation uniquely by score distinctness.
+\end{proof}
+
+\section{Numerical Verification}
+
+The script \texttt{solutions/equivariant\_mha\_ident/explore.py} (NumPy, seed \texttt{21645}) checks all constructions:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Expanding $(1, 3, 3)$ witness ($n = 3$):} output-span minor $0.095121516$; last-layer block ranks $(3, 3)$ vs.~$(1, 1)$; agreement on $64$ random inputs with both equal-function competitors; forced lift for $g = \diag(1, 1, 2)$ fails by $0.777092542$ on the $e_3$ hidden probe; all $32$ random maximal-rank expanding models pass the rank and determinant checks.
+\item \emph{Degeneracies:} tied-head value redistribution, zero-value score invisibility, unused-head variation, and the $n = 2$ opposite-score non-liftable equivariance all pass.
+\item \emph{Constant-width $(2, 2, 2, 2)$, heads $(2, 2, 1)$:} complex-step differentiation across all $32$ gauge-fixed normalized coordinates gives full numerical rank $32/32$ at $n = 2$ (min/max singular-value ratio $4.25 \times 10^{-5}$) and $n = 3$ ($1.30 \times 10^{-3}$), with first-block asymptotic recovery error at $t = 0.002$ equal to $4.50 \times 10^{-6}$ ($n = 2$) and $1.32 \times 10^{-7}$ ($n = 3$).
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{shahverdi2026}
+V.~Shahverdi, G.~L.~Marchetti, G.~B\"okman, and K.~Kohn,
+\emph{Identifiable Equivariant Networks are Layerwise Equivariant},
+\href{https://arxiv.org/abs/2601.21645}{arXiv:2601.21645}, v1, v2, and ICML 2026 camera-ready.
+\end{thebibliography}
+
+\end{document}

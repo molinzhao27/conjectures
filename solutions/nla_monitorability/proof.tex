@@ -1,0 +1,236 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\AUC}{AUC}
+\DeclareMathOperator{\AV}{AV}
+\DeclareMathOperator{\AR}{AR}
+\DeclareMathOperator{\MI}{I}
+\DeclareMathOperator{\Ent}{\mathsf{H}}
+\DeclareMathOperator{\sgn}{sgn}
+
+\title{\bfseries Resolution of the Natural Language Autoencoder Monitorability Conjectures}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: K.~Y.~Denamgana\"i,\\
+\emph{On the Monitorability of Natural Language Autoencoders: Identification vs Discrimination},\\
+\href{https://arxiv.org/abs/2610.18727}{arXiv:2610.18727}, Conjectures~\texttt{conj:idnodisc} and \texttt{conj:paraphrase}\\[0.35em]
+Companion verification script: \texttt{solutions/nla\_monitorability/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We settle all seven precise sub-claims of Conjectures~\texttt{conj:idnodisc} and \texttt{conj:paraphrase} in Denamgana\"i (\href{https://arxiv.org/abs/2610.18727}{arXiv:2610.18727}).
+For \texttt{conj:idnodisc}, an $n$-state orthogonal codebook attains the global generative minimum $J = 0$ and provenance $\AUC = 1$ while yielding strict truth $\AUC$ equal to $0$ (midrank $1/2$, zero score bits), $1/2$, or $1$ depending solely on zero-probability rival outputs, proving part~(a); we also expose a sharp structural tension between $J = 0$ and the paper's informal ``ties do not occur'' remark, and construct a tie-free 2-symbol planar Gaussian optimum with truth $\AUC = \frac{1}{2} + \frac{\alpha}{2\pi}$.
+For part~(b), angular $L$-Lipschitzness gives the sharp chord bound $|D| \le 2\sin(\frac{1}{2}\min\{Lw,\pi\}) \le Lw$, literal additive independent Gaussian noise inside the bounded cosine difference is impossible, and a coherent external-noise readout model yields $|\AUC - \frac{1}{2}| \le Lw/(\sigma\sqrt{2\pi})$ with $C = 1$.
+We refute part~(c) across all candidate-coupling interpretations and refute part~(d) by exhibiting an open, full-measure set of perfect-ranking minimizers under the product uniform sphere measure.
+For \texttt{conj:paraphrase}, we prove the sharp $2\varepsilon$ margin sandwich of part~(a) (noting that arbitrarily small uniform $\varepsilon$ can still flip strict $\AUC$ from $1$ to $0$), refute part~(b) via a 50-token blue/red/scarlet counterexample with zero matched authorship control damage, and refute both inequalities of part~(c) against the decision-theoretic steganographic gap of Anwar et~al.\ (\href{https://arxiv.org/abs/2602.23163}{arXiv:2602.23163}).
+\end{abstract}
+
+\section{Setup: The Two Games and Scoring Conventions}
+
+In Setting~1 (generative training), let $U := H/\|H\| \in S^{n-1}$ be the unit activation direction, $Z \sim \AV(\cdot \mid H)$ the verbalized explanation, and $v(c) := \AR(c)/\|\AR(c)\| \in S^{n-1}$ the normalized nonzero $\AR$ reconstruction. The generative cosine loss is $J := 1 - \mathbb{E}[U \cdot v(Z)]$. Conditioning on each emitted string $z$ and maximizing $v(z) \cdot \mathbb{E}[U \mid Z = z]$ over $v(z) \in S^{n-1}$ yields the exact Bayes risk for any fixed speaker,
+\[
+\inf_{v} J = 1 - \mathbb{E}\bigl\|\mathbb{E}[U \mid Z]\bigr\|,
+\]
+attained whenever $v(z) = \mathbb{E}[U \mid Z = z] / \|\mathbb{E}[U \mid Z = z]\|$ on the support of $Z$ (with nonzero conditional mean). Strings of emission probability zero impose no constraint on $v$, and neither the truth relation $R \subseteq \mathcal{H} \times \mathcal{A}$ nor any distractor sampler enters $J$.
+
+In Setting~2 (oversight evaluation), the experimental surrogate listener scores a candidate account $c$ against $h$ via $S(c, h) := u \cdot v(c)$, where $u = h/\|h\|$. Each lineup pairs $c_0 = z \in A(h)$ with false rivals $c_1, \dots, c_K$ formed by editing $c_0$. Provenance $P \in \{0, 1\}$ records whether a candidate originated from activation $h$ (including edited rivals derived from $z$), and $T := \mathbf{1}_R(h, c)$ records truth. Sampling a conversation first and a rival uniformly from its lineup second, the paper defines lineup AUC via a \emph{strict} win:
+\[
+\AUC_{\mathrm{strict}} := \Pr\bigl(S(c_0, H) > S(c_k, H)\bigr).
+\]
+An uninformative tie therefore contributes $0$ to $\AUC_{\mathrm{strict}}$ and $1/2$ under the conventional midrank rule.
+
+\section{Conjecture \texttt{conj:idnodisc}: Identification without Discrimination}
+
+\subsection{Part (a): Orthogonal codebook witnesses, tie-vs.-\texorpdfstring{$J=0$}{J=0} tension, and tie-free Gaussian optimum}
+
+\begin{theorem}[Unrestricted $J = 0$ codebook witnesses]\label{thm:codebook}
+For every $n \ge 2$, there exists a finite activation distribution $(H, R)$ and a pair $(\AV, \AR)$ achieving the global minimum $J = 0$, $\MI(H; Z) = \log_2 n$, and provenance $\AUC_{\mathrm{strict}} = 1$, such that varying only the zero-probability out-of-support decoder outputs yields strict truth $\AUC_{\mathrm{strict}}$ equal to $0$ (midrank $1/2$, zero score bits), $1/2$, or $1$.
+\end{theorem}
+
+\begin{proof}
+Let $H$ be uniform on the standard basis $\{e_0, \dots, e_{n-1}\} \subset \mathbb{R}^n$. Take $n$ distinct wording templates indexed by $j \in \{0, \dots, n-1\}$ asserting that the observed color is ``blue'' ($b_j$), together with single-word false edits ``red'' ($r_j$) and ``green'' ($g_j$). Declare every $b_j$ true of every $e_i$ and every $r_j, g_j$ false of every $e_i$; padding the template makes the token edit fraction arbitrarily small. (If false other-activation provenance controls are desired, include a true transcript-specific identifier in each template and retain it in its rivals.)
+
+For any permutation $p$ of $\{0, \dots, n-1\}$, define the deterministic speaker $\AV(e_i) = b_{p(i)}$ and set $v(b_{p(i)}) = e_i$. Then $J = 0$ (the global lower bound), $\MI(H; Z) = \log_2 n$, and against any other activation's explanation $b_{p(i')}$ ($i' \neq i$), $S(b_{p(i)}, e_i) = 1 > 0 = S(b_{p(i')}, e_i)$, so provenance $\AUC_{\mathrm{strict}} = 1$. Since $r_j, g_j$ have emission probability $0$, their $\AR$ outputs leave $J = 0$ unchanged:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item Setting $v(r_{p(i)}) = e_i$ gives $S(r_{p(i)}, e_i) = 1 = S(b_{p(i)}, e_i)$ on every red rival. Under balanced labels, $S$ carries zero bits about $T$ given $(H, P = 1)$, $\AUC_{\mathrm{strict}} = 0$, and midrank truth $\AUC = 1/2$, proving \texttt{conj:idnodisc}(a) for every $\varepsilon > 0$.
+\item Setting $v(g_{p(i)}) = e_{(i+1)\bmod n}$ gives $S(g_{p(i)}, e_i) = 0 < 1 = S(b_{p(i)}, e_i)$. Mixing red and green rivals with equal weight produces $\AUC_{\mathrm{strict}} = 1/2$ (half strict wins, half ties), distinguishing a numerical value of $1/2$ from absence of score information.
+\item Using only green rivals---or fixing the red-only lineup and setting $v(r_{p(i)}) = e_{(i+1)\bmod n}$---gives $\AUC_{\mathrm{strict}} = 1$ at the exact same loss $J = 0$. \qedhere
+\end{enumerate}
+\end{proof}
+
+\begin{remark}[Tie-vs.-$J=0$ tension against \texttt{method.tex}]\label{rem:ties}
+In \texttt{method.tex}, the prose remarks: \emph{``Since scores are real-valued cosines, ties do not occur.''} Real-valued cosines can in fact tie exactly, and this remark is in direct tension with \texttt{conj:idnodisc}(a) in the unrestricted Setting~1 game. Indeed, for any activation distribution on $\mathbb{R}^n$, assigning distinct strings to a finite angular net of mesh $a$ achieves loss at most $1 - \cos a$, so the unrestricted infimum is $0$ and every attained global minimum has $J = 0$. Whenever $J = 0$ and $c_0 = Z$, we have $S(c_0, H) = U \cdot v(Z) = 1$ almost surely, so strict losses $S(c_0, H) < S(c_k, H)$ are impossible. Every unrestricted $J = 0$ witness with $c_0 = Z$ and $\AUC_{\mathrm{strict}} < 1$ must therefore rely on ties; imposing ``no ties'' as a mathematical hypothesis would force $\AUC_{\mathrm{strict}} = 1$ and make \texttt{conj:idnodisc}(a) impossible for every tolerance $\varepsilon < 1/2$ in the unrestricted game. The displayed definition of lineup AUC imposes no such no-ties hypothesis, and Proposition~\ref{prop:gaussian} below shows that restricting the codebook size restores a tie-free witness.
+\end{remark}
+
+\begin{remark}[Deployed monitors and independent magnitude queries]
+When $c_0 = Z$ and $Z$ recovers $H$, a deployed listener reading $(Z, c)$ can compute $\mathbf{1}_R(H, c)$ directly (or test $c = Z$). Genuine information loss for \emph{all} monitors still arises from the radial invariance of cosine loss: take $H = D(1 + B)$ with independent uniform $D \in \{-1, 1\}$ and $B \in \{0, 1\}$. The grounded sign message $Z = D$ achieves $J = 0$ and wins against every opposite-direction provenance distractor, while any independently presented magnitude query satisfies $\MI(T; Z, C) = 0$, forcing every decision rule to score $1/2$.
+\end{remark}
+
+\begin{proposition}[Tie-free 2-symbol Gaussian optimum]\label{prop:gaussian}
+Let $H \sim \mathcal{N}(0, I_2)$ and restrict $\AV$ to two emitted strings $\{b_+, b_-\}$ (with additional strings available as edited candidates). Then:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item The joint minimum of $J$ is $1 - 2/\pi$, attained (up to rotation) by antipodal decoder directions $v(b_\pm) = \pm e_1$ and $\AV(h) = b_{\sgn(h_1)}$.
+\item Against opposite-half-plane provenance distractors, provenance $\AUC_{\mathrm{strict}} = 1$.
+\item Decoding one-word false rivals $r_\pm$ to $\pm(\cos\alpha, \sin\alpha)$ for $0 < \alpha < \pi$ gives zero tie probability and strict truth $\AUC_{\mathrm{strict}} = \frac{1}{2} + \frac{\alpha}{2\pi}$, arbitrarily close to $1/2$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+For any two unit vectors $a, b \in S^1$, the pointwise optimal encoder chooses $\arg\max_{w \in \{a,b\}} U \cdot w$. Because $U$ is uniform on $S^1$, $\mathbb{E}[U \cdot (a+b)] = 0$, so
+\[
+\mathbb{E}\max(U \cdot a, U \cdot b)
+= \frac{1}{2}\mathbb{E}|U \cdot (a - b)|
+= \frac{\|a - b\|}{\pi} \le \frac{2}{\pi},
+\]
+with equality iff $b = -a$. Thus $J^* = 1 - 2/\pi$, attained by $v(b_\pm) = \pm e_1$ and $\AV(h) = b_{\sgn(h_1)}$, which gives $S(b_{\sgn(h_1)}, h) = |u_1| > -|u_1|$ a.s.\ against the opposite-half-plane message (provenance $\AUC_{\mathrm{strict}} = 1$). Given $\AV(h) = b_\pm$, the angular offset $t$ of $U$ from $v(b_\pm)$ is uniform on $(-\pi/2, \pi/2)$. Since $S(b_\pm, h) = \cos t$ and $S(r_\pm, h) = \cos(t - \alpha)$, ties have probability $0$ and the true account wins iff $\cos t > \cos(t - \alpha) \iff t < \alpha/2$ (up to endpoints), yielding $\AUC_{\mathrm{strict}} = (\alpha/2 + \pi/2)/\pi = \frac{1}{2} + \frac{\alpha}{2\pi}$.
+\end{proof}
+
+Note that the 2-symbol restriction is essential: with unrestricted finite strings on $\mathcal{N}(0, I_2)$, finite angular nets yield $\inf J = 0$, while no countable codebook attains $0$ because a uniform circle direction hits any countable set with probability $0$.
+
+\subsection{Part (b): Chord bound and external Gaussian readout}
+
+\begin{proposition}[Chord bound and noisy readout]\label{prop:lipschitz}
+Suppose $\angle(v(c), v(c')) \le L\,\delta_s(c, c')$ (in radians). For any pair $(c_0, c_k)$ with $\delta_s(c_0, c_k) \le w$, the latent cosine margin $D := u \cdot (v(c_0) - v(c_k))$ obeys the sharp bound
+\[
+|D| \le 2\sin\!\Bigl(\frac{1}{2}\min\{Lw, \pi\}\Bigr) =: B_w \le Lw.
+\]
+Furthermore:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item Smoothness alone does not bound ranks: decoding $c_0$ to $u$ and $c_k$ to a vector rotated by any $\theta > 0$ gives Lipschitz ratio $\theta/w$ and $\AUC_{\mathrm{strict}} = 1$.
+\item The printed assumption that the cosine difference $\Delta_k = S(c_0, H) - S(c_k, H)$ equals a mean term plus independent nondegenerate Gaussian noise cannot hold literally, because $\Delta_k \in [-2, 2]$ has bounded support whereas adding an independent nondegenerate Gaussian produces unbounded support.
+\item For a noisy readout $\widetilde{\Delta}_k := D + \sigma G$ with $G \sim \mathcal{N}(0, 1)$ independent of $D$ and $\sigma > 0$,
+\[
+\Bigl|\Pr(\widetilde{\Delta}_k > 0) - \frac{1}{2}\Bigr|
+= \Bigl|\mathbb{E}\Phi(D/\sigma) - \frac{1}{2}\Bigr|
+\le \Phi(B_w/\sigma) - \frac{1}{2}
+\le \frac{Lw}{\sigma\sqrt{2\pi}},
+\]
+giving \texttt{conj:idnodisc}(b) with $C = 1$ and without requiring independence across rivals.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Since $v(c_0), v(c_k) \in S^{n-1}$ have angle $\theta \le \min\{Lw, \pi\}$, $\|v(c_0) - v(c_k)\| = 2\sin(\theta/2) \le B_w \le Lw$, and Cauchy--Schwarz gives $|D| \le B_w$ (sharp when $u$ is parallel to the chord). Parts~(1) and~(2) are immediate. For~(3), $\Pr(D + \sigma G > 0 \mid D) = \Phi(D/\sigma)$, and $|\Phi(x) - \frac{1}{2}| \le |x|/\sqrt{2\pi}$ by the maximum standard normal density $(2\pi)^{-1/2}$; averaging over $(H, c_0, c_k)$ gives the claim. Measuring the empirical spread of actual cosine differences supplies no independent noise mechanism.
+\end{proof}
+
+\subsection{Part (c): Sensitivity of conditional mutual information to candidate couplings}
+
+Setting~1 fixes only the law of $(H, Z)$; evaluating $\MI(P; \cdot \mid H)$ and $\MI(T; \cdot \mid H, P=1)$ depends on the unspecified joint coupling with $(P, T, C)$. Every natural reading refutes \texttt{conj:idnodisc}(c) as stated:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Literal $\AV$ message $Z$ with a deterministic speaker (or independent label sampling):} Whenever $Z$ is a deterministic function of $H$ (as in Theorem~\ref{thm:codebook}), $\Ent(Z \mid H) = 0$, so $\MI(P; Z \mid H) = \MI(T; Z \mid H, P=1) = 0$ identically---even with perfect provenance and truth rankings. Sampling labels independently of speaker randomness conditional on $H$ likewise forces both quantities to $0$, making ``maximal $\MI(P; Z \mid H)$'' vacuous.
+\item \emph{Offered candidate $C$ in place of $Z$:} Since $T = \mathbf{1}_R(H, C)$, $\MI(T; C \mid H, P=1) = \Ent(T \mid H, P=1)$ identically, which equals $1$ bit on balanced blue/red lineups in Theorem~\ref{thm:codebook} despite $J = 0$. Meanwhile, in the sign/magnitude model $H = D(1 + B)$ offering with equal probability the original message or a message from the same sign and opposite magnitude, $\MI(P; C \mid H)$ is $0$ bits for the sign-only encoder $Z = D$ and $1$ bit when adding a grounded magnitude tag, both at $J = 0$.
+\item \emph{Literal $Z$ with $Z$-dependent candidate sampling:} At fixed $H$, emit two grounded blue synonyms $b^{(1)}, b^{(2)}$ with equal probability, both decoded to $u$ ($J = 0$). Offering the original ($T = 1$) after $b^{(1)}$ and its false red edit ($T = 0$) after $b^{(2)}$ (with $P = 1$) gives $\MI(T; Z \mid H, P = 1) = 1$ bit at $J = 0$, whereas an independent coin gives $0$ bits for the same $(\AV, \AR)$. Similarly, triggering $P = 1$ on $b^{(1)}$, $P = 0$ on $b^{(2)}$, and an independent fair $P$-coin on a third synonym $b^{(3)}$ yields $\MI(P; Z \mid H) = 1$ bit for the uniform $(b^{(1)}, b^{(2)})$ speaker and $0$ bits for the deterministic $b^{(3)}$ speaker, both at $J = 0$ with balanced provenance at every $h$.
+\end{itemize}
+The intrinsic information identity at $J = 0$ is simply $U = v(Z)$ a.s.\ ($\Ent(U \mid Z) = 0$ for discrete directions); extra message features remain unconstrained, and the paper defines no componentwise truth distortion yielding the proposed upper bound.
+
+\subsection{Part (d): Open full-measure set of perfect-ranking minimizers}
+
+\begin{proposition}[Refutation of genericity]\label{prop:genericity}
+Let $n \ge 2$ and fix the activation/truth setup of Theorem~\ref{thm:codebook} with any bijective grounded speaker $e_i \mapsto b_{p(i)}$ and its unique on-support minimizer $v(b_{p(i)}) = e_i$. Parameterize all $J = 0$ extensions on the $n$ distinct red rivals by $(v(r_{p(0)}), \dots, v(r_{p(n-1)})) \in (S^{n-1})^n$, endowed with the product uniform surface measure. For every $0 < \varepsilon < 1/2$, the set of minimizers with strict truth $\AUC_{\mathrm{strict}} = 1 > 1/2 + \varepsilon$ is open and has measure $1$.
+\end{proposition}
+
+\begin{proof}
+Every point in $(S^{n-1})^n$ achieves $J = 0$ and provenance $\AUC_{\mathrm{strict}} = 1$. Strict victory on rival $r_{p(i)}$ holds iff $e_i \cdot v(r_{p(i)}) < 1$, i.e., $v(r_{p(i)}) \neq e_i$. Thus $\mathcal{G} := \prod_{i=0}^{n-1} (S^{n-1} \setminus \{e_i\})$ is the exact set of extensions attaining $\AUC_{\mathrm{strict}} = 1$. Since $n \ge 2$, each singleton $\{e_i\}$ is closed and has surface measure $0$ in $S^{n-1}$, so $\mathcal{G}$ is open and has product measure $1$. Averaging uniformly over the $n!$ codebooks preserves full measure.
+\end{proof}
+
+\section{Conjecture \texttt{conj:paraphrase}: What Paraphrase Invariance Certifies}
+
+\subsection{Part (a): Sharp \texorpdfstring{$2\varepsilon$}{2 epsilon} margin sandwich}
+
+\begin{theorem}[Additive decomposition sandwich]\label{thm:sandwich}
+Let $m(c)$ denote the mutual-entailment class of $c$, and suppose that on an event $E$ with $\Pr(E) \ge 1 - q$, both candidates in a lineup satisfy $S(c, h) = g(m(c), h) + e(c, h)$ with $|e(c, h)| \le \varepsilon$. Writing $M := g(m(c_0), H) - g(m(c_k), H)$,
+\[
+\max\bigl\{0,\, \Pr(M > 2\varepsilon) - q\bigr\}
+\le \AUC_{\mathrm{strict}}
+\le \min\bigl\{1,\, \Pr(M > -2\varepsilon) + q\bigr\}.
+\]
+In particular, when $q = 0$, $\Pr(M > 2\varepsilon) \le \AUC_{\mathrm{strict}} \le \Pr(M > -2\varepsilon)$, and $|\AUC_{\mathrm{strict}} - \Pr(M > 0)| \le \Pr(-2\varepsilon < M \le 2\varepsilon)$.
+\end{theorem}
+
+\begin{proof}
+On $E$, $S(c_0, H) - S(c_k, H) = M + e(c_0, H) - e(c_k, H) \in [M - 2\varepsilon,\, M + 2\varepsilon]$, yielding the pointwise inclusions $\{M > 2\varepsilon\} \cap E \subseteq \{S(c_0, H) > S(c_k, H)\} \cap E \subseteq \{M > -2\varepsilon\} \cap E$. Taking probabilities and bounding $\Pr(E^c) \le q$ proves both inequalities.
+\end{proof}
+
+Both endpoints are sharp: at $M = -2\varepsilon$ even $(+\varepsilon, -\varepsilon)$ only ties (scoring $0$), at $M = 2\varepsilon$ the error $(-\varepsilon, +\varepsilon)$ ties, and opposite extreme errors reverse the sign throughout $(-2\varepsilon, 2\varepsilon)$.
+Uniform within-class oscillation $d := \sup_{h,m} \sup_{c, c' \in m} |S(c, h) - S(c', h)|$ yields the decomposition with minimal residual $\varepsilon = d/2$ by taking $g(m, h) = \frac{1}{2}(\sup_{c \in m} S(c, h) + \inf_{c \in m} S(c, h))$.
+However, even arbitrarily small uniform $\varepsilon \in (0, 1/2)$ can flip $\AUC_{\mathrm{strict}}$ from $1$ to $0$: at $h = e_1 \in \mathbb{R}^2$ (where every $s \in [-1, 1]$ is realized by the unit vector $(s, \sqrt{1-s^2})$), setting $g(\text{true}, h) = \varepsilon$, $g(\text{false}, h) = 0$, and assigning errors $-\varepsilon, +\varepsilon$ to the observed true and false forms (with zero-error paraphrases available) gives $M = \varepsilon > 0$ yet $S(c_0, h) = 0 < \varepsilon = S(c_k, h)$.
+
+\subsection{Part (b): Refutation of the authorship bound}
+
+\begin{proposition}[50-token red/scarlet counterexample]\label{prop:authorship}
+There exists a cosine listener $S(c, h) = u \cdot v(c)$ on 50-token descriptions for which:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item both true-account controls (an external paraphrase and an $\AV$ substitution, each modifying one of 49 framing tokens) reconstruct identically to the original, giving matched authorship angular damage difference $0$ for any positive normalizer;
+\item two one-token false rivals (retaining $98\%$ $\AV$-authored tokens) differing only in the rival word (native ``red'' vs.\ external ``scarlet'') differ in score by $3/5 = 0.6$ and reverse $\AUC_{\mathrm{strict}}$ from $1$ to $0$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Fix $h = e_1 \in \mathbb{R}^2$ (with another activation $h' = e_2$ providing a positive angular normalizer). Consider 50-token accounts whose first token names a color and whose remaining 49 tokens are framing words. Define $v(c) = (s(c), \sqrt{1 - s(c)^2})$ solely from token~1 as in Table~\ref{tab:red-scarlet}. Both true-account controls (and, if desired, every paraphrase of the true meaning) map to $(0.6, 0.8)$, so the matched angular damage difference is $0$. On the rival meaning, ``red'' loses ($0.2 < 0.6$) whereas ``scarlet'' wins ($0.8 > 0.6$), shifting the score by $0.6$. Mixing the two false wordings realizes any strict win rate in $[0, 1]$ with identical zero control damage.
+\end{proof}
+
+\begin{table}[ht]
+\centering
+\caption{Cosine scores at $h = e_1$ in the 50-token authorship counterexample (Proposition~\ref{prop:authorship}).}
+\label{tab:red-scarlet}
+\small
+\begin{tabular}{@{}lcr@{}}
+\toprule
+Account (50 tokens; 49 framing tokens fixed on rivals) & Token 1 & Score $S(c, e_1)$ \\
+\midrule
+Original true claim & \texttt{blue} & $0.6$ \\
+External true paraphrase (1 framing word changed) & \texttt{blue} & $0.6$ \\
+$\AV$ substitution control (1 framing word changed) & \texttt{blue} & $0.6$ \\
+Native false rival (1 edit from original) & \texttt{red} & $0.2$ \\
+External false rival (1 edit from original, $98\%$ $\AV$ tokens) & \texttt{scarlet} & $0.8$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Even under a genuinely linear form cost $K\delta_s$, an excess at most $\varepsilon$ measured at $d > 0$ only gives $K \le \varepsilon/d$, and provides no slope bound for nonlinear costs. A sufficient extra hypothesis is a controlled per-token replacement effect of at most $K/N$ at fixed meaning in \emph{every intermediate context} along a path of at most $fN$ edits (telescoping to $Kf$ in score units, still requiring margins to bound ranks). Thus Experiment~2's reported median normalized angular movement ($0.021$) and matched damage difference ($0.073$) on edits of true accounts leave the causal contribution of foreign wording on rivals undetermined.
+
+\subsection{Part (c): Refutation of both steganographic-gap inequalities}
+
+Under the decision-theoretic steganographic gap of Anwar et~al.\ (\href{https://arxiv.org/abs/2602.23163}{arXiv:2602.23163}), the raw gap compares the Receiver's achievable utility gain from observing the message over its message-free baseline with the Sentinel's gain over its own baseline (with relative normalization dividing by the positive Receiver gain). A string rewriter supplies no audit rule on its own. Fix constant public context, a fair binary target $Y \in \{0, 1\}$, accuracy utility, and constant actions in both decoder families:
+
+\begin{proposition}[Audit-gap counterexamples]\label{prop:steg}
+Neither inequality of \texttt{conj:paraphrase}(c) holds:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item \emph{(Word identity: gap $> 0$, paraphrase damage $= 0$.)} Encode $Y = 0, 1$ as \textup{\texttt{("text", "indeed", "today")}} and \textup{\texttt{("text", "certainly", "today")}}. Let the rewriter replace only \textup{\texttt{"today"}} with \textup{\texttt{"now"}}, and let $\AR$ map \textup{\texttt{"indeed"}} and \textup{\texttt{"certainly"}} to $e_1, e_2$. A Receiver reading $\AR$ achieves accuracy $1$ (gain $1/2$); a Sentinel whose audit rules ignore the marker achieves $1/2$ (gain $0$). Thus the raw gap is $1/2$ (relative gap $1$) while angular paraphrase damage is $0$ on every input.
+\item \emph{(Word order: gap $= 0$, shuffle damage $= 1$.)} Encode $Y = 0, 1$ as \textup{\texttt{("Alice", "leads", "Bob")}} and \textup{\texttt{("Bob", "leads", "Alice")}}. Both Receiver and Sentinel read the leading name (public compositional meaning), achieving accuracy $1$ (gain $1/2$) and raw/relative gap $0$. Reversing token order swaps the two messages; with orthogonal $\AR$ outputs determined by the first token, the normalized shuffle damage is $1$ on every input (and strictly positive in expectation under a uniform random permutation).
+\end{enumerate}
+\end{proposition}
+
+\section{Numerical Verification}
+
+Running \texttt{.venv/bin/python -B solutions/nla\_monitorability/explore.py} (Python~3 standard library only) executes all exact and numerical checks: all $5! = 120$ five-message codebooks ($2{,}400/2{,}400$ provenance wins, $600$ tied red rivals, $600$ strictly beaten green rivals), the conditional mutual information examples, the radial-truth example, $200{,}000$ planar Gaussian trials (seed \texttt{261018727}, $\alpha = \pi/24$: $200{,}000$ provenance wins, truth $\AUC = 0.521925$ vs.\ $25/48$, loss $0.364401$ vs.\ $1 - 2/\pi$), $33$ deterministic angular quadratures, $48$ independent numerical checks of the noisy-readout bound, $99$ exact rational margin checks for Theorem~\ref{thm:sandwich}, the 50-token red/scarlet example, and both steganographic-gap counterexamples.
+
+\begin{thebibliography}{1}
+\bibitem{anwar2026steganography}
+U.~Anwar et~al., \emph{A Decision-Theoretic Framework for Steganography and Monitorability}, \href{https://arxiv.org/abs/2602.23163}{arXiv:2602.23163} (v3), 2026.
+\end{thebibliography}
+
+\end{document}

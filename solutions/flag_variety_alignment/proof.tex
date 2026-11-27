@@ -1,0 +1,190 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\col}{col}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Gr}{Gr}
+\DeclareMathOperator{\sech}{sech}
+
+\title{\bfseries Refutation of Conjecture 6.2:\\ Static and Dynamical Head-Subspace Incidence}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: J.~Xiao, X.~Sui, and C.~Ruan,\\
+\emph{Flag Varieties: A Geometric Framework for Deep Network Alignment},\\
+\href{https://arxiv.org/abs/2605.09861}{arXiv:2605.09861}, Section~6, Conjecture~6.2 (\texttt{conj:static\_head\_incidence})\\[0.35em]
+Companion verification script: \texttt{solutions/flag\_variety\_alignment/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We disprove both the static and dynamical claims of Conjecture~6.2 of Xiao, Sui, and Ruan (\href{https://arxiv.org/abs/2605.09861}{arXiv:2605.09861}, \texttt{conj:static\_head\_incidence}).
+First, we establish an exact projector identity characterizing excess mean pairwise Frobenius overlap $R - r/d$ over the Haar baseline in terms of the aggregate projector $S = \sum_{i=1}^h P_i$, and note that the direct radial weight-decay term vanishes from the Euclidean projector flow $\dot{P}_i$.
+Second, on a standard two-head softmax attention layer ($d = h = 2$, $r = d_v = 1$, 16 trainable parameters, no biases) trained by squared error with positive $L_2$ weight decay, we prove that every global minimizer of an orthogonal-routing task has nonzero, mutually orthogonal query heads ($R = 0 < 1/2$), with strictly positive definite 16-variable Hessian ($\nabla^2 F \succ 0$) and hence an open attracting basin under gradient flow.
+Third, on the identical full-rank anisotropic inputs, changing only the targets forces $R = 1$ at every global minimizer, showing that input covariance alone does not determine the sign of $R - r/d$.
+Finally, tilting one query vector of the isotropic orthogonal minimizer yields an explicit initial condition with $\dot{R}(0) < 0$ (starting above the Haar mean when $t = 1.1c$), refuting monotone increase of $R$ along gradient flow.
+\end{abstract}
+
+\section{Setup, Haar Baseline, and Projector Identity}
+
+Suppress the layer index $\ell$ and write $r := d_k$. Given $h$ attention heads with full-column-rank query matrices $W_i \in \mathbb{R}^{d \times r}$, let $U_i \in \mathbb{R}^{d \times r}$ have orthonormal columns spanning $\col(W_i) \in \Gr(r, d)$ and let $P_i := U_i U_i^\top$ be the orthogonal projector onto $\col(W_i)$. The Frobenius overlap statistic of \href{https://arxiv.org/abs/2605.09861}{arXiv:2605.09861} (Section~6) is
+\[
+R := \frac{1}{h(h-1)r}\sum_{i \neq j} \|P_i P_j\|_F^2
+= \frac{1}{h(h-1)r}\sum_{i \neq j} \|U_i^\top U_j\|_F^2
+= \frac{1}{h(h-1)r}\sum_{i \neq j} \tr(P_i P_j) \in [0, 1].
+\]
+
+\begin{quote}
+\textbf{Conjecture~6.2 (\texttt{conj:static\_head\_incidence}, \href{https://arxiv.org/abs/2605.09861}{arXiv:2605.09861}).}
+\emph{For attention-based networks trained with weight decay, terminal query-head subspaces exhibit higher mean pairwise Frobenius overlap $R^{(\ell)}$ than Haar-random subspaces of the same dimensions. A stronger dynamical version---predicting that $R^{(\ell)}$ increases monotonically during training---requires training-time checkpoints and is left for future work.}
+\end{quote}
+
+\begin{proposition}[Haar baseline and exact projector criterion]\label{prop:projector}
+Let $1 \le r \le d$ and $h \ge 2$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item If $P_1, \dots, P_h$ are independent Haar-random rank-$r$ orthogonal projectors in $\mathbb{R}^d$, then $\mathbb{E}[P_i] = (r/d)I_d$ and $\mathbb{E}[R] = r/d$.
+\item For any full-rank configuration with aggregate projector $S := \sum_{i=1}^h P_i$,
+\begin{equation}\label{eq:proj-id}
+h(h-1)r\Bigl(R - \frac{r}{d}\Bigr) = \Bigl\|S - \frac{hr}{d}I_d\Bigr\|_F^2 - hr\Bigl(1 - \frac{r}{d}\Bigr).
+\end{equation}
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+For~(1), orthogonal invariance implies that $\mathbb{E}[P_i]$ commutes with every $Q \in O(d)$ and is thus a scalar multiple of $I_d$; taking traces gives $\mathbb{E}[P_i] = (r/d)I_d$. By independence, $\mathbb{E}[\tr(P_i P_j)] = \tr((r/d)^2 I_d) = r^2/d$ for $i \neq j$, so $\mathbb{E}[R] = r/d$.
+For~(2), since $P_i^2 = P_i$ and $\tr(S) = hr$,
+\[
+\Bigl\|S - \frac{hr}{d}I_d\Bigr\|_F^2
+= \tr(S^2) - \frac{h^2 r^2}{d}
+= hr + h(h-1)r R - \frac{h^2 r^2}{d}
+= hr\Bigl(1 - \frac{r}{d}\Bigr) + h(h-1)r\Bigl(R - \frac{r}{d}\Bigr).\qedhere
+\]
+\end{proof}
+
+\begin{remark}[Gradient flow and weight decay]
+For any differentiable data loss $L$ plus $\frac{\lambda}{2}\sum_i \|W_i\|_F^2$ (and penalties on other weights), stationarity gives $\nabla_{W_i} L = -\lambda W_i$ head by head, so~\eqref{eq:proj-id} applies identically to the data-gradient column spaces at a full-rank stationary point. Along Euclidean gradient flow $\dot{W}_i = -\nabla_{W_i} L - \lambda W_i$, differentiating $P_i = W_i W_i^\dagger$ at full column rank yields
+\[
+\dot{P}_i = -(I_d - P_i)(\nabla_{W_i} L)W_i^\dagger - \bigl[(I_d - P_i)(\nabla_{W_i} L)W_i^\dagger\bigr]^\top.
+\]
+The direct radial decay term $-\lambda W_i$ is annihilated by $I_d - P_i$. While Proposition~6.1 of \href{https://arxiv.org/abs/2605.09861}{arXiv:2605.09861} holds $W_Q^{(1)} + W_Q^{(2)}$ fixed (so the parallelogram identity forces identical heads), redistributing query weights in full softmax attention generally alters the layer output and data loss.
+\end{remark}
+
+\section{Two-Head Softmax Model and Orthogonal-Task Refutation}
+
+Set $d = h = 2$ and $r = d_v = 1$, for which the Haar mean is $r/d = 1/2$. Each head $i \in \{1, 2\}$ has freely trainable vectors $q_i, k_i, v_i, o_i \in \mathbb{R}^2$ ($o_i^\top$ being row $i$ of the output projection), giving 16 parameters and no biases. A query token $x \in \mathbb{R}^2$ attends to memory tokens $(m, -m)$ (equivalently, a masked self-attention row on $(m, -m, x)$). Head $i$ produces logits $(s_i, -s_i)$ with $s_i = (q_i^\top x)(k_i^\top m)$ and softmax weight difference $\tanh(s_i)$, so the exact layer output is
+\begin{equation}\label{eq:layer}
+f(x, m) = \sum_{i=1}^2 o_i (v_i^\top m) \tanh\bigl((q_i^\top x)(k_i^\top m)\bigr).
+\end{equation}
+Let $e_1, e_2$ be the standard basis of $\mathbb{R}^2$, fix $\lambda := 1/100$, and consider the regularized objective
+\begin{equation}\label{eq:obj}
+F(\theta) = \frac{1}{2}\sum_{l,j=1}^2 w_l \|f(e_l, e_j) - y_{lj}\|^2
++ \frac{\lambda}{2}\sum_{i=1}^2 \bigl(\|q_i\|^2 + \|k_i\|^2 + \|v_i\|^2 + \|o_i\|^2\bigr).
+\end{equation}
+Because $f$ is odd in $x$, symmetrizing over $\pm(e_l, e_j, y_{lj})$ with half weight leaves $F$ unchanged and yields centered query covariance $\diag(w_1, w_2)/(w_1 + w_2)$: isotropic for $w = (1, 1)$ and full-rank anisotropic for $w = (2, 1)$. Only the mixed output $f$ is supervised, and coercivity ($\lambda > 0$) guarantees global minimizers.
+
+\begin{theorem}[Orthogonal tasks: $R = 0 < 1/2$ and open attracting basin]\label{thm:orth}
+Take targets $y_{lj} = \mathbf{1}_{l=j} e_j$, $\lambda = 1/100$, and either $w = (1, 1)$ or $w = (2, 1)$ in~\eqref{eq:obj}.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Every global minimizer of $F$ has two nonzero, mutually orthogonal query vectors ($q_1 \perp q_2$), hence $R = 0 < 1/2$.
+\item The positive-coordinate global minimizer has strictly positive definite $16 \times 16$ Hessian $\nabla^2 F \succ 0$, so gradient flow converges to an $R = 0$ global minimizer from an open set of initial weights.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Write $q_{ij} := q_i^\top e_j$ (and likewise $k_{ij}, v_{ij}, o_{ij}$). For each $j \in \{1, 2\}$, retain only $z_j := e_j^\top f(e_j, e_j)$ against target $1$, and set $A_j := \sum_{i=1}^2 |o_{ij} v_{ij}|$ and $B_j := \sum_{i=1}^2 |q_{ij} k_{ij}|$. By AM--GM, the coordinate-$j$ decay penalty is at least $\lambda(A_j + B_j)$, while monotonicity of $\tanh$ on $[0, \infty)$ gives
+\[
+|z_j| \le \sum_{i=1}^2 |o_{ij} v_{ij}| \tanh |q_{ij} k_{ij}| \le A_j \tanh B_j.
+\]
+Setting $b = B_j$ and $a = |z_j|/\tanh b \le A_j$ when $B_j > 0$ (and $a = b = 0$ otherwise) and using $(1 - z_j)^2 \ge (1 - |z_j|)^2$, summing over $j = 1, 2$ yields
+\begin{equation}\label{eq:lower-bound}
+F(\theta) \ge m(w_1) + m(w_2), \qquad
+m(w) := \min_{a,b \ge 0}\Bigl\{\frac{w}{2}(1 - a\tanh b)^2 + \lambda(a + b)\Bigr\}.
+\end{equation}
+Each scalar problem is active: $b = 1$, $a = 1/\tanh 1$ gives cost $\lambda(1 + 1/\tanh 1) < 0.0232$, whereas $ab = 0$ costs at least $w/2 \ge 0.5$. Let $(a_j, b_j)$ minimize the scalar problem for $w_j$. Then
+\begin{equation}\label{eq:min-param}
+q_j = k_j = \sqrt{b_j}\,e_j, \qquad v_j = o_j = \sqrt{a_j}\,e_j \qquad (j = 1, 2)
+\end{equation}
+attains $m(w_1) + m(w_2)$ with zero error on all discarded output coordinates and zero-target samples.
+
+\emph{Equality forces specialization.} At any global minimizer, each coordinate $j$ attains its active bound, so $A_j, B_j, |z_j| > 0$. By strict monotonicity of $\tanh$, every head $i$ with $|o_{ij} v_{ij}| > 0$ must satisfy $|q_{ij} k_{ij}| = B_j$, so exactly one head carries coordinate $j$; equality in AM--GM forces all four entries of the other head at coordinate $j$ to vanish. If one head $i$ carried both $j = 1$ and $j = 2$, then $f(e_1, e_1)$ would be a nonzero multiple of $o_i$, whose nonzero second coordinate would incur strictly positive discarded error on $e_2^\top f(e_1, e_1)$. Hence distinct heads carry $j = 1$ and $j = 2$, so $q_1, q_2$ are nonzero multiples of $e_1, e_2$ (up to swapping heads) and $R = 0$.
+
+\emph{Positive definiteness of the 16-variable Hessian.} Put $s := \tanh b \in (0, 1)$ and $\delta := \lambda/w \in \{0.005, 0.01\}$. Minimizing over $a \ge 0$ yields $a(b) = (s - \delta)/s^2$ for $s > \delta$ (and $a = 0$ otherwise), with reduced derivative
+\[
+\frac{d}{db}\Bigl[\frac{w}{2}(1 - a(b)s)^2 + \lambda(a(b) + b)\Bigr]
+= \lambda\,\frac{2s^3 - \delta s^2 - s + \delta}{s^3}.
+\]
+The cubic $p(s) := 2s^3 - \delta s^2 - s + \delta$ satisfies $p(-\infty) = -\infty$, $p(\delta) = \delta^3 > 0$, $p(1/2) = \frac{3}{4}\delta - \frac{1}{4} < 0$, and $p(1) = 1 > 0$, so it has three simple roots in $(-\infty, 0)$, $(\delta, 1/2)$, and $(1/2, 1)$. The unique active minimum occurs at the root in $(1/2, 1)$, where $p'(s) > 0$, giving positive reduced curvature in $b$; combined with the $a$-curvature $ws^2 > 0$, the 2-variable Hessian in $(a, b)$ is positive definite.
+
+For the four active entries of head $j$ in~\eqref{eq:min-param}, set $q_{jj} = \sqrt{b_j} e^u$, $k_{jj} = \sqrt{b_j} e^{-u}$, $v_{jj} = \sqrt{a_j} e^\eta$, $o_{jj} = \sqrt{a_j} e^{-\eta}$. The data loss depends only on $(a_j, b_j)$, while weight decay contributes $\lambda[b_j\cosh(2u) + a_j\cosh(2\eta)]$, adding positive curvature in $(u, \eta)$. In each retained scalar error $e_j^\top f(e_j, e_j) - 1$, the inactive head's contribution $o_{i'j} v_{i'j} \tanh(q_{i'j} k_{i'j})$ is fourth-order in its four zero entries, so its Hessian contribution vanishes while weight decay supplies $+\lambda I_8 \succ 0$. Every discarded residual vanishes at~\eqref{eq:min-param}, so its squared error adds a positive semidefinite Hessian. Thus $\nabla^2 F \succ 0$ on $\mathbb{R}^{16}$. Continuity implies strong convexity on a ball around~\eqref{eq:min-param}, giving an open basin of attraction under gradient flow.
+\end{proof}
+
+\section{Shared-Query Contrast and Negative Dynamical Drift}
+
+\begin{proposition}[Shared query direction on identical anisotropic inputs]\label{prop:shared}
+Keep $w = (2, 1)$, $\lambda = 1/100$, and the same tokens and loss~\eqref{eq:obj}, but set $y_{lj} = \mathbf{1}_{l=1} e_j$. Then every global minimizer of $F$ has both query lines equal to $\operatorname{span}(e_1)$, giving $R = 1 > 1/2$.
+\end{proposition}
+
+\begin{proof}
+At any global minimizer, $q_{12} = q_{22} = 0$: zeroing these entries leaves $f(e_1, e_j)$ unchanged, fits $y_{2j} = 0$ identically, and strictly lowers weight decay whenever either entry is nonzero. Moreover, both $q_1, q_2$ must be nonzero: if at most one head has nonzero query, then $f(e_1, e_1)$ and $f(e_1, e_2)$ lie in a one-dimensional subspace with projector $P$, forcing $\sum_{j=1}^2 \|(I_2 - P)e_j\|^2 = 1$ and $F \ge w_1/2 = 1$. In contrast, $q_j = e_1$, $k_j = e_j$, $v_j = o_j = e_j/\sqrt{\tanh 1}$ ($j = 1, 2$) achieves zero data error with total cost $2\lambda(1 + 1/\tanh 1) < 0.0463 < 1$. Thus both query heads span $e_1$ and $R = 1$.
+\end{proof}
+
+\begin{proposition}[Strict decrease of $R$ under gradient flow]\label{prop:dyn}
+For the isotropic orthogonal task ($w = (1, 1)$), initialize at~\eqref{eq:min-param} except with $q_1(0) = c e_1 + t e_2$, where $c := \sqrt{b_1} > 0$ and $t > 0$. Along the full 16-variable gradient flow $\dot{\theta} = -\nabla F(\theta)$, at time $0$ we have $\dot{q}_{11}(0) = 0$, $\dot{q}_2(0) = 0$, and
+\[
+\dot{t}(0) = -\lambda t - w_2 a_1^2 c \tanh(ct)\sech^2(ct) < 0,
+\qquad
+R(0) = \frac{t^2}{c^2 + t^2},
+\qquad
+\dot{R}(0) = \frac{2 t c^2}{(c^2 + t^2)^2}\,\dot{t}(0) < 0.
+\]
+\end{proposition}
+
+\begin{proof}
+Tilting $q_{12}$ from $0$ to $t$ changes only the output on $(e_2, e_1)$, from $0$ to $a_1 \tanh(ct) e_1$, against target $0$. On all other samples, data gradients continue to balance decay in $q_{11}$ and $q_2$, while the new squared error $\frac{w_2}{2} a_1^2 \tanh^2(ct)$ has zero partial derivative in $q_{11}$ and $q_2$ (as $e_2^\top e_1 = 0$ and $k_{21} = 0$). Differentiating $\frac{w_2}{2} a_1^2 \tanh^2(ct) + \frac{\lambda}{2} t^2$ in $t$ yields $\dot{t}(0) < 0$. Since $q_2(0) = c e_2$, we have $R = q_{12}^2/(q_{11}^2 + q_{12}^2)$, and differentiating at time $0$ gives $\dot{R}(0) < 0$.
+\end{proof}
+
+By continuity, $\dot{R} < 0$ persists on a positive time interval and on an open set of nearby initializations; taking $t = 1.1c$ starts strictly above the Haar baseline ($R(0) = 1.21/2.21 \approx 0.5475 > 1/2$).
+
+\section{Numerical Verification and Scope}
+
+The script \texttt{solutions/flag\_variety\_alignment/explore.py} verifies the $\tanh$ forward pass against explicit two-token softmax, finite-differences all 16 gradient entries, checks~\eqref{eq:proj-id} on five rank-3 frames in $\mathbb{R}^7$, solves the stationarity cubic, and runs L-BFGS-B from 12 starts per regime (3 dense perturbations of the dedicated solution plus 9 unstructured Gaussian starts, seed \texttt{260509861}):
+
+\begin{table}[h]\centering\small
+\begin{tabular}{llrrrr}
+\toprule
+Weights $w$ & Task & Reference $F$ & Best $F$ (12 runs) & Reached ref. & $R$ \\
+\midrule
+$(1, 1)$ & Orthogonal & 0.0457110274 & 0.0457110274 & 11/12 & 0 \\
+$(2, 1)$ & Orthogonal & 0.0457612963 & 0.0457612963 & 12/12 & 0 \\
+$(2, 1)$ & Shared     & 0.0458115652 & 0.0458115652 & 12/12 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Integrating the full 16-variable gradient flow (\texttt{DOP853}) from the $t = 1.1c$ tilt yields $\dot{R}(0) = -0.2966638584$, $R(0) = 0.547511312$, $R(1) = 0.290792478$, $R(10) = 1.29 \times 10^{-8}$, and $R(800) = 0$, with final objective gap $2.78 \times 10^{-17}$ above the certified minimum.
+
+These constructions settle both universal statements of Conjecture~6.2. Whether excess overlap $R > r/d$ is typical under a specified distribution of large language model training runs remains an empirical question.
+
+\end{document}

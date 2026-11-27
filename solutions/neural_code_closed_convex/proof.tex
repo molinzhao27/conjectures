@@ -1,0 +1,169 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Lk}{Lk}
+
+\title{\bfseries Refutation of Conjectures 3.9 and 3.13 on Open and Closed Convex Neural Codes}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: B.~Gambacini, R.~A.~Jeffs, S.~Macdonald, and A.~Shiu,\\
+\emph{Non-monotonicity of closed convexity in neural codes},\\
+\href{https://arxiv.org/abs/1912.00963}{arXiv:1912.00963v3} (\emph{Vietnam J.\ Math.}\ \textbf{50}:359--373, 2022), Conjectures~3.9 and~3.13\\[0.35em]
+Companion verification script: \texttt{solutions/neural\_code\_closed\_convex/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We disprove both Conjecture~3.9 (\texttt{conj3}) and Conjecture~3.13 (\texttt{conj:open-closed}) of Gambacini, Jeffs, Macdonald, and Shiu (\href{https://arxiv.org/abs/1912.00963}{arXiv:1912.00963v3}; \emph{Vietnam J.\ Math.}\ 2022).
+For Conjecture~3.9 (originally Goldrup--Phillipson Conjecture~4.3, already refuted on 6 neurons by Theorem~3.10 of Gambacini et~al.), we construct a sharp 5-neuron, 8-word counterexample realized in $\mathbb{R}^1$ by both open and closed intervals, and prove by exhaustive check over all 167 simplicial complexes on at most 4 labels that $n = 5$ is minimal among locally good codes containing $\varnothing$.
+For Conjecture~3.13---open since 2019/2022, where the smallest prior example in Theorem~3.11 used 8 neurons---we construct an explicit 7-neuron, 14-word locally good code that admits neither an open convex nor a closed convex realization in any Euclidean dimension, certified by neuron restrictions onto the 5-neuron non-open-convex code of Lienkaemper--Shiu--Woodstock~(2017) and the 5-neuron non-closed-convex code $C_6$ of Goldrup--Phillipson~(2020).
+Whether a counterexample to Conjecture~3.13 exists on $n \in \{5, 6\}$ neurons remains open.
+\end{abstract}
+
+\section{Preliminaries and Conjectures}
+
+Write a subset $\{1, 2, 3\} \subseteq [n]$ compactly as $123$. Given receptive fields $\mathcal{U} = \{U_1, \dots, U_n\}$ in $\mathbb{R}^d$, the \emph{neural code} of $\mathcal{U}$ is $\mathcal{C}(\mathcal{U}) := \{\{i \in [n] : x \in U_i\} : x \in \mathbb{R}^d\}$. A code is \emph{open convex} (resp.\ \emph{closed convex}) if it is realized by open (resp.\ closed) convex sets in some $\mathbb{R}^d$. Its simplicial complex $\Delta(\mathcal{C})$ is the downward closure of $\mathcal{C}$, whose facets are the maximal codewords of $\mathcal{C}$. A code is \emph{max-intersection incomplete} if some nonempty intersection of maximal codewords does not lie in $\mathcal{C}$.
+
+The \emph{link} of a face $\sigma \in \Delta(\mathcal{C})$ is $\Lk_\sigma(\Delta(\mathcal{C})) := \{\tau \in \Delta(\mathcal{C}) : \tau \cap \sigma = \varnothing,\; \tau \cup \sigma \in \Delta(\mathcal{C})\}$. A face $\sigma \in \Delta(\mathcal{C})$ is \emph{mandatory} if $\Lk_\sigma(\Delta(\mathcal{C}))$ is noncontractible~\cite{curto2017}; a code is \emph{locally good} if it contains every mandatory codeword (equivalently, $\Lk_\sigma(\Delta(\mathcal{C}))$ is contractible for every nonempty $\sigma \in \Delta(\mathcal{C}) \setminus \mathcal{C}$, which suffices to verify on missing intersections of facets~\cite{curto2017}). Both open convex and closed convex codes are locally good~\cite{curto2017,cruz2019}.
+
+\begin{quote}
+\textbf{Conjecture~3.9 (\texttt{conj3}, Goldrup--Phillipson~\cite[Conj.~4.3]{goldrup2020}; \cite{gambacini2022}).}
+\emph{Let $\mathcal{C}$ be a max-intersection incomplete open convex code, where $\Delta(\mathcal{C})$ has at least two non-mandatory codewords not contained in $\mathcal{C}$. Suppose $\mathcal{C}$ has at least three maximal codewords $M_1, M_2, M_3$, and there is $\sigma \subsetneq M_1$ with $\sigma \in \mathcal{C}$ such that $\sigma \cap M_2 \notin \mathcal{C}$. Then $\mathcal{C}$ is not closed convex.}
+\end{quote}
+
+\begin{quote}
+\textbf{Conjecture~3.13 (\texttt{conj:open-closed}, Gambacini--Jeffs--Macdonald--Shiu~\cite{gambacini2022}).}
+\emph{Every locally good code on at most $7$ neurons is open convex or closed convex.}
+\end{quote}
+
+\section{Sharp 5-Neuron 1D Counterexample to Conjecture 3.9}
+
+Gambacini et~al.~\cite[Theorem~3.10]{gambacini2022} disproved Conjecture~3.9 with a 6-neuron, 12-word code realized by 2D rectangles. Five intervals on $\mathbb{R}^1$ suffice, and $n = 5$ is best possible.
+
+\begin{theorem}[Sharp 5-neuron counterexample to Conjecture~3.9]\label{thm:conj39}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item The 5-neuron, 8-word code $\mathcal{C}_5 := \{\varnothing, 2, 3, 12, 13, 125, 123, 134\}$ satisfies every hypothesis of Conjecture~3.9 and admits both an open convex and a closed convex realization in $\mathbb{R}^1$.
+\item Every locally good code on $n \le 4$ neurons containing $\varnothing$ is max-intersection complete; hence $n = 5$ is minimal.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), define five intervals on $\mathbb{R}^1$ in neuron order $1, \dots, 5$:
+\[
+I_1 = (1, 8), \qquad I_2 = (0, 5), \qquad I_3 = (4, 9), \qquad I_4 = (6, 7), \qquad I_5 = (2, 3).
+\]
+Reading left to right across the exterior rays and the nine open intervals between the ten distinct endpoints $0 < 1 < \dots < 9$ yields the sequence of codewords
+\[
+\varnothing,\; 2,\; 12,\; 125,\; 12,\; 123,\; 13,\; 134,\; 13,\; 3,\; \varnothing.
+\]
+Because all ten endpoints are pairwise distinct, crossing any endpoint toggles membership of exactly one interval; thus each endpoint carries the exact same codeword as one of its two adjacent open intervals, whether all five intervals are taken open or all five are taken closed. Hence $\mathcal{C}_5$ is both open convex and closed convex in $\mathbb{R}^1$.
+
+To check the hypotheses of Conjecture~3.9: the facets are $M_1 = 125$, $M_2 = 134$, and $M_3 = 123$; the intersection $M_1 \cap M_2 = 1 \notin \mathcal{C}_5$ witnesses max-intersection incompleteness; the two missing faces $1, 5 \in \Delta(\mathcal{C}_5) \setminus \mathcal{C}_5$ have contractible links $\Lk_1(\Delta(\mathcal{C}_5)) = (5{-}2{-}3{-}4)$ and $\Lk_5(\Delta(\mathcal{C}_5)) = (1{-}2)$, so both are non-mandatory; and $\sigma = 12 \in \mathcal{C}_5$ satisfies $\sigma \subsetneq M_1$ and $\sigma \cap M_2 = 1 \notin \mathcal{C}_5$.
+
+For~(2), enumerating all $167$ labeled simplicial complexes on subsets of $\{1, 2, 3, 4\}$ containing $\varnothing$ yields $266$ nonempty intersections of two or more distinct facets. Their link Euler characteristics occur with counts $\{\chi = 0 : 8,\; \chi = 2 : 222,\; \chi = 3 : 36\}$---never $\chi = 1$---so none are contractible. Every locally good code on $n \le 4$ neurons containing $\varnothing$ is therefore max-intersection complete.
+\end{proof}
+
+\section{Seven-Neuron Counterexample to Conjecture 3.13}
+
+Gambacini et~al.~\cite[Theorem~3.11]{gambacini2022} built an 8-neuron locally good code that is neither open convex nor closed convex, and conjectured that no such code exists on $n \le 7$ neurons. We refute Conjecture~3.13 on 7 neurons.
+
+\begin{theorem}[Refutation of Conjecture~3.13]\label{thm:conj313}
+The 7-neuron, 14-word code
+\[
+C := \{\varnothing,\, 3,\, 4,\, 34,\, 45,\, 123,\, 137,\, 147,\, 236,\, 1236,\, 1237,\, 1347,\, 1457,\, 23456\}
+\]
+is locally good, yet admits neither an open convex nor a closed convex realization in any dimension.
+\end{theorem}
+
+\begin{proof}
+\emph{Step~1 (Local goodness).} The facets of $\Delta(C)$ are $1236, 1237, 1347, 1457, 23456$. For any missing nonempty face $\sigma \in \Delta(C) \setminus C$, let $\bar{\sigma}$ be the intersection of all facets containing $\sigma$. Whenever $\bar{\sigma} \supsetneq \sigma$, any vertex in $\bar{\sigma} \setminus \sigma$ lies in every facet of $\Lk_\sigma(\Delta(C))$, so the link is a cone and therefore contractible. It suffices to check the missing faces with $\sigma = \bar{\sigma}$. Computing all intersections of the five facets yields exactly four missing faces:
+
+\begin{table}[h]\centering\small
+\begin{tabular}{lll}
+\toprule
+Missing face $\sigma$ & Facets of $\Lk_\sigma(\Delta(C))$ in attachment order & Geometric description \\
+\midrule
+$1$  & $236,\; 237,\; 347,\; 457$ & Four 2-simplices glued along edges $23, 37, 47$ \\
+$13$ & $26,\; 27,\; 47$           & Path $6 - 2 - 7 - 4$ \\
+$17$ & $23,\; 34,\; 45$           & Path $2 - 3 - 4 - 5$ \\
+$23$ & $456,\; 16,\; 17$          & 2-simplex $456$ with path $6 - 1 - 7$ at vertex $6$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In each row, every simplex after the first intersects the union of its predecessors in a single nonempty face (an edge or vertex), so it deformation retracts onto that face while fixing the predecessor union. By induction, all four links retract onto their first simplex and are contractible. Hence $C$ is locally good.
+
+\emph{Step~2 (Obstructions via neuron restriction).} Deleting receptive fields outside a label set $S \subseteq [7]$ replaces each codeword $w$ by $w \cap S$, preserving both open convexity and closed convexity in the same ambient space $\mathbb{R}^d$.
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item Restricting $C$ to $S_1 = 12345$ gives the exact 12-word image
+\[
+C|_{12345} = \{\varnothing,\, 3,\, 4,\, 13,\, 14,\, 23,\, 34,\, 45,\, 123,\, 134,\, 145,\, 2345\} =: A,
+\]
+which is the 5-neuron non-open-convex code of Lienkaemper, Shiu, and Woodstock~\cite[Theorem~3.1]{lienkaemper2017}. Hence $C$ has no open convex realization in any dimension.
+\item Restricting $C$ to $S_2 = 12467$ gives the exact 9-word image
+\[
+C|_{12467} = \{\varnothing,\, 4,\, 12,\, 17,\, 26,\, 126,\, 127,\, 147,\, 246\}.
+\]
+Relabeling $(1, 2, 6, 4, 7) \mapsto (1, 2, 3, 4, 5)$ produces
+\[
+B := \{\varnothing,\, 4,\, 12,\, 15,\, 23,\, 123,\, 125,\, 145,\, 234\},
+\]
+which is the code $C_6$ of Goldrup and Phillipson~\cite[Table~1 and Theorem~4.1]{goldrup2020}, proved to admit no closed convex realization in any dimension. Hence $C$ has no closed convex realization in any dimension.\qedhere
+\end{itemize}
+\end{proof}
+
+\begin{remark}[Construction and remaining open case $n \le 6$]
+The code $C$ is obtained by identifying neurons $1, 2, 4$ of $A$ and $B$, mapping $(3, 5)$ of $B$ to $(6, 7)$, and taking all 7-label words whose restrictions lie in $A$ and relabeled $B$. For $n \le 4$, every locally good code is open convex~\cite{curto2017}. Whether a locally good code on $n \in \{5, 6\}$ neurons can be neither open convex nor closed convex remains open: an exhaustive overlap search over all gluings of $(A, C_6)$ finds $0$ qualifying gluings on $6$ neurons and $100$ labeled gluings on $7$ neurons, leaving non-gluing constructions on $n \in \{5, 6\}$ unresolved.
+\end{remark}
+
+\section{Reproducible Verification}
+
+The script \texttt{solutions/neural\_code\_closed\_convex/explore.py} (Python~3.10+ standard library only) checks all combinatorial claims using exact bitmasks and rational arithmetic:
+\begin{itemize}[leftmargin=2em,itemsep=1pt]
+\item All $167$ simplicial complexes on $\le 4$ labels ($266$ nonempty facet-intersection links, none with $\chi = 1$).
+\item Exact open and closed box-realization cell enumeration for both the 5-neuron 1D interval code (8 words) and Gambacini et~al.'s 6-neuron 2D rectangle code (12 words), verifying every hypothesis of Conjecture~3.9.
+\item Exact restrictions $C|_{12345} = A$ and relabeled $C|_{12467} = C_6$, plus elementary collapse sequences to a single vertex for all $46$ missing-face links in $\Delta(C) \setminus C$.
+\item Exhaustive gluing enumeration of $(A, C_6)$ on $6$ and $7$ neurons ($0$ and $100$ labeled solutions, respectively).
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{cruz2019}
+J.~Cruz, C.~Giusti, V.~Itskov, and B.~Kronholm, \emph{On open and closed convex codes}, Discrete Comput.\ Geom.\ \textbf{61}(2) (2019), 247--270.
+
+\bibitem{curto2017}
+C.~Curto, E.~Gross, J.~Jeffries, K.~Morrison, M.~Omar, Z.~Rosen, A.~Shiu, and N.~Youngs, \emph{What makes a neural code convex?}, SIAM J.\ Appl.\ Algebra Geom.\ \textbf{1}(1) (2017), 222--238.
+
+\bibitem{gambacini2022}
+B.~Gambacini, R.~A.~Jeffs, S.~Macdonald, and A.~Shiu, \emph{Non-monotonicity of closed convexity in neural codes}, Vietnam J.\ Math.\ \textbf{50} (2022), 359--373 (\href{https://arxiv.org/abs/1912.00963}{arXiv:1912.00963v3}).
+
+\bibitem{goldrup2020}
+S.~A.~Goldrup and K.~Phillipson, \emph{Classification of open and closed convex codes on five neurons}, Adv.\ in Appl.\ Math.\ \textbf{112} (2020), 101948 (\href{https://arxiv.org/abs/1909.09004}{arXiv:1909.09004}).
+
+\bibitem{lienkaemper2017}
+C.~Lienkaemper, A.~Shiu, and Z.~Woodstock, \emph{Obstructions to convexity in neural codes}, Adv.\ in Appl.\ Math.\ \textbf{85} (2017), 31--59.
+\end{thebibliography}
+
+\end{document}

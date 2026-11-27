@@ -1,0 +1,237 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\KL}{KL}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\softmax}{softmax}
+
+\title{\bfseries Sharp Universal Information Floor for Softmax Readouts}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: B.~Abrahao, \emph{Neural Collapse Is Forbidden: Information Floors in Language Models},\\
+\href{https://arxiv.org/abs/2607.09487}{arXiv:2607.09487} (July 2026), Appendix, Conjecture~\texttt{conj:generalfloor}\\[0.35em]
+Companion verification script: \texttt{solutions/lm\_info\_floor/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We prove Conjecture~\texttt{conj:generalfloor} of Abrahao (\href{https://arxiv.org/abs/2607.09487}{arXiv:2607.09487}, July 2026) with the sharp universal constant $c = 2$ (information in nats): for every category of size $m \ge 2$, every set of centered residual rows bounded in Euclidean norm by $R$, and every square-integrable context law $H$ with mean $\mu$ and dispersion $D_k = \mathbb{E}\|H - \mu\|_2^2$,
+\[
+I_k \;\le\; \frac{1}{8}\mathbb{E}\bigl[w(H - \mu)^2\bigr] \;\le\; \frac{L^2}{8} D_k \;\le\; \frac{R^2}{2} D_k,
+\]
+where $L = \max_{a,b}\|\delta_a - \delta_b\|_2 \le 2R$ and $w(v) = \max_c \delta_c^\top v - \min_c \delta_c^\top v$.
+In particular, $R^2 D_k \ge 2 I_k$ and $L^2 D_k \ge 8 I_k$ hold uniformly without any degradation in category size $m$ or minimum marginal probability $\min_c \bar{q}_c$, refuting the conjectured $\Theta(\min_c \bar{q}_c / m)$ decay.
+The proof combines the Bregman centroid identity and exponential-family Bregman duality (Banerjee et~al., 2005) with Popoviciu's (1935) bounded-variance inequality (the curvature step of Hoeffding's lemma, 1963).
+We also construct an explicit two-context family attaining $2I_k/(R^2 D_k) \to 1$ for every fixed $m \ge 2$ with $\bar{q}$ free; determining the optimal constant for a separately fixed marginal $\bar{q}$ remains a distinct question.
+\end{abstract}
+
+\section{Setup and Statement of Results}
+
+Fix a category $S_k$ of size $|S_k| = m \ge 2$ with readout weight rows $\{w_c\}_{c \in S_k} \subset \mathbb{R}^d$. Its centered residual rows are
+\[
+\delta_c := w_c - \frac{1}{m}\sum_{j \in S_k} w_j \qquad (c \in S_k),
+\]
+so that $\sum_{c \in S_k} \delta_c = 0$. Let $R \ge \max_{c \in S_k} \|\delta_c\|_2$ bound their Euclidean norms, let $L := \max_{a,b \in S_k} \|\delta_a - \delta_b\|_2 \le 2R$ denote the row diameter, and define the directional width
+\[
+w(v) := \max_{c \in S_k} \delta_c^\top v - \min_{c \in S_k} \delta_c^\top v \qquad (v \in \mathbb{R}^d).
+\]
+Let $H$ be a random feature vector in $\mathbb{R}^d$ drawn from the category's conditional context law (including any arbitrarily weighted empirical distribution), with mean $\mu := \mathbb{E}[H]$. For $h \in \mathbb{R}^d$, define the within-category softmax distribution
+\[
+q_h(c) := \frac{\exp(\delta_c^\top h)}{\sum_{j \in S_k} \exp(\delta_j^\top h)} \qquad (c \in S_k).
+\]
+The paper's marginal, conditional information (in nats), and total within-category dispersion are defined under the same context law for $H$:
+\[
+\bar{q} := \mathbb{E}[q_H], \qquad
+I_k := \mathbb{E}\,\KL(q_H \| \bar{q}), \qquad
+D_k := \mathbb{E}\bigl[\|H - \mu\|_2^2\bigr].
+\]
+(Here $D_k$ is the total within-category feature dispersion, distinct from the spread of per-token feature means discussed elsewhere in \href{https://arxiv.org/abs/2607.09487}{arXiv:2607.09487}.)
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:generalfloor} (\href{https://arxiv.org/abs/2607.09487}{arXiv:2607.09487}, Appendix).}
+\emph{Fix a category $S_k$ with $|S_k| = m \ge 2$, $\max_c \|\delta_c\|_2 \le R$, within-category conditionals $q_h = \softmax((\delta_c^\top h)_{c \in S_k})$, marginal $\bar{q} = \mathbb{E}[q_H]$, and $I_k = \mathbb{E}\,\KL(q_H \| \bar{q})$. Then there exists a constant $c(m, \bar{q}) > 0$ such that $D_k \ge c(m, \bar{q})\, I_k / R^2$.}
+\end{quote}
+
+We prove that the universal constant $c(m, \bar{q}) \equiv 2$ holds for all $m \ge 2$ and all context laws, and is sharp for every fixed $m \ge 2$ when $\bar{q}$ is free.
+
+\begin{theorem}[Sharp universal information floor]\label{thm:floor}
+For every $m \ge 2$, every set of centered residual rows $\{\delta_c\}_{c \in S_k} \subset \mathbb{R}^d$ with $\max_c \|\delta_c\|_2 \le R$, and every square-integrable context law $H$ with mean $\mu = \mathbb{E}[H]$,
+\begin{equation}\label{eq:chain}
+I_k \;\le\; \frac{1}{8}\,\mathbb{E}\bigl[w(H - \mu)^2\bigr]
+\;\le\; \frac{L^2}{8}\,D_k
+\;\le\; \frac{R^2}{2}\,D_k.
+\end{equation}
+In particular, $L^2 D_k \ge 8 I_k$ and $R^2 D_k \ge 2 I_k$.
+\end{theorem}
+
+\section{Proof of Theorem~\ref{thm:floor}}
+
+\begin{proof}
+We proceed in four steps, using exponential-family Bregman duality (Banerjee, Merugu, Dhillon, and Ghosh, 2005) and Popoviciu's (1935) variance inequality (as in Hoeffding, 1963).
+
+\emph{Step 1: Centroid replacement.}
+For any strictly positive probability vector $r$ on $S_k$, writing $\log(q_H(c)/r_c) = \log(q_H(c)/\bar{q}_c) + \log(\bar{q}_c/r_c)$ and taking expectations over $H$ yields the Bregman centroid identity (Banerjee et~al., 2005):
+\[
+\mathbb{E}\,\KL(q_H \| r)
+= \mathbb{E}\,\KL(q_H \| \bar{q}) + \sum_{c \in S_k} \mathbb{E}[q_H(c)] \log\frac{\bar{q}_c}{r_c}
+= I_k + \KL(\bar{q} \| r).
+\]
+Since $\KL(\bar{q} \| r) \ge 0$, choosing $r = q_\mu$ yields
+\begin{equation}\label{eq:centroid}
+I_k \;\le\; \mathbb{E}\,\KL(q_H \| q_\mu).
+\end{equation}
+
+\emph{Step 2: Log-partition Bregman representation.}
+Let $A(h) := \log \sum_{c \in S_k} \exp(\delta_c^\top h)$ be the log-partition function on $\mathbb{R}^d$, with gradient $\nabla A(h) = \mathbb{E}_{C \sim q_h}[\delta_C]$. Fix $h \in \mathbb{R}^d$, set $v := \mu - h$, and define $f(t) := A(h + tv)$ for $t \in [0, 1]$. Substituting $\log q_h(c) = \delta_c^\top h - A(h)$ and $\log q_\mu(c) = \delta_c^\top \mu - A(\mu)$ gives the reverse Bregman identity (Banerjee et~al., 2005):
+\begin{align*}
+\KL(q_h \| q_\mu)
+&= \sum_{c \in S_k} q_h(c)\bigl(\delta_c^\top(h - \mu) + A(\mu) - A(h)\bigr) \\
+&= A(\mu) - A(h) - \nabla A(h)^\top(\mu - h)
+= f(1) - f(0) - f'(0).
+\end{align*}
+Since $f$ is $C^\infty$ on $[0, 1]$, Taylor's formula with integral remainder gives
+\begin{equation}\label{eq:taylor}
+\KL(q_h \| q_\mu) = \int_0^1 (1 - t)\,f''(t)\,dt.
+\end{equation}
+
+\emph{Step 3: Uniform curvature bound.}
+Differentiating the finite log-sum-exp $f(t)$ twice yields
+\[
+f'(t) = \mathbb{E}_{C \sim q_{h+tv}}[\delta_C^\top v], \qquad
+f''(t) = \Var_{C \sim q_{h+tv}}(\delta_C^\top v).
+\]
+For every $t \in [0, 1]$, the bounded random variable $\delta_C^\top v$ is supported in $[\min_c \delta_c^\top v,\, \max_c \delta_c^\top v]$, an interval of length $w(v)$. By Popoviciu's inequality (Popoviciu, 1935; cf.\ Hoeffding, 1963), its variance is at most its mean squared distance from the interval midpoint, so
+\[
+f''(t) \;\le\; \frac{w(v)^2}{4} \qquad (\forall t \in [0, 1]).
+\]
+Inserting this into~\eqref{eq:taylor} gives
+\[
+\KL(q_h \| q_\mu) \;\le\; \frac{w(v)^2}{4} \int_0^1 (1 - t)\,dt \;=\; \frac{w(v)^2}{8}.
+\]
+
+\emph{Step 4: Expectation and geometric bounds.}
+Since $w(-v) = w(v)$, we have $w(\mu - H) = w(H - \mu)$. Taking expectations over $H$ and combining with~\eqref{eq:centroid} establishes the first inequality in~\eqref{eq:chain}. For every $v \in \mathbb{R}^d$, Cauchy--Schwarz gives
+\[
+w(v) = \max_{a,b \in S_k} (\delta_a - \delta_b)^\top v \;\le\; L \|v\|_2,
+\]
+and the triangle inequality gives $L = \max_{a,b} \|\delta_a - \delta_b\|_2 \le 2\max_c \|\delta_c\|_2 \le 2R$. Squaring and taking expectations completes~\eqref{eq:chain}.
+
+Finally, if $R = 0$ or $D_k = 0$, then $q_H$ is almost surely constant and $I_k = 0$. If $\mu = \mathbb{E}[H]$ exists, $R > 0$, and $D_k = \infty$, then $R^2 D_k \ge 2 I_k$ holds trivially because $I_k \le H(\bar{q}) \le \log m < \infty$.
+\end{proof}
+
+\begin{remark}[Binary normalization and comparison with the binary floor]
+In Proposition~\texttt{prop:floor} of Abrahao~\cite{Abrahao2026} ($m = 2$), the symbol $R$ bounds the norm of the \emph{difference} $u = \delta_a - \delta_b$. In those units, $L = \|u\|_2$ and $w(H - \mu) = |u^\top(H - \mu)|$, so~\eqref{eq:chain} reads
+\[
+8 I_k \;\le\; \Var(u^\top H) \;\le\; \|u\|_2^2 D_k,
+\]
+strictly improving the paper's binary coefficient $16 \bar{q}_a(1 - \bar{q}_a) \le 4$ by at least a factor of $2$ uniformly over $\bar{q}_a$. In the conjecture's centered row-radius units, $\delta_a = u/2$ and $\delta_b = -u/2$, so $R = \|u\|_2/2$ and $L^2/8 = R^2/2$, matching the factor-of-$4$ conversion for squared norms.
+\end{remark}
+
+\section{Sharpness for Every Fixed Category Size}
+
+\begin{proposition}[Sharpness with $m$ fixed and $\bar{q}$ free]\label{prop:sharp}
+For every fixed category size $m \ge 2$,
+\[
+\sup \frac{2 I_k}{R^2 D_k} = 1,
+\]
+where the supremum is taken over centered residual rows $\{\delta_c\}_{c=1}^m$ with $R = \max_c \|\delta_c\|_2 > 0$ and finite-support context laws $H$ with $D_k > 0$ and strictly positive marginals $\bar{q}_c > 0$ for all $c$.
+\end{proposition}
+
+\begin{proof}
+By Theorem~\ref{thm:floor}, the supremum is at most $1$. Normalize to $R = 1$.
+
+For $m = 2$, take $\delta_1 = +1$, $\delta_2 = -1$ in $\mathbb{R}^1$ and $H \in \{+t, -t\}$ with equal probability $1/2$ ($t > 0$). Then $\mu = 0$, $\bar{q} = (1/2, 1/2)$, $D_k = t^2$, and
+\[
+I_k = g(t) := t\tanh t - \log\cosh t = \frac{1}{2}t^2 + O(t^4) \qquad (t \to 0^+),
+\]
+so $2 I_k / D_k \to 1$. Duplicating $+1$ and $-1$ equally often ($m/2$ times each) gives the same limit with a uniform marginal for every even $m$.
+
+For arbitrary $m \ge 3$, fix $t \in (0, 1/2)$ and set $a := \sqrt{1 - t^2}$. Define two-dimensional residual rows
+\[
+\delta_1 = (a, t), \qquad \delta_2 = (-a, t), \qquad
+\delta_3 = \cdots = \delta_m = \Bigl(0,\, -\frac{2t}{m - 2}\Bigr).
+\]
+They sum to zero, satisfy $\|\delta_1\|_2 = \|\delta_2\|_2 = 1$, and $\|\delta_c\|_2 = 2t/(m - 2) < 1$ for $c \ge 3$ (since $0 < t < 1/2$ and $m - 2 \ge 1$), so $R = 1$. Let $H$ take the two values $(t, t^{-2})$ and $(-t, t^{-2})$ with probability $1/2$ each. Because the second coordinate is constant, $\mu = (0, t^{-2})$ and $D_k = t^2$. At both contexts, the combined probability on $\{1, 2\}$ is identical:
+\[
+p_t := q_H(1) + q_H(2)
+= \frac{2e^{1/t}\cosh(at)}{2e^{1/t}\cosh(at) + (m - 2)e^{-2/((m-2)t)}}
+\xrightarrow[t \to 0^+]{} 1,
+\]
+and every token $c \ge 3$ has a context-independent probability $q_H(c) = \bar{q}_c = (1 - p_t)/(m - 2) > 0$, contributing zero to $\KL(q_H \| \bar{q})$. On $\{1, 2\}$, negating $H_1$ swaps $q_H(1)$ and $q_H(2)$, so $\bar{q}_1 = \bar{q}_2 = p_t / 2$ while $(q_H(1)/p_t,\, q_H(2)/p_t) = \softmax(\pm at, \mp at)$. Consequently,
+\[
+I_k = p_t\,g(at) = \frac{1}{2} p_t a^2 t^2 + O(t^4),
+\]
+whence $2 I_k / (R^2 D_k) = 2 p_t g(at)/t^2 \to 1$ as $t \to 0^+$.
+\end{proof}
+
+\begin{remark}[Fixed-$m$, free-$\bar{q}$ vs.\ fixed-$\bar{q}$ sharpness]
+Proposition~\ref{prop:sharp} establishes that $c = 2$ is sharp for each fixed category size $m \ge 2$ when the marginal $\bar{q}$ is allowed to vary freely over the interior of the simplex (for $m \ge 3$, $\min_c \bar{q}_c \to 0$ along the family above, whereas for even $m$, duplicating the binary family achieves sharpness with uniform $\bar{q}$). Characterizing the optimal constant $c^*(m, \bar{q}) \ge 2$ for a separately fixed marginal $\bar{q}$ (especially for odd $m \ge 3$ and near-uniform $\bar{q}$) is a separate question.
+\end{remark}
+
+\section{Reproducible Numerical Verification}
+
+The script \texttt{solutions/lm\_info\_floor/explore.py} verifies Theorem~\ref{thm:floor} and Proposition~\ref{prop:sharp} across 600 random finite laws in feature dimensions $1, 3, 7$, 15 differential-evolution search finalists (three seeded runs per $m$ over centered unit-radius heads and three-atom laws in $\mathbb{R}^2$), 25 instances of the sharp family ($t \in \{0.2, 0.1, 0.05, 0.02, 0.01\}$), and 10 degenerate cases ($R = 0$ or $D_k = 0$). It checks the centroid-KL and entropy identities, the reverse Bregman remainder, its 64-node Gauss--Legendre curvature integral, Popoviciu's variance bound, every inequality in~\eqref{eq:chain}, and the closed form $I_k = p_t g(at)$. Table~\ref{tab:scores} summarizes the observed ratios $2I_k/(R^2 D_k) \le 1$ (NumPy 2.5.5, SciPy 1.18.1; all assertions passed).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Category size $m$ & Random laws & Best of 3 DE searches & Sharp family ($t = 0.01$) \\
+\midrule
+2  & 120 & 0.99960771 & 0.99995000 \\
+3  & 120 & 0.86421804 & 0.99985001 \\
+4  & 120 & 0.92866338 & 0.99985001 \\
+5  & 120 & 0.80378222 & 0.99985001 \\
+10 & 120 & 0.83939439 & 0.99985001 \\
+\bottomrule
+\end{tabular}
+\caption{Observed scores $2I_k/(R^2 D_k)$ bounded above by $1$ (Theorem~\ref{thm:floor}).}\label{tab:scores}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Abrahao2026}
+B.~Abrahao.
+\emph{Neural Collapse Is Forbidden: Information Floors in Language Models}.
+Preprint \href{https://arxiv.org/abs/2607.09487}{arXiv:2607.09487}, July 2026.
+
+\bibitem{Banerjee2005}
+A.~Banerjee, S.~Merugu, I.~S.~Dhillon, and J.~Ghosh.
+Clustering with Bregman divergences.
+\emph{Journal of Machine Learning Research}, 6:1705--1749, 2005.
+
+\bibitem{Hoeffding1963}
+W.~Hoeffding.
+Probability inequalities for sums of bounded random variables.
+\emph{Journal of the American Statistical Association}, 58(301):13--30, 1963.
+
+\bibitem{Popoviciu1935}
+T.~Popoviciu.
+Sur les \'equations alg\'ebriques ayant toutes leurs racines r\'eelles.
+\emph{Mathematica (Cluj)}, 9:129--145, 1935.
+
+\end{thebibliography}
+
+\end{document}

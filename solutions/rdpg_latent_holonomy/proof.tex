@@ -1,0 +1,249 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Hol}{Hol}
+\DeclareMathOperator{\SO}{SO}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\proj}{proj}
+
+\title{\bfseries Complete Resolution of Restricted Holonomy for the RDPG Bundle and Laplacian Dynamics}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: G.~V.~Dalla Riva,\\
+\emph{Random Dot Product Graphs as Dynamical Systems: Limitations and Opportunities},\\
+\href{https://arxiv.org/abs/2603.05703}{arXiv:2603.05703}, Conjecture~\texttt{conj:full-holonomy}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We completely settle Conjecture~\texttt{conj:full-holonomy} of Dalla Riva (\href{https://arxiv.org/abs/2603.05703}{arXiv:2603.05703}) across all three natural readings for $n > d \ge 2$.
+First, on the ambient Random Dot Product Graph (RDPG) principal $O(d)$-bundle over the full-rank interior $\mathcal{X}$, the restricted holonomy group satisfies $\Hol_p^0 = \SO(d)$ at \emph{every} point (including regular graphs), because curvature values at the base point alone already span $\mathfrak{so}(d)$.
+Second, restricted to any single orbit of the autonomous Laplacian ODE $\dot{X} = -L(P)X$, the restricted holonomy is \emph{trivial} everywhere: $\frac{d}{dt}\tr P < 0$ strictly, so each orbit is an interval admitting a global horizontal section.
+Third, for the paper's finite-time projected-commutator rank criterion $X^\top[L(t_1), L(t_2)]X$, we construct an explicit non-regular $S_d$-symmetric interior family on $n = d + 1$ nodes where all $L(t)$ commute (rank zero for every time pair) even while an explicit contractible ambient disk loop at the same point produces the exact rotation $\exp(-\frac{2\pi}{201}K) \in \SO(d)$; conversely, we prove via base-$4$ Vandermonde rates $\mu_{ij} = 4^i + 4^j$ that the projected-commutator jets span $\mathfrak{so}(d)$ outside a proper real algebraic subset for every $n > d \ge 2$, establishing the finite-time rank criterion generically.
+\end{abstract}
+
+\section{Bundle Setup and Overview of Readings}
+
+Fix integers $n > d \ge 2$. The open total space of full-column-rank interior RDPG frames is
+\[
+\mathcal{X} := \bigl\{X \in \mathbb{R}^{n \times d} : \rank(X) = d,\ 0 < (XX^\top)_{ij} < 1 \text{ for all } i,j \in [n]\bigr\},
+\]
+carrying the free right action $X \mapsto XQ$ of $O(d)$ with quotient base $\mathcal{B} = \mathcal{X}/O(d) = \{P = XX^\top : X \in \mathcal{X}\}$.
+For $X \in \mathcal{X}$, set $G := X^\top X \succ 0$ and define the Lyapunov operator $S_G(A) := GA + AG$ on $\mathfrak{so}(d)$.
+Because $G \succ 0$, $S_G : \mathfrak{so}(d) \to \mathfrak{so}(d)$ is a linear isomorphism even when $G$ has repeated eigenvalues (in an eigenbasis of $G$ with eigenvalues $\lambda_i > 0$, $(S_G(A))_{ij} = (\lambda_i + \lambda_j)A_{ij}$ with $\lambda_i + \lambda_j > 0$).
+
+The vertical tangent space at $X$ is $\{XA : A \in \mathfrak{so}(d)\}$.
+Frobenius orthogonality $\tr(H^\top XA) = 0$ for all $A \in \mathfrak{so}(d)$ holds if and only if $X^\top H = H^\top X$.
+Hence the orthogonal principal connection one-form $\omega$ and horizontal projection are
+\[
+\omega_X(V) = S_G^{-1}(X^\top V - V^\top X),
+\qquad
+V^h = V - X\omega_X(V).
+\]
+In \href{https://arxiv.org/abs/2603.05703}{arXiv:2603.05703}, Conjecture~\texttt{conj:full-holonomy} states:
+\begin{quote}
+\emph{For $d \ge 3$, $n > d$, and initial conditions with $D(P(0))$ not scalar (non-regular graph), the restricted holonomy group of Laplacian dynamics $\dot{X} = -L(P)X$ is $\SO(d)$.}
+\end{quote}
+Three distinct readings arise from the paper's definitions and discussion, and all three are settled below:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item \emph{Ambient RDPG bundle:} $\Hol_p^0 = \SO(d)$ at every $p \in \mathcal{B}$, including regular graphs (Theorem~\ref{thm:ambient}).
+\item \emph{Autonomous Laplacian orbit:} trivial holonomy at every interior initial condition (Theorem~\ref{thm:orbit}).
+\item \emph{Finite-time projected-commutator rank criterion:} fails on an explicit non-regular $S_d$-symmetric interior family (Theorem~\ref{thm:symmetric}), and holds generically outside a proper real algebraic subset for every $n > d \ge 2$ (Theorem~\ref{thm:generic}).
+\end{enumerate}
+
+\section{Ambient Restricted Holonomy of the RDPG Bundle}
+
+\begin{theorem}[Full ambient restricted holonomy everywhere]\label{thm:ambient}
+For every $n > d \ge 2$ and every $X \in \mathcal{X}$, the curvature two-form under the sign convention $R(H, K) = -\omega([H, K])$ is
+\begin{equation}\label{eq:curv}
+R_X(V, W) = 2 S_G^{-1}\bigl((V^h)^\top W^h - (W^h)^\top V^h\bigr).
+\end{equation}
+Its values at $X$ already span $\mathfrak{so}(d)$, and therefore $\Hol_p^0 = \SO(d)$ at every $p = XX^\top \in \mathcal{B}$ (and even for loops confined to any open neighborhood of $p$ in $\mathcal{B}$).
+\end{theorem}
+
+\begin{proof}
+On horizontal tangent vectors $H, K$ extended as constant fields on $\mathcal{X}$, Cartan's structure equation gives $R_X(H, K) = d\omega_X(H, K)$.
+Differentiating $\omega_X = S_{X^\top X}^{-1}(X^\top dX - dX^\top X)$, terms differentiating $S_{X^\top X}^{-1}$ multiply $(X^\top H - H^\top X) = 0$ or $(X^\top K - K^\top X) = 0$ and vanish, while $d(X^\top dX - dX^\top X)(H, K) = 2(H^\top K - K^\top H)$.
+Horizontality of $R$ yields~\eqref{eq:curv} on arbitrary tangent vectors $V, W$.
+
+Because $n > d$, there exists a unit vector $z \in \ker(X^\top)$.
+Each $H_i := z e_i^\top \in \mathbb{R}^{n \times d}$ ($1 \le i \le d$) satisfies $X^\top H_i = 0$, so $H_i$ is horizontal, and
+\[
+R_X(H_i, H_j) = 2 S_G^{-1}(e_i e_j^\top - e_j e_i^\top) \qquad (1 \le i < j \le d).
+\]
+Since $\{e_i e_j^\top - e_j e_i^\top : i < j\}$ is a basis of $\mathfrak{so}(d)$ and $S_G^{-1}$ is an isomorphism on $\mathfrak{so}(d)$, curvature values at the single base point $X$ already span $\mathfrak{so}(d)$.
+By the Ambrose--Singer theorem, the Lie algebra of $\Hol_p^0$ equals $\mathfrak{so}(d)$.
+As $\Hol_p^0$ is a connected Lie subgroup of $O(d)$ with Lie algebra $\mathfrak{so}(d)$, we conclude $\Hol_p^0 = \SO(d)$ (even inside any open neighborhood of $p$).
+\end{proof}
+
+\section{Trivial Holonomy Along Autonomous Laplacian Orbits}
+
+Let $L(P) := \diag(P\mathbf{1}) - P$.
+The vector field $F(X) := -L(XX^\top)X$ is $O(d)$-equivariant and horizontal (since $X^\top L(P) X$ is symmetric), projecting to $\dot{P} = -L(P)P - P L(P)$ on $\mathcal{B}$.
+
+\begin{theorem}[Strict trace decay and trivial orbit holonomy]\label{thm:orbit}
+Along every interior solution $X(t) \in \mathcal{X}$ of $\dot{X} = -L(P)X$,
+\[
+\frac{d}{dt}\tr P(t) = -2\tr\bigl(X^\top L(P) X\bigr) = -2\sum_{1 \le i < j \le n} P_{ij}\|x_i - x_j\|_2^2 < 0.
+\]
+Consequently, there are no nonconstant closed forward orbits, each orbit is a smooth interval carrying the global horizontal section $P(t) \mapsto X(t)$, and parallel transport around any loop supported in the orbit (allowing stops and reversals) is the identity.
+\end{theorem}
+
+\begin{proof}
+Because $X \in \mathcal{X}$ has $P_{ij} > 0$ for all $i, j$ and $\rank(X) = d \ge 2$, the rows $x_1, \dots, x_n$ cannot all be equal, so the weighted squared-distance sum is strictly positive.
+Thus $\tr P$ is a strictly decreasing smooth coordinate on each orbit, which is diffeomorphic to an interval.
+The solution curve $t \mapsto X(t)$ provides a global horizontal section over the orbit, so the pullback of $\omega$ vanishes identically and every orbit-supported loop has identity transport.
+\end{proof}
+
+\begin{remark}[Frozen Laplacian commutators]
+Freezing two Laplacians $L(t_1), L(t_2)$ and applying both at the \emph{same} frame $X$ yields legitimate ambient horizontal tangent vectors $H_k = -L(t_k)X$ whose ambient curvature by~\eqref{eq:curv} is
+\[
+R_X(H_1, H_2) = 2 S_G^{-1}\bigl(X^\top [L(t_1), L(t_2)] X\bigr).
+\]
+Moving independently along $H_1, H_2$ leaves the one-dimensional autonomous orbit and probes ambient two-planes in $\mathcal{B}$, explaining how a strictly decreasing trajectory can certify nontrivial ambient holonomy.
+\end{remark}
+
+\section{Non-Regular Symmetric Counterexample and Exact Disk Loop}
+
+\begin{theorem}[Non-regular $S_d$-symmetric counterexample and disk holonomy]\label{thm:symmetric}
+For every $d \ge 2$, let $n := d + 1$ and define $X \in \mathbb{R}^{(d+1) \times d}$ by
+\[
+x_i := \frac{\mathbf{1}_d + e_i}{4d} \quad (1 \le i \le d),
+\qquad
+x_{d+1} := \frac{\mathbf{1}_d}{4d}.
+\]
+Then:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $X \in \mathcal{X}$ has full column rank $d$, strictly interior probabilities $0 < P_{ij} < 1$, and non-regular degrees (the first $d$ node degrees exceed the last by $(d+2)/(4d)^2 > 0$).
+\item Along the Laplacian flow from $X$, all $L(t)$ commute for all $t \ge 0$, so $X^\top[L(t_1), L(t_2)]X = 0$ for all $t_1, t_2$. Moreover, the $S_d$-symmetric frames form a flat three-dimensional horizontal submanifold through $X$.
+\item Let $z \in \ker(X^\top)$ be a unit vector and $u, v \perp \mathbf{1}_d$ be orthonormal latent contrasts. The disk $Y = X + z(au + bv)^\top$ ($a^2 + b^2 \le r^2$, $r := 1/(40d)$) lies entirely in $\mathcal{X}$. Traversing a radius out, the boundary circle counterclockwise, and the radius back gives a contractible loop at $p = XX^\top$ with exact holonomy
+\[
+Q = \exp\!\left(-\frac{2\pi r^2}{2g + r^2} K\right) = \exp\!\left(-\frac{2\pi}{201} K\right) \in \SO(d),
+\qquad g := (4d)^{-2},\quad K := uv^\top - vu^\top.
+\]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), every entry of $X$ is positive, every row has squared norm $\le (d+3)/(4d)^2 < 1$, and the top $d \times d$ block $(I_d + \mathbf{1}\mathbf{1}^\top)/(4d)$ is invertible.
+Because $\sum_{i=1}^{d+1} x_i = \frac{d+2}{4d}\mathbf{1}_d$, the degrees obey $(P\mathbf{1})_i - (P\mathbf{1})_{d+1} = (x_i - x_{d+1})^\top \sum_j x_j = (d+2)/(4d)^2 > 0$ for $1 \le i \le d$.
+
+For~(2), simultaneous permutation of the first $d$ nodes and the $d$ latent coordinates fixes $X$.
+Equivariance and ODE uniqueness preserve this $S_d$-symmetry for all $t$.
+Hence at every $t$, off-diagonal weights among $\{1,\dots,d\}$ share one value $a(t)$ and weights between $\{1,\dots,d\}$ and $d+1$ share one value $b(t)$, so $L(t)$ acts by scalars on three fixed orthogonal subspaces: $0$ on $\spn(\mathbf{1}_{d+1})$, $(d+1)b(t)$ on $\spn((1,\dots,1,-d)^\top)$, and $da(t)+b(t)$ on $\{w \in \mathbb{R}^{d+1} : w_{d+1} = 0,\, \sum_{i=1}^d w_i = 0\}$.
+Thus $[L(t_1), L(t_2)] = 0$ for all $t_1, t_2$.
+Every $S_d$-fixed frame has top block $\alpha I_d + \beta \mathbf{1}\mathbf{1}^\top$ and last row $\gamma \mathbf{1}^\top$; for any tangent velocity $V$ within this three-parameter family, $X^\top V$ commutes with all coordinate permutations and is therefore symmetric, making the whole family horizontal and locally a flat section over its three-dimensional image in $\mathcal{B}$.
+
+For~(3), $G = X^\top X = (4d)^{-2}(I_d + (d+3)\mathbf{1}_d\mathbf{1}_d^\top)$ acts on $\spn(u, v) \subset \mathbf{1}_d^\perp$ as the scalar $g = (4d)^{-2}$.
+On the disk $Y = X + zh^\top$ with $h = au + bv$ and $a^2 + b^2 \le r^2$, we have $Y^\top Y = G + hh^\top \succ 0$, every entry of $Y$ is at least $\frac{1}{4d} - \frac{1}{40d} > 0$, and every row norm is at most $\frac{\sqrt{d+3}}{4d} + r < 1$, so the disk stays in $\mathcal{X}$.
+Moreover, $Y^\top dY - dY^\top Y = (a\,db - b\,da)K$ and $S_{Y^\top Y}(K) = (2g + a^2 + b^2)K$ (since $hh^\top K + Khh^\top = (a^2+b^2)K$).
+Along the radii, $a\,db - b\,da = 0$ gives $\omega = 0$; along the circle $a^2 + b^2 = r^2$, $\omega_Y(\dot{Y}) = \frac{r^2}{2g + r^2}\dot{\theta}\,K$.
+Integrating the horizontal lift $\dot{Q} = -\omega_Y(\dot{Y})Q$ over $\theta \in [0, 2\pi]$ yields $Q = \exp(-\frac{2\pi r^2}{2g + r^2}K) = \exp(-\frac{2\pi}{201}K)$ because $2g/r^2 = 200$.
+\end{proof}
+
+\section{Generic Full Rank of the Finite-Time Criterion}
+
+\begin{theorem}[Generic full rank of projected commutators]\label{thm:generic}
+Fix $n > d \ge 2$, $m := d(d-1)/2$, and $N := d(d+1)/2$.
+Outside a proper real algebraic subset of initial frames $X \in \mathbb{R}^{n \times d}$ (hence on a Zariski-open, dense, full-Lebesgue-measure subset of $\mathcal{X}$), the jet matrices
+\[
+J_k(X) := X^\top\bigl[L(0), L^{(k)}(0)\bigr]X \in \mathfrak{so}(d), \qquad 1 \le k \le N,
+\]
+span $\mathfrak{so}(d)$.
+Consequently, in every sufficiently short forward interval $[0, \delta)$ there exist $m$ sample times $s_1, \dots, s_m$ for which the matrices $B(s) := X^\top[L(0), L(s)]X$ are linearly independent.
+\end{theorem}
+
+\begin{proof}
+\emph{Step 1: Polynomial reduction.}
+Because $\dot{P} = -LP - PL$ is polynomial in $P = XX^\top$ and $L$ is linear in $P$, every $J_k(X)$ is polynomial in the entries of $X$.
+Rank deficiency ($\rank\{J_1(X), \dots, J_N(X)\} < m$) is cut out by the vanishing of all $m \times m$ minors of the $m \times N$ coordinate matrix of $\{J_k(X)\}$ in $\mathfrak{so}(d)$.
+To show that some minor is a nonzero polynomial, we may evaluate on any real perturbation $X_\epsilon$ of the polynomial ODE (not required to lie in $\mathcal{X}$).
+
+\emph{Step 2: Base-$4$ Vandermonde equilibrium and first variation ($n = d + 1$).}
+Index rows by $0, 1, \dots, d$, and let $X_* \in \mathbb{R}^{(d+1) \times d}$ have top $d \times d$ block $\diag(2^0, 2^1, \dots, 2^{d-1})$ and last row $0^\top$.
+Then $P_* = X_* X_*^\top = \diag(s_0, \dots, s_d)$ with $s_i = 4^i$ ($0 \le i < d$) and $s_d = 0$, so $L_* = L(P_*) = 0$ is an equilibrium.
+For $0 \le i < j \le d$, set $E_{ij} := (e_i - e_j)(e_i - e_j)^\top$ and prescribe positive first-order off-diagonal weights $w_{ij} := 1 + \mathbf{1}_{j = i+1}$.
+Define $V \in \mathbb{R}^{(d+1) \times d}$ by $V_{ji} := w_{ij}/2^i$ for $0 \le i < j \le d$ and $0$ otherwise, and set $X_\epsilon := X_* + \epsilon V$.
+Then $\delta P(0) = X_* V^\top + V X_*^\top$ has off-diagonal entries $\delta P_{ij}(0) = 2^i V_{ji} = w_{ij}$ for $i < j$ (and zero diagonal).
+
+Linearizing $\dot{P} = -LP - PL$ at $(P_*, L_* = 0)$ gives $\delta\dot{P} = -(\delta L)P_* - P_*(\delta L)$, and since $\delta L_{ij} = -\delta P_{ij}$ for $i \neq j$,
+\[
+\delta\dot{P}_{ij} = (s_i + s_j)\,\delta P_{ij} \qquad (i \neq j).
+\]
+Putting $\mu_{ij} := s_i + s_j$ ($0 \le i < j \le d$), we obtain
+\[
+\delta L(t) = \sum_{0 \le i < j \le d} w_{ij} e^{\mu_{ij} t} E_{ij},
+\qquad
+A_k := \delta L^{(k)}(0) = \sum_{0 \le i < j \le d} w_{ij} \mu_{ij}^k E_{ij} \quad (k \ge 0).
+\]
+Each rate $\mu_{ij}$ equals $4^i + 4^j$ ($0 \le i < j < d$) or $4^i$ ($j = d$).
+By uniqueness of base-$4$ expansions, all $N = \binom{d+1}{2}$ rates are strictly positive and pairwise distinct.
+Thus the $N \times N$ matrix $(\mu_{ij}^k)_{(i<j),\, 1 \le k \le N}$ is an invertible Vandermonde matrix scaled by positive row factors $\mu_{ij}$, and the positive weights $w_{ij}$ preserve invertibility.
+Because $\{E_{ij} : 0 \le i < j \le d\}$ is a basis of the $N$-dimensional space $\mathcal{S}_0(W)$ of symmetric matrices annihilating $\mathbf{1}_{d+1}$, the matrices $A_1, \dots, A_N$ span $\mathcal{S}_0(W)$.
+
+\emph{Step 3: Leading commutators and surjectivity onto $\mathfrak{so}(d)$.}
+Let $W := \mathbf{1}_{d+1}^\perp$.
+Because $w_{ij} = 1 + \mathbf{1}_{j=i+1}$, $A_0|_W = (d+1)I_W + L_{\mathrm{path}}|_W$, where $L_{\mathrm{path}}$ is the Laplacian of the path graph on $\{0, \dots, d\}$.
+As a real symmetric tridiagonal matrix with nonzero subdiagonal entries $-1$, $L_{\mathrm{path}}$ has simple spectrum (every eigenvector is determined from its first coordinate by the three-term recurrence), so $A_0|_W$ has simple spectrum.
+In an eigenbasis of $A_0|_W$, the commutator map $B \mapsto [A_0|_W, B]$ multiplies each off-diagonal $(a, b)$-entry by the nonzero eigenvalue difference $\lambda_a - \lambda_b$, and is therefore surjective from symmetric operators on $W$ onto $\mathfrak{so}(W)$.
+
+Set $T := \proj_W X_* : \mathbb{R}^d \to W$.
+Since the last entry of $X_* v$ is $0$, $X_* v \in \spn(\mathbf{1}_{d+1})$ implies $X_* v = 0$ and thus $v = 0$; hence $T$ is invertible and $K \mapsto T^\top K T$ is an isomorphism $\mathfrak{so}(W) \xrightarrow{\sim} \mathfrak{so}(d)$.
+Commuting initial-state and time derivatives of the polynomial ODE gives $L(0) = \epsilon A_0 + O(\epsilon^2)$ and $L^{(k)}(0) = \epsilon A_k + O(\epsilon^2)$, whence
+\[
+J_k(X_\epsilon) = \epsilon^2 X_*^\top [A_0, A_k] X_* + O(\epsilon^3) = \epsilon^2 T^\top\bigl[A_0|_W, A_k|_W\bigr]T + O(\epsilon^3).
+\]
+Since $A_1, \dots, A_N$ span $\mathcal{S}_0(W)$, the leading coefficients span $\mathfrak{so}(d)$.
+Picking $m$ indices with linearly independent leading terms yields an $m \times m$ minor with nonzero $\epsilon^{2m}$ coefficient, proving polynomial nonvanishing for $n = d + 1$.
+
+\emph{Step 4: Extension to $n > d + 1$ and short intervals.}
+For $n > d + 1$, append $n - (d+1)$ zero rows to $X_\epsilon$; they remain zero under $\dot{P} = -LP - PL$, leaving every $J_k$ unchanged and proving polynomial nonvanishing on $\mathbb{R}^{n \times d}$.
+Finally, at any $X \in \mathcal{X}$ outside the resulting proper algebraic set, if $\{B(s) : s \in [0, \delta)\}$ lay in a proper subspace of $\mathfrak{so}(d)$, some nonzero $\phi \in \mathfrak{so}(d)^*$ would satisfy $\phi(B(s)) \equiv 0$ on $[0, \delta)$, forcing $\phi(J_k(X)) = \frac{d^k}{ds^k}\big|_{s=0}\phi(B(s)) = 0$ for all $k \ge 1$, contradicting $\spn\{J_1(X), \dots, J_N(X)\} = \mathfrak{so}(d)$.
+\end{proof}
+
+\section{Exact Rational and Numerical Verification}
+
+The verification script \texttt{solutions/rdpg\_latent\_holonomy/explore.py} (run via \texttt{.venv/bin/python -B}) checks Theorems~\ref{thm:ambient}, \ref{thm:symmetric}, and~\ref{thm:generic} in exact rational arithmetic (SymPy) for the connection, curvature, iterated Lie brackets, and exact time derivatives $L^{(k)}(0)$, and numerically integrates the full matrix horizontal-lift ODE (\texttt{DOP853}, $\texttt{rtol}=10^{-12}$, $\texttt{atol}=10^{-14}$) along the three segments of the disk loop at the $S_d$-symmetric counterexample. All assertions passed:
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}rrlrrrr@{}}
+\toprule
+$d$ & Curv.\ rank & Adj.\ Lie dims & Jet rank (sym.) & Jet rank (pert.) & Loop angle $2\pi/201$ & Transport err. \\
+\midrule
+3 & 3  & $2 \to 3$  & 0 & 3  & $0.031259628394$ & $2.95 \times 10^{-16}$ \\
+4 & 6  & $3 \to 6$  & 0 & 6  & $0.031259628394$ & $5.32 \times 10^{-16}$ \\
+5 & 10 & $4 \to 10$ & 0 & 10 & $0.031259628394$ & $7.31 \times 10^{-16}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All integrated endpoint determinants rounded to $1.000000000000$, confirming agreement with $\exp(-\frac{2\pi}{201}K) \in \SO(d)$ to within $8 \times 10^{-16}$ in Frobenius norm at the exact non-regular frames where every frozen Laplacian commutator vanishes.
+
+\end{document}

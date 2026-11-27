@@ -1,0 +1,187 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\PC}{\mathrm{PC}}
+
+\title{\bfseries Product Depth Bounds for Cache-Restricted Pointer Chasing}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: X.~Wang,\\
+\emph{How Much Cache Does Reasoning Need? Depth--Cache Tradeoffs in KV-Compressed Transformers},\\
+\href{https://arxiv.org/abs/2604.17935}{arXiv:2604.17935} (v1, April 2026), Conj.~\texttt{thm:lower}, Lem.~\texttt{lem:exit}, and Open Problem~2\\[0.35em]
+Companion verification script: \texttt{solutions/kv\_cache\_depth/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve Conjecture~\texttt{thm:lower}, Open Problem~2, and Lemma~\texttt{lem:exit} (with step~$(\star)$) of Wang (\href{https://arxiv.org/abs/2604.17935}{arXiv:2604.17935}, v1, April 2026) for $k$-hop pointer chasing ($\PC_{n,k}$) on cache-restricted Transformers with a locality-respecting controller.
+First, we prove Conjecture~\texttt{thm:lower} with explicit constants $c = 1$ and $n_0 = 4$ for all $k \ge 1$, $n \ge 4k$, and \emph{every} cache size $1 \le s \le n$ (answering Open Problem~2): every exact solver satisfies both $2^{mp} \ge n$ and $Ls \ge k$, giving $L \ge \lceil k/s \rceil = \lceil k/s \rceil \cdot \lceil \log_2 n / (Hmp) \rceil$.
+Second, we highlight a modeling inconsistency inherent in the paper's readout $X^{(L)}_0 \in \mathcal{Q}_p^m$: in the narrow/low-precision regime $Hmp < \log_2 n$ where the bandwidth factor exceeds $1$, no exact solver exists at any depth $L$, so Conjecture~\texttt{thm:lower} holds vacuously there and reduces to $L \ge \lceil k/s \rceil$ whenever $2^{mp} \ge n$.
+Third, we refute both \textbf{Lemma~\texttt{lem:exit} itself} and its proposed probabilistic step~$(\star)$ for every $n \ge 16$ via an explicit exact $2$-layer, $s = 1$, $H = 1$ locality-respecting circuit for $k = 2$ whose cache support contains $z_1(\pi) = \pi(1)$ on every permutation $\pi \in S_n$.
+\end{abstract}
+
+\section{Model and Output-Capacity Modeling Inconsistency}
+
+Following Definitions~\texttt{def:transformer} and~\texttt{def:local} of \href{https://arxiv.org/abs/2604.17935}{arXiv:2604.17935}, an $(L, H, m, p, s)$-Cache-Transformer processes $n + 1$ positions $\{0, 1, \dots, n\}$: position $0$ holds a fixed query token, and position $i \in [n]$ holds the local input pair $(i, \pi(i))$ for $\pi \in S_n$.
+Every token representation lies in $\mathcal{Q}_p^m$ with $|\mathcal{Q}_p| \le 2^p$.
+At each layer $\ell \in \{1, \dots, L\}$, all $H \ge 1$ heads attend solely to a shared cache $S^{(\ell)} \subseteq \{0, 1, \dots, n\}$ with $|S^{(\ell)}| \le s$; inactive tokens carry their representations forward unchanged via the residual connection.
+The cache controller $C_\ell$ is \emph{locality-respecting}: $S^{(\ell)}(\pi)$ is a deterministic function of $\{X^{(\ell-1)}_j(\pi) : j \in T_\ell(\pi)\}$, where $T_\ell(\pi) := \{0\} \cup \bigcup_{\ell' < \ell} S^{(\ell')}(\pi)$ is the cache support up to layer $\ell - 1$, and $T(\pi) := T_{L+1}(\pi)$.
+For $k \ge 1$, the task $\PC_{n,k}$ requires computing $z_k(\pi) := \pi^k(1) \in [n]$ for every $\pi \in S_n$.
+As explicitly stated in the proof of Proposition~\texttt{prop:max-bound} and reiterated in the joint-state discussion of \href{https://arxiv.org/abs/2604.17935}{arXiv:2604.17935}, the answer is decoded from the final query-token representation $X^{(L)}_0 \in \mathcal{Q}_p^m$.
+
+\begin{proposition}[Output-capacity constraint and narrow-regime vacuity]\label{prop:cap}
+Let $k \ge 1$ and $n \ge 4k$ (in particular $n \ge 4$). Every exact $(L, H, m, p, s)$-Cache-Transformer solving $\PC_{n,k}$ via readout from $X^{(L)}_0 \in \mathcal{Q}_p^m$ satisfies
+\begin{equation}\label{eq:cap}
+2^{mp} \;\ge\; n.
+\end{equation}
+Consequently:
+\begin{enumerate}[label=\textup{(\arabic*)},itemsep=2pt]
+\item In the narrow/low-precision regime $Hmp < \log_2 n$, no exact solver exists at any depth $L$; Conjecture~\texttt{thm:lower} therefore holds vacuously throughout this regime.
+\item On every feasible parameter tuple ($2^{mp} \ge n$, with $H \ge 1$), the bandwidth factor collapses to $\lceil \log_2 n / (Hmp) \rceil = 1$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Every label $v \in [n]$ occurs as $\pi^k(1)$ for some $\pi \in S_n$: for $v = 1$, take the identity permutation $\pi = \mathrm{id}$ (so $\mathrm{id}^k(1) = 1$ for every $k \ge 1$); for $v \neq 1$, select $k - 1$ distinct labels $a_1, \dots, a_{k-1} \in [n] \setminus \{1, v\}$ (which exist since $n \ge 4k \ge k + 1$ for $k \ge 1$), form the $(k+1)$-cycle $(1, a_1, \dots, a_{k-1}, v)$, and fix all remaining labels.
+Because the decoder reads only $X^{(L)}_0 \in \mathcal{Q}_p^m$, distinct outputs require distinct final query states, yielding $n \le |\mathcal{Q}_p^m| \le 2^{mp}$.
+If $Hmp < \log_2 n$, then $mp \le Hmp < \log_2 n$, contradicting~\eqref{eq:cap}; hence no exact solver exists at any depth $L$.
+Conversely, whenever $2^{mp} \ge n$ and $H \ge 1$, we have $0 < \log_2 n / (Hmp) \le 1$, so $\lceil \log_2 n / (Hmp) \rceil = 1$.
+\end{proof}
+
+\begin{remark}[Modeling inconsistency of the narrow regime]
+The paper motivates Conjecture~\texttt{thm:lower} as quantitatively binding specifically in the narrow/low-precision regime $Hmp < \log_2 n$, where $\lceil \log_2 n / (Hmp) \rceil > 1$.
+Proposition~\ref{prop:cap} exposes a structural inconsistency between that intended regime and the paper's readout specification $X^{(L)}_0 \in \mathcal{Q}_p^m$: encoding pieces of a pointer across successive layers still cannot represent $n$ distinct outputs inside a single $mp$-bit final vector.
+Making the narrow regime non-vacuous would require changing the readout model (e.g., decoding from the entire layer history $(X^{(1)}_0, \dots, X^{(L)}_0)$ or from multiple output tokens), which lies outside the stated model and requires a separate analysis.
+\end{remark}
+
+\section{Probe Simulation and Proof of Conjecture~\texttt{thm:lower} and Open Problem~2}
+
+We establish $Ls \ge k$ unconditionally for every $k \ge 1$, $n \ge 4k$, and every $1 \le s \le n$, removing the paper's restriction $s \le \sqrt{n}/4$.
+
+\begin{lemma}[Simulation by adaptive permutation probes]\label{lem:sim}
+Every $(L, H, m, p, s)$-Cache-Transformer with a locality-respecting controller can be simulated by a deterministic adaptive probe algorithm (with unlimited internal memory and computation, where a probe at $i \in [n]$ returns $\pi(i)$) that outputs $X^{(L)}_0(\pi)$ using at most $Ls$ probes.
+\end{lemma}
+
+\begin{proof}
+For each completed layer $\ell' < \ell$, the simulator records the selected cache $S^{(\ell')}$ and the layer-$(\ell'-1)$ representations $\{X^{(\ell'-1)}_j : j \in S^{(\ell')}\}$ supplying keys and values at layer $\ell'$.
+Given these records and the initial state $X^{(0)}_i$ of any token $i$, the simulator can deterministically replay $X^{(1)}_i, \dots, X^{(\ell-1)}_i$, since each layer update at token $i$ depends only on $X^{(\ell'-1)}_i$ and the saved cache states from $S^{(\ell')}$ (including residual carry-forward at inactive positions).
+
+At $\ell = 1$, $T_1 = \{0\}$ and $X^{(0)}_0$ is fixed, so $S^{(1)}$ is determined with zero probes.
+Inductively, prior to layer $\ell$, the simulator holds $T_\ell$ and $\{X^{(\ell-1)}_j : j \in T_\ell\}$ (including ghost states of previously evicted tokens), so locality determines $S^{(\ell)}$ before any further probes.
+For each newly selected data index $i \in S^{(\ell)} \setminus T_\ell$, the simulator probes $\pi(i)$, initializes $X^{(0)}_i$, and replays layers $1, \dots, \ell - 1$ to recover $X^{(\ell-1)}_i$.
+The entire selected cache at layer $\ell$ is now available; the simulator computes $X^{(\ell)}_j$ for all $j \in T_{\ell+1} = T_\ell \cup S^{(\ell)}$ and advances to layer $\ell + 1$.
+Since $|S^{(\ell)} \setminus T_\ell| \le |S^{(\ell)}| \le s$ at each layer, at most $Ls$ probes are made in total.
+\end{proof}
+
+\begin{lemma}[Worst-case lower bound of $k$ probes]\label{lem:adv}
+Let $k \ge 1$ and $n \ge 4k$. Any deterministic adaptive probe algorithm computing $\pi^k(1)$ for every $\pi \in S_n$ makes at least $k$ probes on some input $\pi \in S_n$.
+\end{lemma}
+
+\begin{proof}
+Suppose for contradiction that an exact deterministic algorithm always uses fewer than $k$ probes. Run it against an adversary maintaining a simple directed path $P = (v_0, v_1, \dots, v_r)$ with $v_0 = 1$ (initially $r = 0$, $P = (1)$) and a disjoint set $F$ of fixed points (initially $F = \varnothing$):
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=2pt]
+\item On a repeated probe $i$, return the previously recorded value.
+\item On a fresh probe at the current tip $v_r$, choose any unused label $u \in [n] \setminus (P \cup F)$, answer $\pi(v_r) = u$, and append $u$ as the new tip (incrementing $r$).
+\item On any other fresh probe $i$ (every non-tip vertex of $P$ was already probed, so $i \notin P \cup F$), answer $\pi(i) = i$ and add $i$ to $F$.
+\end{itemize}
+After $q < k$ distinct probes, $P$ contains $r \le q$ edges and $r + 1$ vertices, and $|F| = q - r$, so $|P \cup F| = q + 1 \le k$.
+Since $k \ge 1$ and $n \ge 4k$, the number of unused labels satisfies
+\[
+n - (q + 1) \;\ge\; 4k - k \;=\; 3k \;\ge\; k + 1 \;\ge\; k - r + 1.
+\]
+Hence a fresh tip answer always exists during execution.
+
+At termination, $q \le k - 1$ and $d := k - r \ge 1$. Because at least $d + 1$ unused labels remain, choose $d - 1$ common unused labels $w_1, \dots, w_{d-1}$ and two distinct additional unused labels $a, b$.
+Construct two permutations $\pi_a, \pi_b \in S_n$ by extending $P$ along $w_1, \dots, w_{d-1}$, appending $a$ (respectively $b$), closing the cycle back to $1$, and fixing all remaining labels outside the completed cycle.
+Both $\pi_a$ and $\pi_b$ agree with every recorded probe answer, so the deterministic algorithm follows the identical transcript and outputs the same answer on both.
+Yet $\pi_a^k(1) = a \neq b = \pi_b^k(1)$, a contradiction.
+\end{proof}
+
+\begin{theorem}[Resolution of Conjecture~\texttt{thm:lower} and Open Problem~2]\label{thm:main}
+For all $k \ge 1$, all $n \ge 4k$ (hence $n \ge 4$), and every cache size $1 \le s \le n$, any exact locality-respecting $(L, H, m, p, s)$-Cache-Transformer solving $\PC_{n,k}$ satisfies
+\[
+L \;\ge\; \left\lceil \frac{k}{s} \right\rceil
+\;=\; \left\lceil \frac{k}{s} \right\rceil \cdot \left\lceil \frac{\log_2 n}{Hmp} \right\rceil.
+\]
+Thus Conjecture~\texttt{thm:lower} holds with $c = 1$ and $n_0 = 4$, and the same inequality holds throughout the large-cache regime $s > \sqrt{n}/4$ (answering Open Problem~2).
+\end{theorem}
+
+\begin{proof}
+If $2^{mp} < n$, no exact solver exists by Proposition~\ref{prop:cap}(1), so the implication holds vacuously.
+Otherwise $2^{mp} \ge n$; Lemmas~\ref{lem:sim} and~\ref{lem:adv} yield $Ls \ge k$, hence $L \ge \lceil k/s \rceil$ by integrality of $L$, while Proposition~\ref{prop:cap}(2) gives $\lceil \log_2 n / (Hmp) \rceil = 1$.
+\end{proof}
+
+\section{Refutation of Lemma~\texttt{lem:exit} and Step~\texorpdfstring{$(\star)$}{(*)}}
+
+In \href{https://arxiv.org/abs/2604.17935}{arXiv:2604.17935}, window boundaries are $\tau_j := \min(js, k)$ with $\sigma_j := \tau_j - 1$. Lemma~\texttt{lem:exit} claims that for any locality-respecting algorithm with $L \le n/(8s)$, $n \ge 4k$, and $\tau_j \ge 2$, there exist a permutation $\pi_1$ and an index $t^\star \in (\tau_{j-1}, \tau_j]$ with $z_{t^\star - 1}(\pi_1) \notin T(\pi_1)$. Its proof sketch proposes the probabilistic step
+\begin{equation}\label{eq:star}
+\Pr\bigl[z_{\sigma_j}(\pi) \in T(\pi) \mid \mathcal{D}_{\mathrm{chain}}\bigr]
+\;\le\; \frac{\mathbb{E}[|T(\pi)|]}{n - 1},
+\tag{$\star$}
+\end{equation}
+where $\mathcal{D}_{\mathrm{chain}}$ is the event that $z_0, \dots, z_k$ are pairwise distinct under $\pi \sim \mathrm{Unif}(S_n)$.
+
+\begin{theorem}[Counterexample refuting Lemma~\texttt{lem:exit} and $(\star)$]\label{thm:refute}
+For every $n \ge 16$, there exists an exact locality-respecting $(L, H, m, p, s)$-Cache-Transformer solving $\PC_{n,2}$ with $k = 2$, $s = 1$, $L = 2$, $H = 1$, $m = 4$, and $p = \lceil \log_2(n+1) \rceil$ satisfying all hypotheses of Conjecture~\texttt{thm:lower} and Lemma~\texttt{lem:exit} ($n \ge 4k$, $s \le \sqrt{n}/4$, $L \le n/(8s)$, and window $j = 2$ with $\tau_2 = 2 \ge 2$), such that:
+\begin{enumerate}[label=\textup{(\arabic*)},itemsep=2pt]
+\item For every permutation $\pi \in S_n$, $T(\pi) = \{0, 1, \pi(1)\}$ contains $z_1(\pi) = \pi(1)$. Since $(\tau_1, \tau_2] = (1, 2]$ contains only $t^\star = 2$, no chain-exiting permutation $\pi_1$ exists; this refutes \textbf{Lemma~\texttt{lem:exit} itself}.
+\item Step~\eqref{eq:star} fails strictly: its left-hand side equals $1$, whereas its right-hand side equals $(3 - 1/n)/(n - 1) < 1$ (equal to $47/240$ at $n = 16$).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Set $\mathcal{Q}_p = \{0, 1, \dots, n\}$ (size $n + 1 \le 2^p$) and $m = 4$. Initialize $X^{(0)}_i = (i, \pi(i), 0, 0)$ for $i \in [n]$ and $X^{(0)}_0 = (0, 0, 0, 0)$. Set all query and key projections to zero (so singleton softmax assigns weight $1$ to the sole cached token), use identity output projections, residual addition, and identity MLPs:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=2pt]
+\item \emph{Layer~1:} Choose $S^{(1)} = \{1\}$ (independent of $\pi$). Let the value map send $(x_1, x_2, x_3, x_4) \mapsto (0, 0, x_2, 0)$. Since coordinate~3 starts at $0$, residual addition writes $\pi(1)$ into coordinate~3 of every token; in particular, $X^{(1)}_0 = (0, 0, \pi(1), 0)$, while coordinate~2 of every data token $i$ stays $\pi(i)$.
+\item \emph{Layer~2:} The locality-respecting controller reads coordinate~3 of $X^{(1)}_0$ and selects $S^{(2)} = \{\pi(1)\}$. Let the value map send $(x_1, x_2, x_3, x_4) \mapsto (0, 0, 0, x_2)$. Since coordinate~4 starts at $0$, residual addition writes $\pi(\pi(1)) = \pi^2(1)$ into coordinate~4 of $X^{(2)}_0$.
+\end{itemize}
+All weights are in $\{0, 1\}$, all states lie in $\mathcal{Q}_p^4$, the circuit solves $\PC_{n,2}$ exactly on every $\pi \in S_n$, and it attains $L = \lceil k/s \rceil = 2$ with equality.
+
+For $n \ge 16$, $k = 2$, $s = 1$, $L = 2$, every size and depth hypothesis holds: $n \ge 8 = 4k$, $s = 1 \le \sqrt{n}/4$, $L = 2 \le n/8 = n/(8s)$, and window $j = 2$ has $\tau_1 = 1$, $\tau_2 = 2 \ge 2$, $\sigma_2 = 1$.
+Yet for every $\pi \in S_n$, $T(\pi) = \{0, 1, \pi(1)\}$, so the unique candidate $t^\star = 2 \in (\tau_1, \tau_2]$ has $z_{t^\star - 1}(\pi) = z_1(\pi) = \pi(1) \in T(\pi)$.
+Thus Lemma~\texttt{lem:exit} itself fails on every $n \ge 16$.
+Moreover, for $\pi \sim \mathrm{Unif}(S_n)$, $|T(\pi)| = 2$ when $\pi(1) = 1$ (probability $1/n$) and $|T(\pi)| = 3$ otherwise, so $\mathbb{E}[|T(\pi)|] = 3 - 1/n$, while $\Pr[z_1(\pi) \in T(\pi) \mid \mathcal{D}_{\mathrm{chain}}] = 1$. Thus~\eqref{eq:star} requires $1 \le (3 - 1/n)/(n - 1)$, which is false for every $n \ge 4$ ($47/240 < 1$ at $n = 16$).
+\end{proof}
+
+\section{Reproducible Exact Verification}
+
+The companion script \texttt{solutions/kv\_cache\_depth/explore.py} checks each step using exact integer and rational arithmetic (all assertions passed):
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=3pt]
+\item \emph{Output range (Proposition~\ref{prop:cap}):} All 86,544 permutation/hop pairs for $4 \le n \le 8$ and $1 \le k \le \lfloor n/4 \rfloor$ attain the full output set $[n]$.
+\item \emph{Adversarial completions (Lemma~\ref{lem:adv}):} Across $(n,k) \in \{(4,1),(8,2),(12,3),(16,4),(20,5)\}$, all 172,957 adaptive probe prefixes of length $< k$ (including repeated probes) admit both verified completions $\pi_a, \pi_b$ with $\pi_a^k(1) \neq \pi_b^k(1)$.
+\item \emph{Parameter grid (Theorem~\ref{thm:main}):} Over $4 \le n \le 64$, all admissible $k, s$, $H \in \{1, 2\}$, and $m, p \in \{1, 2, 4\}$, output capacity excludes 257,048 tuples; the bandwidth factor equals $1$ on all 2,952 remaining small-cache ($s \le \sqrt{n}/4$) and 128,512 remaining large-cache tuples.
+\item \emph{Adaptive circuit (Theorem~\ref{thm:refute}):} At $n = 16$, all 226 ordered destination patterns $(\pi(1), \pi^2(1))$ yield exact readout $\pi^2(1)$ with $\pi(1) \in T(\pi)$, and exact weighting evaluates~\eqref{eq:star} to $1 \le 47/240$ (false).
+\end{itemize}
+
+\begin{thebibliography}{9}
+
+\bibitem{Wang2026}
+X.~Wang.
+\emph{How Much Cache Does Reasoning Need? Depth--Cache Tradeoffs in KV-Compressed Transformers}.
+\href{https://arxiv.org/abs/2604.17935}{arXiv:2604.17935} (v1), April 2026.
+
+\end{thebibliography}
+
+\end{document}

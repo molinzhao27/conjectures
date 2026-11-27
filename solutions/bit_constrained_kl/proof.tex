@@ -1,0 +1,258 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\sech}{sech}
+
+\title{\bfseries Exact Single-Round KL Contraction for the Gaussian Hypercube Channel}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: M.~Kim,\\
+\emph{Information-Theoretic Lower Bounds for Bit-Constrained Stochastic Optimization}\\
+\emph{via a Reduction to Compressed Gaussian Mean Estimation},\\
+\href{https://arxiv.org/abs/2606.00703}{arXiv:2606.00703}, Appendix~D.4, Conjecture~\texttt{conj:singleround}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We prove Conjecture~\texttt{conj:singleround} of Kim (\href{https://arxiv.org/abs/2606.00703}{arXiv:2606.00703}) with the sharp absolute constant $C = 1$ across all $\mathrm{SNR} \ge 0$.
+For uniform binary hypercube prior $V \sim \mathrm{Unif}(\{\pm 1\}^d)$ and Gaussian observation $Y \mid V \sim \mathcal{N}(\delta V, \sigma^2 I_d)$ with per-coordinate signal-to-noise ratio $s := \delta^2/\sigma^2$, we show that the distribution-dependent KL and $\chi^2$ contraction coefficients of the reverse channel $P_{V \mid Y}$ at $P_Y$ coincide exactly in every dimension $d \ge 1$:
+\[
+\eta_{\mathrm{KL}}(P_Y, P_{V \mid Y})
+= \eta_{\chi^2}(P_Y, P_{V \mid Y})
+= r(s) := \mathbb{E}\bigl[\tanh^2(s + \sqrt{s}\,Z)\bigr]
+< \min\{s, 1\} \qquad (s > 0),
+\]
+where $Z \sim \mathcal{N}(0, 1)$, and $r(s)/s \to 1$ as $s \downarrow 0$.
+Consequently, any single-round public-coin $B$-bit message $M$ satisfies $I(V; M \mid U) \le r(s)\,B \le s\,B$ in bits.
+This resolves the single-round question completely and corrects an informal remark in Appendix~D.4 regarding rare-event messages, while leaving the adaptive multi-round prefix problem of Section~D.5 as a separate issue.
+\end{abstract}
+
+\section{Setup and Main Result}
+
+Let $V = (V_1, \dots, V_d)$ have i.i.d.\ uniform coordinates in $\{\pm 1\}$ (law $P_V = \pi^{\otimes d}$), and let $Y \mid V \sim \mathcal{N}(\delta V, \sigma^2 I_d)$ with per-coordinate SNR $s := \delta^2/\sigma^2 \ge 0$.
+For the reverse channel $K := P_{V \mid Y}$ and marginal $P_Y$, the distribution-dependent KL and $\chi^2$ strong data-processing (SDPI) contraction coefficients~\cite{polyanskiy2017sdpi,polyanskiy2025it} are
+\[
+\eta_{\mathrm{KL}}(P_Y, K) := \sup_{0 < D(Q \Vert P_Y) < \infty} \frac{D(QK \Vert P_V)}{D(Q \Vert P_Y)},
+\qquad
+\eta_{\chi^2}(P_Y, K) := \sup_{0 < \chi^2(Q \Vert P_Y) < \infty} \frac{\chi^2(QK \Vert P_V)}{\chi^2(Q \Vert P_Y)}.
+\]
+All divergences below are in nats (changing logarithm base leaves $\eta_{\mathrm{KL}}$ unchanged). In \href{https://arxiv.org/abs/2606.00703}{arXiv:2606.00703}, Conjecture~\texttt{conj:singleround} asks whether $\eta_{\mathrm{KL}}(P_Y, P_{V \mid Y}) \le C\,s$ holds for an absolute constant $C$ whenever $s \le 1$.
+
+\begin{theorem}[Exact contraction coefficients]\label{thm:main}
+For every dimension $d \ge 1$ and every $s \ge 0$, with $Z \sim \mathcal{N}(0, 1)$,
+\begin{equation}\label{eq:exact-eta}
+\eta_{\mathrm{KL}}(P_Y, P_{V \mid Y})
+= \eta_{\chi^2}(P_Y, P_{V \mid Y})
+= r(s) := \mathbb{E}\bigl[\tanh^2(s + \sqrt{s}\,Z)\bigr].
+\end{equation}
+Moreover, $r(s) < \min\{s, 1\}$ for every $s > 0$ and $\lim_{s \downarrow 0} r(s)/s = 1$.
+\end{theorem}
+
+\begin{corollary}[Single-round public-coin bound]\label{cor:public-coin}
+If public randomness $U$ is independent of $(V, Y)$ and $M \in \{0, 1\}^B$ is generated from $(Y, U)$, then
+\[
+I(V; M \mid U) \le r(s)\, I(Y; M \mid U) \le r(s)\, H(M \mid U) \le r(s)\, B \le s\, B \qquad (\text{in bits}).
+\]
+\end{corollary}
+
+In particular, Conjecture~\texttt{conj:singleround} holds with the sharp absolute constant $C = 1$ for all $s \ge 0$.
+In addition, the equality $\eta_{\mathrm{KL}} = \eta_{\chi^2} = r(s)$ shows that the remark in Appendix~D.4 of \href{https://arxiv.org/abs/2606.00703}{arXiv:2606.00703} claiming that skewed rare-event messages strictly beat squared maximal correlation does not occur for this channel.
+A related scalar bound for \emph{truncated} Gaussian hypotheses appears in Braverman et~al.~\cite{braverman2016ddpi}; our proof works directly with the untruncated Gaussian mixture and determines the exact constant at every SNR.
+
+\section{Scalar Shift Identity and Posterior CGF Bound}
+
+At $s = 0$, $V$ and $Y$ are independent and both coefficients vanish, matching $r(0) = 0$. Assume $s > 0$ henceforth, and treat $d = 1$ first.
+Rescale the observation to the sufficient statistic $X := \delta Y / \sigma^2 = s V + \sqrt{s}\, Z$, whose symmetric marginal law $P = \frac{1}{2}\mathcal{N}(s, s) + \frac{1}{2}\mathcal{N}(-s, s)$ satisfies $W := \mathbb{E}[V \mid X] = \tanh(X)$. By symmetry of $X$, $r := \mathbb{E}[W^2] = r(s) \in (0, 1)$.
+
+\begin{lemma}[Shift integration identity and SNR bound]\label{lem:shift}
+For every $f \in C^1([-1, 1])$,
+\begin{equation}\label{eq:shift}
+\mathbb{E}[W f(W)] = \mathbb{E}\bigl[(1 - W^2) A(X) f'(W)\bigr],
+\qquad
+A(x) := \int_0^s e^{(s^2 - u^2)/(2s)} \frac{\cosh(xu/s)}{\cosh x}\,du.
+\end{equation}
+The function $A$ is even and nonincreasing in $|x|$, satisfies $\mathbb{E}[(1 - W^2)A(X)] = r$, and $r(s) < \min\{s, 1\}$ for all $s > 0$ with $\lim_{s \downarrow 0} r(s)/s = 1$.
+\end{lemma}
+
+\begin{proof}
+By the tower property and symmetry, $\mathbb{E}[W f(W)] = \mathbb{E}[V f(W)] = \frac{1}{2}(F(s) - F(-s)) = \frac{1}{2}\int_{-s}^s F'(u)\,du$, where $F(u) := \mathbb{E}[f(\tanh(u + \sqrt{s}\,Z))]$. Since $f'$ is bounded on $[-1, 1]$ and $0 < \tanh' \le 1$, differentiation under the expectation is justified and gives
+\[
+F'(u) = \mathbb{E}_{X_u \sim \mathcal{N}(u, s)}\bigl[(1 - \tanh^2(X_u)) f'(\tanh(X_u))\bigr].
+\]
+The density ratio of $\mathcal{N}(u, s)$ relative to $P$ is
+\[
+\frac{d\mathcal{N}(u, s)}{dP}(x)
+= \frac{\exp(-(x-u)^2/(2s))}{\frac{1}{2}\exp(-(x-s)^2/(2s)) + \frac{1}{2}\exp(-(x+s)^2/(2s))}
+= e^{(s^2 - u^2)/(2s)} \frac{e^{xu/s}}{\cosh x}.
+\]
+Pairing $u$ and $-u$ in $\frac{1}{2}\int_{-s}^s F'(u)\,du$ establishes~\eqref{eq:shift}.
+
+For $a = u/s \in [0, 1]$ and $x \ge 0$, $\frac{d}{dx}\log\frac{\cosh(ax)}{\cosh x} = a\tanh(ax) - \tanh x \le 0$, so $A$ is even and nonincreasing in $|x|$. Setting $f(w) = w$ in~\eqref{eq:shift} gives $\mathbb{E}[(1 - W^2)A(X)] = r$, while applying $f(w) = w$ to $\frac{1}{2}\int_{-s}^s F'(u)\,du$ with $u = sv$ gives
+\[
+\frac{r(s)}{s} = \frac{1}{2}\int_{-1}^1 \mathbb{E}\bigl[\sech^2(sv + \sqrt{s}\,Z)\bigr]\,dv.
+\]
+For $s > 0$, $\sech^2(sv + \sqrt{s}\,Z) < 1$ almost surely, so $r(s)/s < 1$; dominated convergence gives $r(s)/s \to 1$ as $s \downarrow 0$. Since $|W| < 1$ almost surely, $r(s) < 1$ as well.
+\end{proof}
+
+Let $L(t) := \log \mathbb{E}[e^{tW}]$, let $\mathbb{E}_t$ denote expectation under the exponential tilt $dP_t/dP = e^{tW - L(t)}$, and set $m(t) := L'(t) = \mathbb{E}_t[W]$.
+
+\begin{lemma}[Global posterior CGF bound]\label{lem:cgf}
+For every $t \in \mathbb{R}$,
+\begin{equation}\label{eq:cgf}
+L(t) \le \frac{1}{r}\log\cosh(rt).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Set $k := r/(1 - r) > 0$, and define the symmetric probability measure $d\tilde{P}/dP := (1 - W^2)/(1 - r)$. By Lemma~\ref{lem:shift}, $\mathbb{E}_{\tilde{P}}[A(X)] = k$. For $t \ge 0$, $A(X)$ is nonincreasing in $|X|$ while $\cosh(tW)$ is nondecreasing in $|X|$; averaging $(A(X) - A(X'))(\cosh(tW) - \cosh(tW')) \le 0$ over i.i.d.\ copies $X, X' \sim \tilde{P}$ gives $\mathbb{E}_{\tilde{P}}[A(X)\cosh(tW)] \le k\,\mathbb{E}_{\tilde{P}}[\cosh(tW)]$. By symmetry of $\tilde{P}$ and evenness of $A(X)$, $\cosh(tW)$ may be replaced by $e^{tW}$ on both sides, yielding
+\[
+\mathbb{E}_t[(1 - W^2)A(X)] \le k\,\mathbb{E}_t[1 - W^2] \qquad (t \ge 0).
+\]
+Applying~\eqref{eq:shift} to $f(w) = e^{tw}$, dividing by $e^{L(t)}$, and using $\mathbb{E}_t[W^2] = m'(t) + m(t)^2$ gives, for $t > 0$,
+\begin{equation}\label{eq:riccati}
+m(t) \le tk\bigl(1 - m'(t) - m(t)^2\bigr)
+\quad\Longleftrightarrow\quad
+m'(t) \le 1 - m(t)^2 - \frac{m(t)}{kt}.
+\end{equation}
+Now let $h(t) := \tanh(rt)$. Since $\sinh(2rt) \ge 2rt$ for $t > 0$,
+\[
+\frac{h(t)}{rt} = \frac{\sinh(2rt)}{2rt}\bigl(1 - h(t)^2\bigr) \ge 1 - h(t)^2.
+\]
+Multiplying by $1 - r = r/k$ gives $h(t)/(kt) \ge (1 - r)(1 - h(t)^2)$, i.e., $h'(t) = r(1 - h(t)^2) \ge 1 - h(t)^2 - h(t)/(kt)$. Subtracting this from~\eqref{eq:riccati} for $g := m - h$ yields
+\[
+g'(t) + \biggl(m(t) + h(t) + \frac{1}{kt}\biggr) g(t) \le 0 \qquad (t > 0).
+\]
+Multiplying by the integrating factor $\mu(t) := t^{1/k}\exp(\int_0^t (m(a) + h(a))\,da)$ gives $(\mu g)'(t) \le 0$. Since $g$ is bounded near $0$ and $\mu(t) \to 0$ as $t \downarrow 0$, integrating over $(0, t]$ yields $\mu(t)g(t) \le 0$, so $m(t) \le h(t)$ for all $t > 0$. Integrating $m \le h$ from $0$ proves~\eqref{eq:cgf} for $t \ge 0$; evenness of $L$ extends it to all $t \in \mathbb{R}$.
+\end{proof}
+
+\begin{proposition}[Exact scalar coefficients]\label{prop:scalar}
+For $d = 1$ and $s > 0$, $\eta_{\mathrm{KL}}(P, K_1) = \eta_{\chi^2}(P, K_1) = r(s)$.
+\end{proposition}
+
+\begin{proof}
+For any $Q$ with $0 < D(Q \Vert P) < \infty$, the output $QK_1$ on $\{\pm 1\}$ has mean $b := \mathbb{E}_Q[W]$ and divergence
+\[
+D(QK_1 \Vert \pi)
+= J(b) := \frac{1+b}{2}\log(1+b) + \frac{1-b}{2}\log(1-b)
+= \sup_{z \in \mathbb{R}} \{zb - \log\cosh z\}.
+\]
+Since $D(Q \Vert P_t) \ge 0$, we have $D(Q \Vert P) \ge tb - L(t)$ for every $t \in \mathbb{R}$. Applying Lemma~\ref{lem:cgf} and setting $z = rt$ yields
+\[
+D(Q \Vert P)
+\ge \sup_{t \in \mathbb{R}} \Bigl\{tb - \frac{1}{r}\log\cosh(rt)\Bigr\}
+= \frac{J(b)}{r} = \frac{D(QK_1 \Vert \pi)}{r},
+\]
+so $\eta_{\mathrm{KL}}(P, K_1) \le r$. Conversely, $dQ_\epsilon/dP = 1 + \epsilon W$ ($0 < |\epsilon| < 1$) has output mean $\epsilon r$, input divergence $D(Q_\epsilon \Vert P) = \frac{1}{2}\epsilon^2 r + o(\epsilon^2)$ (justified by $|W| \le 1$), and output divergence $J(\epsilon r) = \frac{1}{2}\epsilon^2 r^2 + o(\epsilon^2)$, whose ratio tends to $r$ as $\epsilon \to 0$.
+
+For $\chi^2$, writing $dQ/dP = 1 + g$ with $\mathbb{E}_P[g] = 0$, Cauchy--Schwarz yields
+\[
+\chi^2(QK_1 \Vert \pi) = (\mathbb{E}_P[gW])^2 \le \mathbb{E}_P[W^2]\,\mathbb{E}_P[g^2] = r\,\chi^2(Q \Vert P),
+\]
+with equality at $g = \epsilon W$.
+\end{proof}
+
+\section{Tensorization and Proof of Theorem~\ref{thm:main}}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main} and Corollary~\ref{cor:public-coin}]
+The case $s = 0$ is trivial, so assume $s > 0$ (hence $0 < r < 1$). Because $(Y, V)$ has i.i.d.\ coordinates, the reverse kernel factors as $K = K_1^{\otimes d}$ with $P_Y = P_1^{\otimes d}$ and $P_V = \pi^{\otimes d}$.
+
+\emph{KL tensorization.} For any joint distribution $Q$ on $\mathbb{R}^d$ with $D(Q \Vert P_1^{\otimes d}) < \infty$, form the joint alternative $Q_{Y^d, V^d} := Q_{Y^d} K_1^{\otimes d}$. By the chain rule for KL divergence and Proposition~\ref{prop:scalar},
+\begin{align*}
+D(Q_{V^d} \Vert \pi^{\otimes d})
+&= \sum_{i=1}^d \mathbb{E}_Q\bigl[D(Q_{V_i \mid V_{<i}} \Vert \pi)\bigr] \\
+&\le r \sum_{i=1}^d \mathbb{E}_Q\bigl[D(Q_{Y_i \mid V_{<i}} \Vert P_1)\bigr] \\
+&\le r \sum_{i=1}^d \mathbb{E}_Q\bigl[D(Q_{Y_i \mid Y_{<i}} \Vert P_1)\bigr]
+= r\,D(Q \Vert P_1^{\otimes d}).
+\end{align*}
+The second inequality holds because $V_{<i}$ is generated from $Y_{<i}$ alone via $K_1^{\otimes(i-1)}$ (so $Y_i - Y_{<i} - V_{<i}$), making $Q_{Y_i \mid V_{<i}}$ a mixture of the conditionals $Q_{Y_i \mid Y_{<i}}$, to which convexity of KL in its first argument applies. Perturbing only the first coordinate recovers the scalar supremum $r$, giving $\eta_{\mathrm{KL}}(P_Y, K) = r$.
+
+\emph{$\chi^2$ tensorization.} Write $dQ/dP_Y = 1 + g$ with $g \in L^2(P_Y)$ and $\mathbb{E}_{P_Y}[g] = 0$. Expanding the output density perturbation in the orthonormal parity basis $v_S := \prod_{i \in S} v_i$ ($S \subseteq [d]$) of $L^2(\pi^{\otimes d})$ gives Fourier coefficient $\mathbb{E}_{P_Y}[g(Y) W_S]$ at each nonempty $S$, where $W_S := \prod_{i \in S} W_i$ and $W_i := \mathbb{E}[V_i \mid Y_i]$. By independence and centering, the functions $\{W_S\}_{\varnothing \neq S \subseteq [d]}$ are mutually orthogonal in $L^2(P_Y)$ with squared norms $\mathbb{E}[W_S^2] = r^{|S|}$. Defining the orthonormal system
+\[
+e_S := \frac{W_S}{r^{|S|/2}} \qquad (\varnothing \neq S \subseteq [d])
+\]
+in $L^2(P_Y)$, Parseval's identity on the output, the inequality $r^{|S|} \le r$ (since $0 < r < 1$ and $|S| \ge 1$), and Bessel's inequality in $L^2(P_Y)$ give
+\begin{align*}
+\chi^2(QK \Vert P_V)
+&= \sum_{\varnothing \neq S \subseteq [d]} \bigl(\mathbb{E}[g W_S]\bigr)^2
+= \sum_{\varnothing \neq S \subseteq [d]} r^{|S|}\,\bigl(\mathbb{E}[g e_S]\bigr)^2 \\
+&\le r \sum_{\varnothing \neq S \subseteq [d]} \bigl(\mathbb{E}[g e_S]\bigr)^2
+\le r\,\mathbb{E}[g^2]
+= r\,\chi^2(Q \Vert P_Y).
+\end{align*}
+Choosing $g = \epsilon W_1$ attains equality, proving $\eta_{\chi^2}(P_Y, K) = r$.
+
+\emph{Public-coin consequence.} Since $U \perp (V, Y)$ and $M$ is generated from $(Y, U)$, applying Theorem~\ref{thm:main} to $Q = P_{Y \mid M=m, U=u}$ and averaging over $(m, u)$ yields $I(V; M \mid U) \le r(s)\,I(Y; M \mid U) \le r(s)\,H(M \mid U) \le r(s)\,B \le s\,B$ (in bits), proving Corollary~\ref{cor:public-coin}.
+\end{proof}
+
+\begin{remark}[Multi-round adaptive prefixes]
+As emphasized in Section~D.5 of \href{https://arxiv.org/abs/2606.00703}{arXiv:2606.00703}, Theorem~\ref{thm:main} settles the single-round conjecture ($T = 1$) but does not by itself resolve the interactive multi-round ($T > 1$) mutual-information route: conditioning on an adaptive transcript prefix $M_{1:t-1}$ can correlate the coordinates of $V$, breaking the product prior $P_V = \pi^{\otimes d}$ used in the tensorization step above.
+\end{remark}
+
+\section{Numerical Verification}
+
+The script \texttt{solutions/bit\_constrained\_kl/explore.py} evaluates $r(s)$ via adaptive Gaussian quadrature and cross-checks it against a $256$-node Gauss--Hermite rule, $567$ scalar exponential-tilt KL ratios across $7$ positive SNRs, $28$ exact $6$-bin product singular-value checks ($d \in \{1, 2, 3, 4\}$), and $560$ joint KL checks. Representative exact values of $r(s)$ are listed in Table~\ref{tab:snr}.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}rrr@{}}
+\toprule
+Per-coordinate SNR $s$ & Exact $\eta_{\mathrm{KL}} = \eta_{\chi^2} = r(s)$ & Ratio $r(s)/s$ \\
+\midrule
+$0$ & $0$ & --- \\
+$10^{-6}$ & $0.000000999999$ & $0.999999000002$ \\
+$0.01$ & $0.009901624784$ & $0.990162478417$ \\
+$0.1$ & $0.091340601205$ & $0.913406012049$ \\
+$0.5$ & $0.350113404675$ & $0.700226809350$ \\
+$1.0$ & $0.550400490793$ & $0.550400490793$ \\
+\bottomrule
+\end{tabular}
+\caption{Exact common KL and $\chi^2$ contraction coefficient $r(s)$ for every dimension $d \ge 1$.}\label{tab:snr}
+\end{table}
+
+\begin{thebibliography}{9}
+\bibitem{braverman2016ddpi}
+M.~Braverman, A.~Garg, T.~Ma, H.~L.~Nguyen, and D.~P.~Woodruff.
+Communication lower bounds for statistical estimation problems via a distributed data processing inequality.
+In \emph{Proceedings of the 48th Annual ACM Symposium on Theory of Computing (STOC)}, pages 1011--1020, 2016.
+
+\bibitem{kim2026bit}
+M.~Kim.
+Information-theoretic lower bounds for bit-constrained stochastic optimization via a reduction to compressed Gaussian mean estimation.
+\href{https://arxiv.org/abs/2606.00703}{arXiv:2606.00703}, 2026.
+
+\bibitem{polyanskiy2017sdpi}
+Y.~Polyanskiy and Y.~Wu.
+Strong data-processing inequalities for channels and Bayesian networks.
+In \emph{Convexity and Concentration}, IMA Vol.\ Math.\ Appl.~161, pages 211--249. Springer, 2017.
+
+\bibitem{polyanskiy2025it}
+Y.~Polyanskiy and Y.~Wu.
+\emph{Information Theory: From Coding to Learning}.
+Cambridge University Press, 2025.
+\end{thebibliography}
+
+\end{document}

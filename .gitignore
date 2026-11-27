@@ -12,6 +12,9 @@ AGENTS.md
 solutions/poly_identifiability/
 solutions/poly_comp_strong/
 solutions/mallat_zeitouni_pca/
+solutions/ctln_target_free_clique/
+solutions/shallow_relu_rep_cost/
+solutions/adamw_heavy_tail/
 solutions/**/REFEREE_REPORT.md
 
 # OS

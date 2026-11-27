@@ -1,0 +1,194 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\GL}{GL}
+\DeclareMathOperator{\LN}{LN}
+\DeclareMathOperator{\RMS}{RMS}
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator{\Unif}{Unif}
+
+\title{\bfseries Refutation of the Four Architectural Conjectures\\in Power Law Graph Attention}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: B.~Gokden, \emph{Power law graph attention: exact generalization of scaled}\\
+\emph{dot-product attention, empirical collapse at inference}, \href{https://arxiv.org/abs/2608.10288}{arXiv:2608.10288}, Section~11\\[0.35em]
+Companion verification script: \texttt{solutions/powerlaw\_graph\_attn/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute all four formal conjectures (\texttt{conj:invariance}, \texttt{conj:spectral}, \texttt{conj:functorial}, and \texttt{conj:modeltransfer}) of Gokden (\href{https://arxiv.org/abs/2608.10288}{arXiv:2608.10288}) as mathematical consequences of the stated Power Law Graph Attention (PLGA) architecture, diagnostic order parameter, and refit rules in exact real arithmetic.
+First, uniform vanishing of the pairwise relative fluctuation $m_T \to 0$ across all four tensor types $(A, B, U, G)$ permits a persistent positive limiting absolute RMS radius ($\approx 0.829364$), arbitrary vanishing rates $h(d, N)$ (including $1/\log(2 + dN)$), and alternating constant limits, even at population cross-entropy optima.
+Second, under the ideal causal mask the unique stationary distribution is $\delta_1$ with trivial centered space $L^2_0(\delta_1) = \{0\}$ for every checkpoint; under a finite additive mask, $m = 0$ realizes both uniformly gapped kernels and arbitrary prescribed edge laws on $[0, 1]$ (via a RoPE Vandermonde lift), while invisible key coordinates achieve $m_G \to 2$ with an arbitrarily small gap, and readout biases break universal monotonicity in $\vartheta$.
+Third, exact key sign-flip invariance produces predictively identical $m = 0$ optima on the same distribution whose invariant operators $\pm J$ (or full-rank $\pm(I + J)$) remain at entry-RMS distance at least~$1$ under every invertible real congruence.
+Fourth, on two domains with identical long-range two-time laws at all lags $k \ge 2$ and literally identical frozen $(G^*, P)$, freezing post-FFN LayerNorm under the stated refit list imposes an irreducible $25$-percentage-point accuracy deficit ($0.50$ vs.~$0.75$) relative to a matched-budget control.
+Throughout, we distinguish these architectural refutations from empirical questions concerning specific optimizers, modified symmetrizations, or expanded refit sets (such as unfreezing LayerNorm).
+\end{abstract}
+
+\section{Exact Architecture, Diagnostic Statistic, and Scope}
+
+In one PLGA head of width $d = d_k$ (\href{https://arxiv.org/abs/2608.10288}{arXiv:2608.10288}), let $Q_r, K_r$ denote the projected, rotary-rotated queries and keys (RoPE applies before both the Gram and attention-score computations). With $f(z) := z^2 / (1 + e^{-z})$, the operator-generator pipeline is
+\begin{gather*}
+D = Q_r^\top Q_r, \qquad
+A = \Phi_{\mathrm{res}}(\LN(D)), \qquad
+B = A_{\mathrm{lm}} = f(W A + b_W) + 10^{-9}, \\
+U = A_p = B^{\odot P}, \qquad
+G = G_{\mathrm{lm}} = a U + b_a,
+\end{gather*}
+where nonlinearities and powers act entrywise, left multiplications are ordinary matrix products, and biases are full matrices. The residual network $\Phi_{\mathrm{res}}$ acts row-wise with shared parameters: each of its $8$ reference units adds a two-SwiGLU branch and applies feature-axis LayerNorm with learned affine parameters and variance offset $\epsilon_{\mathrm{LN}} = 10^{-6}$.
+The position-space attention kernel is $E_{\mathrm{lm}} = \softmax_{\mathrm{mask}}(Q_r G K_r^\top / \sqrt{d})$, where the ideal causal mask permits precisely $j \le i$ in row $i$, whereas a finite additive penalty $-C$ ($0 < C < \infty$) for $j > i$ yields strictly positive entries in exact real arithmetic.
+
+For a tensor $T$ with $\nu$ entries, write $r(T) := \|T\|_F / \sqrt{\nu}$. For independent inputs $x, y$, the pairwise relative fluctuation is
+\[
+m_T(x, y) := \frac{2\,r(T(x) - T(y))}{r(T(x)) + r(T(y))}
+\]
+when $r(T(x) - T(y)) > 0$, and $0$ otherwise (including the all-zero pair). The paper's absolute invariance definition requires a deterministic center $T^*$ with $\operatorname{ess\,sup}_x r(T(x) - T^*) \le \varepsilon$; we call the smallest such $\varepsilon$ the \emph{radius} of $T$.
+
+\begin{remark}[Conditional implication and epistemic distinction]
+At a fixed width, $m_T = 0$ almost surely for independent draws if and only if $T$ is almost surely constant (by Fubini). If additionally $r(T) \le M$ a.s.\ and $m_T \le \eta$ a.s., the same reference-input argument gives radius at most $M\eta$, and $\mathbb{E}\,r(T - \mathbb{E}T)^2 = \tfrac{1}{2}\mathbb{E}\,r(T(x) - T(y))^2 \le \tfrac{1}{2}M^2 \mathbb{E}m_T^2$. However, $M$ and the center depend on width. The theorems below refute the four conjectures as mathematical statements for the specified architecture, definitions, and refit rules; empirical behaviors of specific optimizers, initialization schedules, alternative symmetrizations, or expanded refit sets (e.g., unfreezing LayerNorm) remain separate empirical questions.
+\end{remark}
+
+\section{Conjecture 1 (\texttt{conj:invariance}): Rigidity and Scaling Exponents}
+
+\begin{theorem}[Failure of rigidity and universal power-law rates]\label{thm:rigidity}
+For even head width $d$ and any diverging token budget $N$:
+\begin{enumerate}[leftmargin=2em,label=\textup{(\arabic*)}]
+\item There is a sequence of PLGA models with $m_T(x, y) = O(1/d) \to 0$ uniformly over all input pairs and all four tensor types $T \in \{A, B, U, G\}$, whose optimal absolute RMS radius of $G$ converges to $c f'(1)/2 \approx 0.829364 > 0$ (and no sequence of deterministic centers approximates $G$ in RMS even in probability).
+\item For every prescribed function $h(d, N) > 0$ (such as $h(d, N) = 1/\log(2 + dN)$), an admissible choice of $(a, b_a)$ gives bounded entry RMS, uniform $m_{G'} \to 0$ whenever $h \to 0$, and exact radius $h(d, N)$, refuting any universal monomial scaling $d^{-\alpha} N^{-\beta}$.
+\item Exact $m_T \equiv 0$ for all four types still permits the bounded alternating sequence $G = (-1)^{d/2} J$ with no cross-width limit.
+\item Every generator above can be realized at an exact population (and rational balanced-batch) cross-entropy optimum of a nondegenerate binary Markov source.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), take one head, one layer, even width $d$, and two equiprobable one-token inputs at position~$0$ (where RoPE is the identity). Write $J := \mathbf{1}\mathbf{1}^\top$, let $v \in \{\pm 1\}^d$ alternate $+1, -1$, and prescribe queries $0$ and $v$ (realizable with embeddings $0, v$, unit-gain zero-shift normalization, and compensating scalar query projection). Set all $8$ residual SwiGLU branches to zero and all LayerNorms to unit gain and zero shift, except the last residual LayerNorm which has gain $t > 0$ and shift~$1$.
+The two Grams are $0$ and $v v^\top$. Centered rows of $v v^\top$ have variance~$1$, and each unaffined LayerNorm maps amplitude $z$ to $z / \sqrt{z^2 + 10^{-6}}$. After the initial and $8$ residual LayerNorms, the amplitude is a width-independent constant $c > 0$. Taking $W = I$, $b_W = 0$, $P = J$, $a = I/t$, $b_a = 0$ produces
+\[
+A_0 = J, \quad A_1 = J + t c\, v v^\top, \qquad
+B_i = f(A_i) + 10^{-9}, \quad U_i = B_i, \quad G_i = B_i / t.
+\]
+As $t \downarrow 0$, $r(A_1 - A_0) = O(t)$ while $r(A_0) = 1$, and $r(B_1 - B_0) = O(t)$ while $r(B_0) = f(1) + 10^{-9} > 0$. Because $m_T$ is scale-invariant, $m_T = O(t)$ uniformly for all four types $(A, B, U, G)$. By Taylor expansion of $f$ at~$1$, $r(G_1 - G_0) = t^{-1} r(f(J + tc\,vv^\top) - f(J)) \to c f'(1) > 0$. By the triangle inequality and midpoint center $(G_0 + G_1)/2$, the optimal radius equals $r(G_1 - G_0)/2 \to c f'(1)/2 \approx 0.829364$. Setting $t = 1/d$ yields~(1); since each input has probability $1/2$, no deterministic center approximates both in probability.
+
+For~(2), set $R := r(G_1 - G_0)/2 > 0$ and choose $(a, b_a)$ so that $G'_i = J + (h/R)(G_i - G_0)$; this has exact radius $h(d, N)$ and bounded entry RMS. For~(3), set zero final generator gain, $a = 0$, and $b_a = (-1)^{d/2} J$. For~(4), on the two-state stationary Markov source that repeats its bit with probability $3/4$ under shifted two-token training blocks (one input token), setting the attention output projection and FFN branch to zero passes the two distinct embeddings through the residual stream, and an affine readout matches the two Bayes logits identically, attaining conditional entropy for any generator choice above.
+\end{proof}
+
+\section{Conjecture 2 (\texttt{conj:spectral}): Spectral Order Parameter}
+
+\begin{theorem}[Spectral obstructions and arbitrary edge measures]\label{thm:spectral}
+The following hold for the PLGA attention kernel $E_{\mathrm{lm}}$:
+\begin{enumerate}[leftmargin=2em,label=\textup{(\arabic*)}]
+\item \emph{(Ideal causal mask.)} For every choice of weights (hence every trained checkpoint), the unique stationary distribution is $\delta_1$, so $L^2_0(\delta_1) = \{0\}$ contains no normalized observable for Proposition~\texttt{prop:gap}.
+\item \emph{(Finite additive mask: uniform gap at $m = 0$.)} With zero scores, constant generator ($m = 0$), and fixed finite penalty $-C$ ($0 < C < \infty$) for $j > i$, the additive reversibilization $(E + E^*)/2$ has spectral radius at most $1 - e^{-2C}$ on $L^2_0(\pi)$, and $E^*E$ has spectral radius at most $(1 - e^{-2C})^2$, uniformly in context length $S$ and width $d$.
+\item \emph{(Arbitrary prescribed edge law at $m = 0$.)} For any $S$, even $d \ge S$, finite penalty $C$, and strictly positive row-stochastic $H \in \mathbb{R}^{S \times S}$, a constant-generator RoPE head ($m = 0$) realizes $E_{\mathrm{lm}} = H$ on all length-$S$ inputs. In particular, $m = 0$ realizes a uniform gap ($H = rI + (1-r)J/S$, fixed $r$), an atomic edge limit $\delta_1$ ($r = 1 - 1/S$), and any weak limiting probability law on $[0, 1]$ (including edge densities $s^{\vartheta - 1}$ for every $\vartheta > 0$).
+\item \emph{(Order-one $m_G$ without a spectral gap.)} With one extra zero-key rotary plane ($d - 2 \ge S$), the same kernel $H$ (even as $r \uparrow 1$) can be realized simultaneously with cross-input $m_G \to 2$.
+\item \emph{(Failure of universal monotonicity.)} Varying only the readout bias alters argmax benchmark predictions arbitrarily without changing any attention matrix, stationary measure, or edge exponent $\vartheta$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{(1)} Under the ideal causal mask, row~$1$ is absorbing and $E_{i1} > 0$ for all $i$. Stationarity $\pi_1 = \pi_1 + \sum_{i > 1} \pi_i E_{i1}$ forces $\pi_i = 0$ for $i > 1$, so $\pi = \delta_1$ and $L^2_0(\delta_1) = \{0\}$. (For zero scores, the eigenvalues $1, 1/2, \dots, 1/S$ are purely transient.)
+
+\emph{(2)} With zero scores and penalty $-C$ for $j > i$, every entry satisfies $e^{-C}/S \le E_{ij} \le e^C/S$. Hence the unique full-support stationary law satisfies $\pi_j \le e^C/S$, giving $E_{ij} \ge e^{-2C}\pi_j$. Writing $E = \eta \mathbf{1}\pi^\top + (1 - \eta)K$ with $\eta := e^{-2C}$ makes $K$ Markov with stationary law $\pi$, hence an $L^2(\pi)$-contraction by Jensen's inequality. On $L^2_0(\pi)$, $\|E\| \le 1 - \eta$, yielding the stated spectral radii for $(E + E^*)/2$ and $E^*E$.
+
+\emph{(3)} Set $W_Q = W_K = 0$ with constant biases $(1, 0)$ in every rotary plane. The common rotated matrix $Z \in \mathbb{R}^{S \times d}$ has columns $\cos(n\theta_j), \sin(n\theta_j)$ ($n = 0, \dots, S-1$). Changing basis to the $d$ distinct complex exponentials $e^{\pm i\theta_j}$ exhibits a nonsingular $S \times S$ Vandermonde minor, so $Z$ has full row rank $S$ and admits a right inverse $V$. Setting $L_{ij} := \log H_{ij} + C\mathbf{1}_{j > i}$, $a = 0$, and $b_a = \sqrt{d}\,V L V^\top$ yields pre-mask logits $L$ and $E_{\mathrm{lm}} = H$ on every length-$S$ context at $m = 0$.
+Taking $H = rI + (1-r)J/S$ ($0 \le r < 1$) gives reversible spectral measure $\delta_r$ (additive) or $\delta_{r^2}$ (multiplicative), producing a uniform gap for fixed $r$ and weak limit $\delta_1$ for $r = 1 - 1/S$. For an arbitrary probability law $\mu$ on $[0, 1]$ at $S = 2k$, pick $k$ equal-weight quantiles $r_i$ approximating $\mu$, build $2 \times 2$ diagonal blocks $\tfrac{1}{2}\begin{psmallmatrix} 1+r_i & 1-r_i \\ 1-r_i & 1+r_i \end{psmallmatrix}$, and mix with $J/S$ at weight $1/S$. For the uniform-centered observable alternating $+1, -1$ within pairs, each block has eigenvalue $(1 - 1/S)r_i$ with spectral mass $1/k$, converging weakly to $\mu$ (e.g., density $2(1-\lambda)$ gives $\vartheta = 2$ and fourth moment $1/15$).
+
+\emph{(4)} Reserve a final rotary plane with zero key coordinates and put the lifted form for $H$ on the first $d - 2$ coordinates. Take two equiprobable contexts differing only at position~$0$ in the extra query plane: $(0, 0)$ vs.~$(1, 0)$. With zero residual branches and unit LayerNorms, the extra-plane Gram row differs between the two inputs (entries $1$ vs.~$0$) and remains distinct after LayerNorm and $f$. Setting $W = I$, $b_W = 0$, $P = 1$ in the two extra columns and $0$ elsewhere, choosing $b_a$ to cancel the first input's extra columns and add the lifted $H$-form, and setting $a = u I$ creates a nonzero change $\Delta G$ supported purely on zero-key columns. Letting $u \to \infty$ sends $m_G \to 2$ while keeping $E_{\mathrm{lm}} = H$ identically on both inputs.
+
+\emph{(5)} Shifting the readout bias changes argmax outputs without altering any attention operator.
+\end{proof}
+
+\section{Conjecture 3 (\texttt{conj:functorial}): Congruence Alignment}
+
+\begin{theorem}[Failure of congruence alignment]\label{thm:congruence}
+On the same nondegenerate data distribution (e.g., the two-token Markov source of Theorem~\ref{thm:rigidity} or the long-memory source of Theorem~\ref{thm:transfer}), there exist two PLGA population optima with exact invariance $m_T \equiv 0$ for all four tensor types and identical end-to-end predictive functions whose invariant forms $G_1 = J$ and $G_2 = -J$ (or full-rank $G_1 = I + J$ and $G_2 = -(I + J)$) satisfy
+\[
+r\bigl(G_2 - S^{-\top} G_1 S^{-1}\bigr) \ge 1
+\]
+for every invertible real matrix $S \in \GL(d)$, uniformly in width $d$ and without any condition-number bound on $S$.
+\end{theorem}
+
+\begin{proof}
+The PLGA head admits an exact independent key sign-flip symmetry: negating $(a, b_a, W_K, b_K)$ negates both $G$ and $K_r$, leaves $Q_r$ and $(D, A, B, U)$ unchanged, and preserves $Q_r G K_r^\top$ at every position (including under RoPE), hence preserving the decoder function and loss. Start from an optimum with $a = 0$, constant final generator layer, and $G_1 = b_a = J$ (resp.\ $I + J$), and apply this symmetry to obtain a second optimum with $G_2 = -G_1$ and $m_T \equiv 0$.
+For any $S \in \GL(d)$, the matrix $B := S^{-\top} G_1 S^{-1}$ is symmetric positive semidefinite. With unit vector $w := \mathbf{1}/\sqrt{d}$, we have $w^\top G_2 w \le -d$ and $w^\top B w \ge 0$, whence
+\[
+\|G_2 - B\|_F \ge \|G_2 - B\|_{\mathrm{op}} \ge |w^\top(G_2 - B)w| = |w^\top G_2 w| + w^\top B w \ge d.
+\]
+Dividing by $\sqrt{d^2} = d$ gives $r(G_2 - B) \ge 1$.
+\end{proof}
+
+\section{Conjecture 4 (\texttt{conj:modeltransfer}): Whole-Model Transfer}
+
+Consider symbol-level one-token prediction with vocabulary $\{\pm 1\}^3$, tokens $(H_t, B_t, C_t)$, shifted two-token training blocks (one input token), one layer, and even width $d$, evaluated by next-token accuracy on bit $C_{t+1}$.
+In both domains, generate an independent stationary long-memory sign process $H$: draw $R$ once per trajectory from $\tfrac{1}{2}\Unif[0, 1] + \tfrac{1}{2}\delta_{-1/2}$, start a fair sign $H_0$, and preserve it at each step with probability $(1 + R)/2$. Then for every $k \ge 1$,
+\[
+\mathbb{E}[H_t H_{t+k}] = \mathbb{E}[R^k] = \frac{1}{2(k + 1)} + \frac{1}{2}\Bigl(-\frac{1}{2}\Bigr)^k \sim \frac{1}{2k},
+\]
+with neighboring signs independent ($\mathbb{E}[H_t H_{t+1}] = 0$).
+Define two domains:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Source $\mathcal{D}_1$:} $B, C$ are independent fair i.i.d.\ sign sequences, independent of $H$.
+\item \emph{Target $\mathcal{D}_2$:} $B$ is fair i.i.d.\ (independent of $H$), and $C_t = B_{t-1} Z_t$ where $Z_t \in \{\pm 1\}$ are i.i.d.\ with $\mathbb{P}(Z_t = +1) = 3/4$.
+\end{itemize}
+At every lag $k \ge 2$, the entire two-time joint distribution of $(H_t, B_t, C_t)$ and $(H_{t+k}, B_{t+k}, C_{t+k})$ is identical across $\mathcal{D}_1$ and $\mathcal{D}_2$, so both domains share the exact long-range exponent and all large-lag two-point statistics.
+
+\begin{theorem}[Irreducible 25-point transfer deficit under frozen LayerNorm]\label{thm:transfer}
+Under the refit rule of \texttt{conj:modeltransfer} (freezing $(G^*, P)$ and the core including its final post-FFN LayerNorm, while refitting embeddings, linear projections, and readout), at any even width $d$ and with literal equality of $(G^*, P) = (J, J)$:
+\begin{enumerate}[leftmargin=2em,label=\textup{(\arabic*)}]
+\item Setting zero gain and shift in the final post-FFN LayerNorm, zero readout weights/biases, and constant generator $(G^*, P) = (J, J)$ attains the exact population cross-entropy minimum on $\mathcal{D}_1$.
+\item Any refit of embeddings, linear projections, and readout with the final LayerNorm frozen outputs a constant distribution, achieving accuracy identically $1/2$ on $C_{t+1}$ under $\mathcal{D}_2$ at every width and token/FLOP budget.
+\item A matched-architecture control keeping the exact same $(G^*, P) = (J, J)$ and generator, with unit final LayerNorm gain, embeddings $(H_t, B_t, C_t) \mapsto B_t v$ (balanced $v \in \{\pm 1\}^d$), zero attention output projection and FFN, and readout logits $\tfrac{1}{2}(\log 3) B_t c'$ attains the exact one-step Bayes optimum on $\mathcal{D}_2$ with accuracy $3/4$. Starting from zero readout weights, one gradient step on a batch with the rational population pair frequencies already achieves accuracy $3/4$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{(1)} Given one source token, the next token on $\mathcal{D}_1$ is uniform, so zero logits achieve the exact cross-entropy minimum while zero final LayerNorm gain/shift maps every hidden row to $0$.
+
+\emph{(2)} With the final LayerNorm frozen at zero gain and shift, every hidden row reaching the readout is $0$ regardless of how embeddings and linear projections are refit; the readout can output only a constant distribution, and since $C_{t+1}$ is marginally fair on $\mathcal{D}_2$, accuracy is $1/2$.
+
+\emph{(3)} With unit final LayerNorm gain and zero attention output projection and FFN, each LayerNorm maps $B_t v$ to a fixed positive multiple of $B_t v$. The stated linear readout yields exact Bayes probabilities ($3/4$ for $c' = B_t$, $1/4$ for $c' = -B_t$, with $H_{t+1}, B_{t+1}$ fair), giving accuracy $3/4$. Starting from zero readout weights, $\mathbb{E}[B_t C_{t+1}] = 1/2$ yields a gradient aligned with $B_t v$ (while readout biases have zero gradient by uniform marginals and zero readout transmits zero gradient to the trunk), so a single positive gradient step on any batch with the rational population frequencies predicts $C_{t+1} = B_t$ with accuracy $3/4$.
+\end{proof}
+
+\begin{remark}[Epistemic scope of Theorem~\ref{thm:transfer}]
+Theorem~\ref{thm:transfer} disproves a universal parity guarantee for the stated frozen-LayerNorm refit list and any tolerance below $0.25$. It does not rule out empirical parity when LayerNorm parameters are unfrozen, or for specific pretrained checkpoints, domains, and tolerances.
+\end{remark}
+
+\section{Numerical Verification}
+
+The verification script \texttt{explore.py} (in \texttt{solutions/powerlaw\_graph\_attn/}) checks all constructions in \texttt{float64} (NumPy):
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Rigidity:} across $d \in \{8, 32, 128, 256\}$ with $t = 1/d$, $\max_{T \in \{A, B, U, G\}} m_T$ decreases from $0.276294557$ to $0.008862811$ while the $G$-radius remains $0.832874631$ to $0.829367569$; exact inverse-logarithmic scaling $h = 1/\log(d+1)$ is verified.
+\item \emph{Spectral checks:} at $S \in \{4, 16, 64, 128\}$, ideal stationary law $\delta_1$ and triangular spectrum $1/k$; finite-mask ($C = 2$) additive/multiplicative reversibilization gaps ($0.89642652$ and $0.90701275$ at $S = 128$); RoPE Vandermonde lifts for $r \in \{0, 0.5, 0.99\}$ with invisible-key variation $m_G = 1.980100$; and the $128$-pair $\vartheta = 2$ density construction (fourth moment $0.06548019$ vs.\ limit $1/15$).
+\item \emph{Alignment and transfer:} key sign-flip score invariance, $16$ sample congruences with $\RMS(-J - S^{-\top} J S^{-1}) \ge 1$, and the full one-token residual-stream transfer benchmark confirming frozen accuracy $0.50$ vs.\ one-step control accuracy $0.75$.
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{gokden2026}
+B.~Gokden,
+\emph{Power law graph attention: exact generalization of scaled dot-product attention, empirical collapse at inference},
+\href{https://arxiv.org/abs/2608.10288}{arXiv:2608.10288}, 2026.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,277 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\code}{code}
+\DeclareMathOperator{\epi}{epi}
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\aff}{aff}
+\DeclareMathOperator{\dist}{dist}
+\DeclareMathOperator{\interior}{int}
+\newcommand{\PCode}{\mathbf{P}_{\mathrm{Code}}}
+
+\title{\bfseries Partial Resolution of the Oriented-Matroid Characterization of Convex Neural Codes and Refutation of the Closed Variant}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: T.-T.~Trang and R.~A.~Jeffs,\\
+\emph{Covering Relations in the Poset of Combinatorial Neural Codes},\\
+\href{https://arxiv.org/abs/2512.04241}{arXiv:2512.04241} (PMLR 282:225--242, NeurReps 2025/2026), Conjecture~\texttt{conj:convex-char}\\[0.35em]
+Companion verification script: \texttt{solutions/neural\_code\_oriented\_matroid/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We obtain a partial positive resolution of Conjecture~\texttt{conj:convex-char} of Trang and Jeffs (\href{https://arxiv.org/abs/2512.04241}{arXiv:2512.04241}, citing Kunin, Lienkaemper, and Rosen, \href{https://arxiv.org/abs/2002.03542}{arXiv:2002.03542}), which asks whether a combinatorial neural code is open convex if and only if it lies below the positive covector code $L^+(\mathcal{M})$ of a representable oriented matroid $\mathcal{M}$ in the neural code poset $\PCode$ (equivalently, admits an open polytope realization).
+While the reverse implication holds in all dimensions and the converse for arbitrary open convex sets in dimension $d \ge 3$ remains open, we establish three positive polyhedralization theorems:
+(1)~a \emph{common convex function polyhedralization theorem}, proving same-dimensional open polytope realizability for every family $\{q(x) < \ell_i(x)\}$ with a shared finite convex function $q : \mathbb{R}^d \to \mathbb{R}$ and affine $\ell_i$, which resolves the conjecture in every dimension $d \ge 1$ for all open Euclidean ball codes and homothetic ellipsoid codes (common $Q \succeq 0$), including arbitrary tangencies, coincident fields, and finite intersections;
+(2)~an \emph{intermediate-word inner-exhaustion criterion} ($I(x) \subseteq \sigma \subseteq J(x) \implies \sigma \in \mathcal{C}$), covering all transverse $C^1$ smooth convex families (including differently oriented ellipsoids) and clarified in its exact relation to non-degeneracy of Cruz, Giusti, Itskov, and Kronholm (\emph{DCG} 2019, \href{https://arxiv.org/abs/1609.03502}{arXiv:1609.03502}); and
+(3)~an explicit open-simplex polytope certificate for all max-intersection-complete codes, yielding an exact classification of all $128$ labeled $3$-neuron codes ($109$ open polytope vs.\ $19$ disconnected-field obstructed).
+Finally, we show that replacing ``open convex'' by ``closed convex'' while keeping $L^+(\mathcal{M})$ fails in \emph{both} directions, via self-contained proofs for the $5$-neuron closed triangular fan of Lienkaemper, Shiu, and Woodstock (\href{https://arxiv.org/abs/1509.03328}{arXiv:1509.03328}) and the $6$-neuron central positive-halfplane code of Cruz et~al.\ (\href{https://arxiv.org/abs/1609.03502}{arXiv:1609.03502}, Lemma~2.9).
+\end{abstract}
+
+\section{Setup, the Poset \texorpdfstring{$\PCode$}{P\_Code}, and Open Polytopes}
+
+A \emph{combinatorial neural code} on $[n] := \{1, \dots, n\}$ is a collection $\mathcal{C} \subseteq 2^{[n]}$ containing $\varnothing$.
+For a family $\mathcal{U} = (U_1, \dots, U_n)$ of subsets of $\mathbb{R}^d$, the codeword at $x \in \mathbb{R}^d$ is $c_{\mathcal{U}}(x) := \{i \in [n] : x \in U_i\}$, and $\code(\mathcal{U}) := \{c_{\mathcal{U}}(x) : x \in \mathbb{R}^d\}$ records all attained labels, including those attained on lower-dimensional subsets.
+A code $\mathcal{C}$ is \emph{open convex} (resp.\ \emph{closed convex}, \emph{open polyhedral}, \emph{open polytope}) if $\mathcal{C} = \code(\mathcal{U})$ for open convex (resp.\ closed convex, finite intersections of strict affine halfspaces, interiors of bounded convex polytopes) sets $U_1, \dots, U_n \subseteq \mathbb{R}^d$ for some $d \ge 1$.
+Since $\varnothing \in \mathcal{C}$, intersecting every $U_i$ with a sufficiently large open box $(-R, R)^d$ (or closed box $[-R, R]^d$ for closed fields) containing one witness per codeword preserves $\code(\mathcal{U})$ and renders all fields bounded; thus open polyhedral and bounded open polytope realizability coincide.
+
+For $\sigma \subseteq [n]$, the \emph{trunk} of $\sigma$ in $\mathcal{C}$ is $T_{\mathcal{C}}(\sigma) := \{c \in \mathcal{C} : \sigma \subseteq c\}$; a trunk is \emph{proper} if $\varnothing \subsetneq T_{\mathcal{C}}(\sigma) \subsetneq \mathcal{C}$.
+A map $f : \mathcal{C} \to \mathcal{D}$ is a \emph{morphism} if $f^{-1}(T)$ is a proper trunk of $\mathcal{C}$ for every proper trunk $T$ of $\mathcal{D}$, and the poset $\PCode$ orders isomorphism classes of codes by $\mathcal{D} \le \mathcal{C}$ when there is a surjective morphism $f : \mathcal{C} \to \mathcal{D}$.
+Because $\varnothing \in \mathcal{D}$, no neuron is always active: each active output neuron $j$ has a proper simple trunk $T_{\mathcal{D}}(\{j\})$ whose preimage is $T_{\mathcal{C}}(\tau_j)$ for some nonempty $\tau_j$, so output bit $j$ is the conjunction of the input bits in $\tau_j$ (and silent neurons are identically $0$). In particular $f(\varnothing) = \varnothing$, and intersecting simple-trunk pullbacks automatically yields all proper-trunk pullbacks.
+
+For a real vector configuration $(v_e)_{e \in E}$ in $\mathbb{R}^r$ representing an oriented matroid $\mathcal{M}$, define the positive covector code
+\[
+L^+(\mathcal{M}) := \bigl\{\{e \in E : v_e \cdot z > 0\} : z \in \mathbb{R}^r\bigr\}.
+\]
+Notice that $L^+(\mathcal{M})$ collects the positive supports of \emph{all} covectors (not merely full-dimensional topes/chambers; for instance, two opposite nonzero forms attain $\varnothing$ only on their common kernel).
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:convex-char}} (Trang--Jeffs, \href{https://arxiv.org/abs/2512.04241}{arXiv:2512.04241}; citing Kunin, Lienkaemper, and Rosen, \href{https://arxiv.org/abs/2002.03542}{arXiv:2002.03542}).\\
+\emph{A combinatorial neural code $\mathcal{C}$ (with $\varnothing \in \mathcal{C}$) is open convex if and only if $\mathcal{C} \le L^+(\mathcal{M})$ in $\PCode$ for some representable oriented matroid $\mathcal{M}$.}
+\end{quote}
+
+\begin{theorem}[Equivalence with open polytopes; Kunin--Lienkaemper--Rosen~\href{https://arxiv.org/abs/2002.03542}{arXiv:2002.03542}]\label{thm:klr}
+A neural code $\mathcal{C}$ satisfies $\mathcal{C} \le L^+(\mathcal{M})$ in $\PCode$ for some representable oriented matroid $\mathcal{M}$ if and only if $\mathcal{C}$ admits an open polytope realization in some $\mathbb{R}^d$. In particular, $\mathcal{C} \le L^+(\mathcal{M})$ always implies that $\mathcal{C}$ is open convex.
+\end{theorem}
+
+\begin{proof}
+($\Rightarrow$) Let $f : L^+(\mathcal{M}) \to \mathcal{C}$ be a surjective morphism for $(v_e)_{e \in E}$ in $\mathbb{R}^r$. For each active output neuron $j$, write $f^{-1}(T_{\mathcal{C}}(\{j\})) = T_{L^+(\mathcal{M})}(\tau_j)$ and set $U_j := \{z \in \mathbb{R}^r : v_e \cdot z > 0 \ \forall e \in \tau_j\}$; for silent $j$, set $U_j := \varnothing$. Then $c_{\mathcal{U}}(z) = f(\{e : v_e \cdot z > 0\})$, so $\code(\mathcal{U}) = \mathcal{C}$ is open polyhedral in $\mathbb{R}^r$, and common open-box truncation yields bounded open polytopes.
+
+($\Leftarrow$) Conversely, let $\mathcal{C} = \code(\mathcal{U})$ where each active field is $U_j = \{x \in \mathbb{R}^d : a_{j,k} \cdot x + b_{j,k} > 0 \text{ for } k = 1, \dots, m_j\}$ and silent fields are empty. In $\mathbb{R}^{d+1}$ with coordinates $(y, t)$, form the vector configuration of all $(a_{j,k}, b_{j,k})$ together with the gating vector $e_{d+1} = (0, \dots, 0, 1)$. For each active $j$, let $\tau_j$ consist of all $(a_{j,k}, b_{j,k})$ for $j$ together with $e_{d+1}$. When $t > 0$, homogeneity gives $a_{j,k} \cdot y + b_{j,k} t > 0 \iff a_{j,k} \cdot (y/t) + b_{j,k} > 0$, yielding $c_{\mathcal{U}}(y/t)$; when $t \le 0$, the gate $t > 0$ fails and every conjunction evaluates to $0$, giving $\varnothing \in \mathcal{C}$. Since each active $U_j$ is nonempty (witnessed at $(x, 1)$) and $t = 0$ at $z = 0$, every $T_{L^+(\mathcal{M})}(\tau_j)$ is proper, defining a surjective morphism $L^+(\mathcal{M}) \to \mathcal{C}$.
+\end{proof}
+
+\begin{remark}[Dimension bound and known low-dimensional cases]
+If $\mathcal{C}$ has $k$ codewords and admits an open convex (resp.\ open polytope) realization in $\mathbb{R}^D$, restricting all fields to the affine span of $k$ witnesses preserves relative openness, convexity, finite strict-halfspace descriptions, and $\code(\mathcal{U})$, giving a realization in dimension at most $k - 1$. In $d = 1$, bounded open convex sets are open intervals; in $d = 2$, Bukh and Jeffs (\href{https://arxiv.org/abs/2207.06290}{arXiv:2207.06290}, Theorem~1) proved same-dimensional open polygon realizability with an explicit vertex bound. The local covering-relation machinery of Trang--Jeffs (\href{https://arxiv.org/abs/2512.04241}{arXiv:2512.04241}) reduces the number of nonempty trunks by one per step, but does not provide a termination argument above an arbitrary open convex code in $d \ge 3$.
+\end{remark}
+
+\section{Polyhedralization for a Common Convex Function}
+
+We now establish our main positive result: whenever all receptive fields are strict sublevel comparisons against a single finite convex function $q : \mathbb{R}^d \to \mathbb{R}$ (possibly intersected with each other and with fixed strict affine halfspaces), exact same-dimensional polyhedralization is always possible.
+
+\begin{theorem}[Common convex function polyhedralization]\label{thm:common-q}
+Let $q : \mathbb{R}^d \to \mathbb{R}$ be finite-valued and convex, let $\ell_1, \dots, \ell_N : \mathbb{R}^d \to \mathbb{R}$ be affine, and let $g_1, \dots, g_M : \mathbb{R}^d \to \mathbb{R}$ be any (possibly empty) finite list of auxiliary affine functions. There exists a convex piecewise-affine minorant $p(x) = \max_{1 \le r \le R} s_r(x)$ of $R \le 2^{N+M}$ affine functions $s_r \le q$ such that the families
+\[
+\mathcal{U}_q = \bigl(\{x \in \mathbb{R}^d : q(x) < \ell_i(x)\}_{i=1}^N,\; \{x \in \mathbb{R}^d : g_j(x) > 0\}_{j=1}^M\bigr)
+\]
+and
+\[
+\mathcal{U}_p = \bigl(\{x \in \mathbb{R}^d : p(x) < \ell_i(x)\}_{i=1}^N,\; \{x \in \mathbb{R}^d : g_j(x) > 0\}_{j=1}^M\bigr)
+\]
+have the exact same combinatorial neural code in $\mathbb{R}^d$. Moreover, the replacement simultaneously preserves the code of every family obtained by taking fixed finite intersections of fields in $\mathcal{U}_q$, with each replacement field cut out by at most $R \le 2^{N+M}$ strict affine inequalities per $\ell_i$-threshold before box truncation.
+\end{theorem}
+
+\begin{proof}
+Work in $\mathbb{R}^{d+1}$ with coordinates $(x, t) \in \mathbb{R}^d \times \mathbb{R}$. Assign each $(x, t)$ its signature $\sigma(x, t) \in \{0, 1\}^{N+M}$ recording the truth values of $t < \ell_i(x)$ ($1 \le i \le N$) and $g_j(x) > 0$ ($1 \le j \le M$). Each signature region $S_\sigma := \{(x, t) \in \mathbb{R}^{d+1} : \sigma(x, t) = \sigma\}$ is an intersection of finitely many open and closed halfspaces in $\mathbb{R}^{d+1}$, hence convex.
+
+We first note a crucial \emph{upward-shift property}: for every $(x, t) \in S_\sigma$, there exists $\varepsilon > 0$ such that $(x, t + \varepsilon) \in S_\sigma$. Indeed, every active threshold satisfies $t < \ell_i(x)$ strictly (so $t + \varepsilon < \ell_i(x)$ for sufficiently small $\varepsilon > 0$), every inactive threshold satisfies $t \ge \ell_i(x)$ (so $t + \varepsilon > t \ge \ell_i(x)$ for every $\varepsilon > 0$, even at ties $t = \ell_i(x)$), and $g_j(x)$ is independent of $t$.
+
+Let $\Gamma_q := \{(x, q(x)) : x \in \mathbb{R}^d\}$ and $\epi(q) := \{(x, t) \in \mathbb{R}^{d+1} : t \ge q(x)\}$. A signature $\sigma$ lies in $\code(\mathcal{U}_q)$ if and only if $S_\sigma \cap \Gamma_q \neq \varnothing$. We select at most one affine minorant $s_\sigma \le q$ per signature $\sigma \in \{0, 1\}^{N+M}$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{Attained signatures ($\sigma \in \mathcal{A}$, i.e., $S_\sigma \cap \Gamma_q \neq \varnothing$).} Choose one witness $(x_\sigma, q(x_\sigma)) \in S_\sigma \cap \Gamma_q$. Since $q : \mathbb{R}^d \to \mathbb{R}$ is finite and convex everywhere, its subdifferential $\partial q(x_\sigma)$ is nonempty. Pick $v_\sigma \in \partial q(x_\sigma)$ and define $s_\sigma(x) := q(x_\sigma) + v_\sigma \cdot (x - x_\sigma)$. Then $s_\sigma \le q$ on $\mathbb{R}^d$ and $s_\sigma(x_\sigma) = q(x_\sigma)$. Note $\mathcal{A} \neq \varnothing$ because $\mathbb{R}^d \neq \varnothing$.
+
+\item \emph{Nonempty missed signatures ($S_\sigma \neq \varnothing$, $S_\sigma \cap \Gamma_q = \varnothing$).} Since $q$ is finite and convex on $\mathbb{R}^d$, it is continuous, so $(x, t) \mapsto t - q(x)$ is continuous and nonvanishing on the convex (hence connected) set $S_\sigma$, and therefore maintains a constant strict sign on $S_\sigma$:
+\begin{itemize}[leftmargin=1.5em]
+\item If $t > q(x)$ on $S_\sigma$, we select no minorant.
+\item If $t < q(x)$ on $S_\sigma$ ($\sigma \in \mathcal{B}_2$), then $S_\sigma$ and $\epi(q)$ are disjoint nonempty convex subsets of $\mathbb{R}^{d+1}$. By weak hyperplane separation, there exist $(a, b) \in (\mathbb{R}^d \times \mathbb{R}) \setminus \{(0, 0)\}$ and $h \in \mathbb{R}$ such that
+\[
+a \cdot x + bt \le h \quad (\forall (x, t) \in S_\sigma), \qquad a \cdot x + bt \ge h \quad (\forall (x, t) \in \epi(q)).
+\]
+Since $\epi(q)$ contains upward rays $\{(x, q(x) + \lambda) : \lambda \ge 0\}$, letting $\lambda \to +\infty$ yields $b \ge 0$. If $b = 0$, then $a \cdot x \ge h$ for all $x \in \mathbb{R}^d$, forcing $a = 0$, a contradiction. Thus $b > 0$. By the upward-shift property, for every $(x, t) \in S_\sigma$ there exists $\varepsilon > 0$ with $(x, t + \varepsilon) \in S_\sigma$, whence $a \cdot x + bt < a \cdot x + b(t + \varepsilon) \le h$. Defining $s_\sigma(x) := (h - a \cdot x)/b$, we obtain $s_\sigma \le q$ on $\mathbb{R}^d$ and $t < s_\sigma(x)$ on $S_\sigma$.
+\end{itemize}
+\end{enumerate}
+
+Set $p(x) := \max_{\sigma \in \mathcal{A} \cup \mathcal{B}_2} s_\sigma(x)$, using $R = |\mathcal{A} \cup \mathcal{B}_2| \le 2^{N+M}$ affine minorants. Then $p \le q$ everywhere. For each $\sigma \in \mathcal{A}$, $q(x_\sigma) = s_\sigma(x_\sigma) \le p(x_\sigma) \le q(x_\sigma)$, so $(x_\sigma, p(x_\sigma)) \in S_\sigma \cap \Gamma_p$. For each missed nonempty signature $\sigma \notin \mathcal{A}$: if $t > q(x)$ on $S_\sigma$, then $t > q(x) \ge p(x)$ on $S_\sigma$; if $\sigma \in \mathcal{B}_2$, then $t < s_\sigma(x) \le p(x)$ on $S_\sigma$. In both cases $S_\sigma \cap \Gamma_p = \varnothing$. Thus $\code(\mathcal{U}_p) = \code(\mathcal{U}_q)$. Finally, $\{x : p(x) < \ell_i(x)\} = \bigcap_{r=1}^R \{x : s_r(x) < \ell_i(x)\}$ is a finite intersection of strict affine halfspaces, and applying any fixed Boolean conjunctions to signatures preserves equality of the induced codes.
+\end{proof}
+
+\begin{corollary}[Open Euclidean balls and homothetic ellipsoids]\label{cor:balls}
+Let $Q \in \mathbb{R}^{d \times d}$ be symmetric positive semidefinite ($Q \succeq 0$). Every neural code realized in $\mathbb{R}^d$ by open homothetic ellipsoids or elliptic cylinders $U_i = \{x \in \mathbb{R}^d : (x - c_i)^\top Q (x - c_i) < \rho_i\}$ ($c_i \in \mathbb{R}^d$, $\rho_i \in \mathbb{R}$)—in particular, every open Euclidean ball code ($Q = I_d$) of arbitrary radii, allowing arbitrary tangencies, coincident fields, finite intersections, and auxiliary strict linear halfspaces—admits a same-dimensional open polytope realization in $\mathbb{R}^d$, and therefore lies below a representable oriented matroid in $\PCode$.
+\end{corollary}
+
+\begin{proof}
+Set $q(x) := x^\top Q x$ (finite and convex on $\mathbb{R}^d$ since $Q \succeq 0$) and $\ell_i(x) := 2 c_i^\top Q x + \rho_i - c_i^\top Q c_i$. Then $(x - c_i)^\top Q (x - c_i) < \rho_i \iff q(x) < \ell_i(x)$. Apply Theorem~\ref{thm:common-q}, truncate by a common open box, and invoke Theorem~\ref{thm:klr}.
+\end{proof}
+
+\section{Intermediate-Word and Transverse \texorpdfstring{$C^1$}{C1} Sufficient Conditions}
+
+For an open convex realization $\mathcal{U} = (U_1, \dots, U_n)$ of $\mathcal{C}$ in $\mathbb{R}^d$ ($\varnothing \in \mathcal{C}$), define
+\[
+I(x) := \{i \in [n] : x \in U_i\}, \qquad J(x) := \{i \in [n] : x \in \overline{U_i}\} \qquad (x \in \mathbb{R}^d).
+\]
+
+\begin{theorem}[Intermediate-word inner-exhaustion criterion]\label{thm:iwc}
+Suppose $\mathcal{U} = (U_1, \dots, U_n)$ is an open convex realization of $\mathcal{C}$ in $\mathbb{R}^d$ satisfying
+\begin{equation}\label{eq:iwc}
+\forall x \in \mathbb{R}^d,\quad \forall \sigma \subseteq [n],\qquad I(x) \subseteq \sigma \subseteq J(x) \implies \sigma \in \mathcal{C}.
+\end{equation}
+Then $\mathcal{C}$ admits a same-dimensional open polytope realization in $\mathbb{R}^d$, hence lies below a representable oriented matroid in $\PCode$.
+\end{theorem}
+
+\begin{proof}
+For each nonempty $U_i$, choose a countable dense subset $\{q_{i,1}, q_{i,2}, \dots\} \subseteq U_i$ and set $P_i^{(m)} := \interior(\conv\{q_{i,1}, \dots, q_{i,m}\}) \subseteq U_i$ (taking $P_i^{(m)} := \varnothing$ when $U_i = \varnothing$). Every $x \in U_i$ lies in the interior of some $d$-simplex $\conv\{v_0, \dots, v_d\} \subset U_i$; perturbing each $v_k$ into $\{q_{i,1}, q_{i,2}, \dots\}$ yields an index $m_0$ such that $P_i^{(m)}$ contains a fixed open neighborhood of $x$ for all $m \ge m_0$.
+
+Pick a bounded open box $B = (-R, R)^d$ containing one witness $w_\tau$ for every $\tau \in \mathcal{C}$, and define the clipped open polytopes $Q_i^{(m)} := P_i^{(m)} \cap B \subseteq U_i \cap B$. Outside $B$, every point has label $\varnothing \in \mathcal{C}$. Since each $w_\tau \in B$ belongs to $P_i^{(m)}$ for all $i \in \tau$ once $m$ is sufficiently large (and never for $i \notin \tau$), we have $\mathcal{C} \subseteq \code(\mathcal{Q}^{(m)})$ for all large $m$.
+
+Suppose for contradiction that for arbitrarily large $m$ there exists $\sigma_m \in \code(\mathcal{Q}^{(m)}) \setminus \mathcal{C}$, witnessed by $x_m \in \mathbb{R}^d$. Since $\varnothing \in \mathcal{C}$, each $\sigma_m \neq \varnothing$, so $x_m \in B$. Passing to a subsequence, we may assume $\sigma_m = \sigma \notin \mathcal{C}$ is constant and (by compactness of $\overline{B}$) $x_m \to x \in \overline{B}$. For every $i \in \sigma$, $x_m \in Q_i^{(m)} \subseteq U_i$ implies $x \in \overline{U_i}$, so $\sigma \subseteq J(x)$. For every $i \in I(x)$, $x \in U_i$, so there exist $m_0$ and an open neighborhood $V$ of $x$ with $V \subseteq P_i^{(m)}$ for all $m \ge m_0$; for all sufficiently large $m$ in the subsequence, $x_m \in V \cap B \subseteq P_i^{(m)} \cap B = Q_i^{(m)}$, so $i \in \sigma$. Thus $I(x) \subseteq \sigma \subseteq J(x)$, whence $\sigma \in \mathcal{C}$ by~\eqref{eq:iwc}, a contradiction. Hence $\code(\mathcal{Q}^{(m)}) = \mathcal{C}$ for all sufficiently large $m$.
+\end{proof}
+
+\begin{corollary}[Transverse $C^1$ smooth convex fields]\label{cor:transverse}
+Let $\mathcal{U} = (U_1, \dots, U_n)$ be open convex sets in $\mathbb{R}^d$ such that near every $x \in \partial U_i$ there is a $C^1$ defining function $f_i$ with $\nabla f_i(x) \neq 0$ and $U_i = \{f_i < 0\}$ locally. If at every $x \in \mathbb{R}^d$ the boundary gradients $\{\nabla f_i(x) : i \in J(x) \setminus I(x)\}$ are linearly independent, then $\mathcal{C} = \code(\mathcal{U})$ admits a same-dimensional open polytope realization (covering, in particular, transverse families of arbitrarily oriented ellipsoids).
+\end{corollary}
+
+\begin{proof}
+At any $x \in \mathbb{R}^d$, set $B(x) := J(x) \setminus I(x) = \{i : x \in \partial U_i\}$. The $C^1$ map $F(y) := (f_i(y))_{i \in B(x)}$ vanishes at $x$ and has surjective differential $DF(x)$. By the submersion theorem, every strict sign pattern on $B(x)$ occurs inside any sufficiently small neighborhood $W \subseteq \bigcap_{i \in I(x)} U_i \setminus \bigcup_{k \notin J(x)} \overline{U_k}$ of $x$, establishing~\eqref{eq:iwc}. Apply Theorem~\ref{thm:iwc}.
+\end{proof}
+
+\begin{remark}[Comparison with CGIK non-degeneracy and the remaining gap]
+Theorem~\ref{thm:iwc} strictly generalizes Corollary~\ref{cor:transverse}: it requires no smoothness and permits tangencies (e.g., the tangent open ellipses $\{x^2/4 + (y-1)^2 < 1\}$ and $\{x^2 + (y-2)^2/4 < 1\}$ realize $\{\varnothing, 1, 2, 12\}$ and satisfy~\eqref{eq:iwc} everywhere).
+Cruz, Giusti, Itskov, and Kronholm (\emph{Discrete Comput.\ Geom.} 61(2):247--270, 2019; \href{https://arxiv.org/abs/1609.03502}{arXiv:1609.03502}, Definition~2.11 and Theorem~2.12) call an open convex cover $\mathcal{U}$ \emph{non-degenerate} if (i) every nonempty atom $A_\tau$ is top-dimensional ($A_\tau \cap W \neq \varnothing \implies \interior(A_\tau \cap W) \neq \varnothing$) and (ii) $\bigcap_{i \in \sigma} \partial U_i \subseteq \partial(\bigcap_{i \in \sigma} U_i)$ for every nonempty $\sigma$, proving $\code(\overline{\mathcal{U}}) = \code(\mathcal{U})$.
+
+Condition~\eqref{eq:iwc} \emph{implies} CGIK non-degeneracy and is \emph{strictly stronger} as a cover hypothesis:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item \emph{\eqref{eq:iwc} $\Rightarrow$ CGIK non-degeneracy:} If $x \in \bigcap_{i \in \sigma} \partial U_i$, then $I(x) \cup \sigma \in \mathcal{C}$, so $\bigcap_{i \in \sigma} U_i \neq \varnothing$; choosing $y \in \bigcap_{i \in \sigma} U_i$, convexity gives $(1-t)y + tx \in \bigcap_{i \in \sigma} U_i$ for all $t \in [0, 1)$, so $x \in \partial(\bigcap_{i \in \sigma} U_i)$. For~(i), if $A_\tau$ had empty interior in a ball $B' \subseteq \bigcap_{i \in \tau} U_i \setminus \bigcup_{k \notin J(x)} \overline{U_k}$ around $x \in A_\tau$, then $\bigcup_{j \in J(x) \setminus \tau} \overline{U_j} \supseteq B'$; choosing supporting open halfspaces $H_j^+ = \{z : v_j \cdot (z - x) > 0\} \supseteq U_j$ yields $\bigcup_{j \in J(x) \setminus \tau} \{w : v_j \cdot w \ge 0\} = \mathbb{R}^d$, forcing $\bigcap_{j \in J(x) \setminus \tau} H_j^+ = \varnothing$ and contradicting $J(x) \in \mathcal{C}$.
+\item \emph{Strictness:} The three open halfplanes $U_1 = \{y > 0\}$, $U_2 = \{x > 0\}$, $U_3 = \{x + y > 0\}$ in $\mathbb{R}^2$ satisfy CGIK non-degeneracy with $\code(\mathcal{U}) = \code(\overline{\mathcal{U}}) = \{\varnothing, 1, 2, 13, 23, 123\}$, yet violate~\eqref{eq:iwc} at $(0, 0)$ because $\{3\} \notin \mathcal{C}$. Indeed, uniform inner shrinking $\{y > \varepsilon\}, \{x > \varepsilon\}, \{x + y > \varepsilon\}$ introduces the extraneous word $\{3\}$ at $(\tfrac{2}{3}\varepsilon, \tfrac{2}{3}\varepsilon)$.
+\end{itemize}
+Controlling forbidden atoms is the exact obstruction to extending Theorem~\ref{thm:iwc} to arbitrary open convex covers in $d \ge 3$ (e.g., two identical open disks give $\{\varnothing, 12\}$, while independent inscribed polygons can introduce a singleton word). Theorem~\ref{thm:common-q} resolves forbidden atoms simultaneously via separation in $\mathbb{R}^{d+1}$ when a shared convex function is present.
+\end{remark}
+
+\section{Refutation of the Closed-Convex Reinterpretation in Both Directions}
+
+Replacing ``open convex'' by ``closed convex'' in Conjecture~\texttt{conj:convex-char} while retaining $\mathcal{C} \le L^+(\mathcal{M})$ yields a statement that is false in both directions.
+
+\begin{theorem}[Two-sided refutation of the closed-convex variant]\label{thm:closed}
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{(Closed convex $\not\implies \mathcal{C} \le L^+(\mathcal{M})$)} The $5$-neuron, $12$-word code of Lienkaemper, Shiu, and Woodstock (\emph{Adv.\ Appl.\ Math.} 85:31--59, 2017; \href{https://arxiv.org/abs/1509.03328}{arXiv:1509.03328}, Theorem~3.1),
+\[
+\mathcal{C}_5 = \{\varnothing, 2345, 123, 134, 145, 13, 14, 23, 34, 45, 3, 4\},
+\]
+is closed convex in $\mathbb{R}^2$, but admits no open convex realization in any $\mathbb{R}^d$, and hence $\mathcal{C}_5 \not\le L^+(\mathcal{M})$ for every representable oriented matroid $\mathcal{M}$.
+
+\item \emph{($\mathcal{C} \le L^+(\mathcal{M}) \not\implies$ closed convex)} The $6$-neuron, $13$-word code (code~(2) of Cruz, Giusti, Itskov, and Kronholm, \href{https://arxiv.org/abs/1609.03502}{arXiv:1609.03502}, Lemma~2.9),
+\[
+\mathcal{C}_6 = \{\varnothing, 123, 234, 345, 456, 561, 612, 12, 23, 34, 45, 56, 61\},
+\]
+equals $L^+(\mathcal{M}_6)$ for a rank-$2$ representable oriented matroid $\mathcal{M}_6$, yet admits no closed convex realization in any $\mathbb{R}^d$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{Part~(1).} Set $O = (0,0)$, $A = (-1,1)$, $B = (0,1)$, $C = (1,1)$ in $\mathbb{R}^2$ and take the closed convex sets $U_1 = [A, C]$, $U_2 = [O, A]$, $U_3 = \conv(O, A, B)$, $U_4 = \conv(O, B, C)$, $U_5 = [O, C]$. Then $O$ witnesses $2345$; traversing $[A, C]$ left to right gives $123, 13, 134, 14, 145$; the interior segments and triangles between $O$ and $[A, C]$ give $23, 3, 34, 4, 45$; and the exterior gives $\varnothing$. Thus $\code(\mathcal{U}) = \mathcal{C}_5$.
+
+Suppose for contradiction that open convex sets $U_1, \dots, U_5 \subseteq \mathbb{R}^d$ realize $\mathcal{C}_5$. Set $A_1 := U_2 \cap U_3$, $A_2 := U_3 \cap U_4$, $A_3 := U_4 \cap U_5$, and $Z := U_2 \cap U_3 \cap U_4 \cap U_5 \neq \varnothing$. Because $2345$ is the unique codeword containing $234$ or $345$, we have $A_1 \cap A_2 = A_2 \cap A_3 = A_1 \cap A_3 = Z$. Pick $p_1 \in U_1 \cap A_1$ (label $123$) and $p_3 \in U_1 \cap A_3$ (label $145$). Since $[p_1, p_3] \subseteq U_1 \subseteq U_3 \cup U_4$, connectedness yields $p_2 \in (p_1, p_3) \cap U_3 \cap U_4 \subseteq U_1 \cap A_2$ (label $134$). Let $\ell$ be the line through $p_1, p_2, p_3$. We have $\ell \cap Z = \varnothing$: on $[p_1, p_3] \subseteq U_1$ this follows from $U_1 \cap Z = \varnothing$; a point $z \in Z$ beyond $p_1$ would place $p_1 \in (z, p_2) \subseteq U_4$ (contradicting label $123$); and $z \in Z$ beyond $p_3$ would place $p_3 \in (p_2, z) \subseteq U_3$ (contradicting label $145$).
+
+We now derive a contradiction via the three-petal open convex sunflower lemma (Lienkaemper--Shiu--Woodstock, Lemma~3.2). Pick $z_0 \in Z$, restrict to the $2$-plane $\Pi := \aff(\ell, z_0)$, and choose affine coordinates $(x, y)$ on $\Pi$ so that $\ell = \{y = 0\}$, $p_1 = (a_1, 0)$, $p_2 = (0, 0)$, $p_3 = (a_3, 0)$ with $a_1 < 0 < a_3$, and $z_0 = (0, y_0)$ with $y_0 > 0$. Since $Z \cap \Pi$ is convex and disjoint from $\ell$, $Z \cap \Pi \subseteq \{y > 0\}$. Let $y_* := \inf\{y > 0 : (0, y) \in Z\} \in [0, y_0)$ and $w := (0, y_*) \in [p_2, z_0) \subset A_2 \cap \Pi$. Since $Z \cap \Pi$ is open and convex, $w \in \partial(Z \cap \Pi)$ and $z_\delta := (0, y_* + \delta) \in Z \cap \Pi$ for every $\delta \in (0, y_0 - y_*)$. A supporting line $L$ to $Z \cap \Pi$ at $w$ cannot be $\{x = 0\}$ (as $z_0 \in Z \cap \Pi$), so $L = \{y = y_* + mx\}$ with $f(x, y) := y - y_* - mx > 0$ on $Z \cap \Pi$. Assume without loss of generality $m a_3 \ge 0$ (otherwise $m a_1 \ge 0$ and use $p_1, A_1$). Choose $r > 0$ with $B_r(w) \subset A_2 \cap \Pi$ and $\eta > 0$ with $p'_3 := (a_3, -\eta) \in A_3 \cap \Pi$, so $f(p'_3) = -\eta - y_* - ma_3 \le -\eta < 0$. Fix $t \in (0, 1)$ with $t\|p'_3 - w\| < r/2$ and choose $\delta \in (0, y_0 - y_*)$ with $\delta < \min(r/2,\, \frac{t}{1-t}\eta)$. Then $u := (1 - t)z_\delta + t p'_3 \in A_3$ obeys $\|u - w\| \le (1-t)\delta + t\|p'_3 - w\| < r$ (so $u \in A_2$) and $f(u) \le (1-t)\delta - t\eta < 0$ (so $u \notin Z$), contradicting $A_2 \cap A_3 = Z$. By Theorem~\ref{thm:klr}, $\mathcal{C}_5 \not\le L^+(\mathcal{M})$ for any representable $\mathcal{M}$.
+
+\emph{Part~(2).} In $\mathbb{R}^2$, the six cyclic normals
+\[
+v_1 = (1,0),\quad v_2 = (1,1),\quad v_3 = (0,1),\quad v_4 = (-1,0),\quad v_5 = (-1,-1),\quad v_6 = (0,-1)
+\]
+define a rank-$2$ representable oriented matroid $\mathcal{M}_6$. Its six open sectors witness the six consecutive triples, its six open boundary rays witness the six consecutive pairs, and the origin witnesses $\varnothing$, so $L^+(\mathcal{M}_6) = \mathcal{C}_6$.
+
+Suppose for contradiction that closed convex sets $U_1, \dots, U_6 \subseteq \mathbb{R}^d$ realize $\mathcal{C}_6$. After intersecting all $U_i$ with a large closed box containing one witness per codeword, each $U_i$ is compact. The maximal triples yield nonempty compact convex sets $K_{ijk} := U_i \cap U_j \cap U_k$. Note that $U_1 \cap U_4 = U_2 \cap U_5 = U_3 \cap U_6 = \varnothing$ and $U_i \subseteq U_{i-1} \cup U_{i+1}$ (indices mod~$6$).
+
+Fix $x_{345} \in K_{345}$ and $x_{561} \in K_{561}$, and set $M := [x_{345}, x_{561}] \subseteq U_5$. Since $K_{123} \subseteq U_2$ and $U_2 \cap U_5 = \varnothing$, $K_{123} \cap M = \varnothing$. By compactness, choose $x_{123} \in K_{123}$ minimizing $\delta := \dist(a, M) > 0$ over $a \in K_{123}$, and pick $q_M \in M$ with $\|x_{123} - q_M\| = \delta$.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item The segment $L_1 := [x_{123}, x_{561}] \subseteq U_1 \subseteq U_2 \cup U_6$ is covered by the closed sets $L_1 \cap U_2$ (containing $x_{123} \notin U_6$) and $L_1 \cap U_6$ (containing $x_{561} \notin U_2$). Connectedness gives $y_1 \in (x_{123}, x_{561}) \cap K_{612}$, so $y_1 = (1 - \alpha)x_{123} + \alpha x_{561}$ with $\alpha \in (0, 1)$.
+\item Symmetrically, $L_3 := [x_{123}, x_{345}] \subseteq U_3 \subseteq U_2 \cup U_4$ gives $y_3 \in (x_{123}, x_{345}) \cap K_{234}$, so $y_3 = (1 - \beta)x_{123} + \beta x_{345}$ with $\beta \in (0, 1)$.
+\item Finally, $N := [y_1, y_3] \subseteq U_2 \subseteq U_1 \cup U_3$ (with $y_1 \in U_1 \setminus U_3$ and $y_3 \in U_3 \setminus U_1$) gives $y_{123} \in (y_1, y_3) \cap K_{123}$, so $y_{123} = (1 - \gamma)y_1 + \gamma y_3$ with $\gamma \in (0, 1)$.
+\end{enumerate}
+Expanding yields $y_{123} = \lambda_0 x_{123} + \lambda_1 x_{561} + \lambda_2 x_{345}$ with $\lambda_1 = (1-\gamma)\alpha > 0$, $\lambda_2 = \gamma\beta > 0$, and $\lambda_0 = (1-\gamma)(1-\alpha) + \gamma(1-\beta) \in (0, 1)$ summing to~$1$. Setting $p_M := (\lambda_1 x_{561} + \lambda_2 x_{345})/(\lambda_1 + \lambda_2) \in M$ and $r_M := \lambda_0 q_M + (1 - \lambda_0)p_M \in M$ (by convexity of $M$), we have $y_{123} - r_M = \lambda_0(x_{123} - q_M)$, whence
+\[
+\dist(y_{123}, M) \le \|y_{123} - r_M\| = \lambda_0\|x_{123} - q_M\| = \lambda_0\delta < \delta,
+\]
+contradicting the minimality of $\delta$.
+\end{proof}
+
+\section{Max-Intersection-Complete Certificate, Three-Neuron Classification, and Exact Verification}
+
+A neural code $\mathcal{C}$ (with $\varnothing \in \mathcal{C}$) is \emph{max-intersection-complete} if it contains every intersection of a nonempty subfamily of its maximal codewords $M_1, \dots, M_m$. Complementing the open/closed convexity theorem of Cruz, Giusti, Itskov, and Kronholm (\href{https://arxiv.org/abs/1609.03502}{arXiv:1609.03502}), we give an explicit open-simplex polytope realization.
+
+\begin{theorem}[Open-simplex polytope certificate]\label{thm:mic}
+Every max-intersection-complete code $\mathcal{C} \subseteq 2^{[n]}$ ($\varnothing \in \mathcal{C}$) admits an open polytope realization, hence lies below a representable oriented matroid in $\PCode$.
+\end{theorem}
+
+\begin{proof}
+If $\mathcal{C} = \{\varnothing\}$, take $U_i = \varnothing$ in $\mathbb{R}^1$. Otherwise let $M_1, \dots, M_m$ ($m \ge 1$) be the maximal codewords, $\mathcal{B} := \{\varnothing\} \cup \{\bigcap_{j \in S} M_j : \varnothing \neq S \subseteq [m]\} \subseteq \mathcal{C}$, and $\mathcal{E} := \mathcal{C} \setminus \mathcal{B}$. For each $e \in \mathcal{E}$, fix a parent $p(e) \in [m]$ with $e \subsetneq M_{p(e)}$. Let $V := [m] \sqcup \mathcal{E}$. If $|V| = 1$ (so $\mathcal{C} = \{\varnothing, M_1\}$), set $U_i = (0, 1) \subset \mathbb{R}^1$ for $i \in M_1$ and $U_i = \varnothing$ otherwise.
+
+For $|V| \ge 2$, work in the open simplex $\Delta^\circ := \{\lambda \in \mathbb{R}_{>0}^V : \sum_{v \in V} \lambda_v = 1\} \subset \mathbb{R}^{|V|-1}$. Define group masses $t_j(\lambda) := \lambda_j + \sum_{e \in \mathcal{E} : p(e) = j} \lambda_e$ ($j \in [m]$), so $\sum_{j=1}^m t_j(\lambda) = 1$, and fix $\epsilon \in (0, \min(\frac{1}{2}, \frac{1}{m}))$. Define the open polytopes
+\[
+U_i := \Bigl\{\lambda \in \Delta^\circ :\; t_j(\lambda) < \tfrac{1}{m}\ \forall j \text{ with } i \notin M_j,\quad \text{and}\quad \lambda_e < 1 - \epsilon\ \forall e \in \mathcal{E} \text{ with } i \notin e\Bigr\}.
+\]
+Points outside $\Delta^\circ$ receive $\varnothing$. Inside $\Delta^\circ$, $S(\lambda) := \{j \in [m] : t_j(\lambda) \ge 1/m\}$ is always nonempty, and neuron $i$ satisfies the first inequalities iff $i \in \bigcap_{j \in S(\lambda)} M_j$. The caps $C_e := \{\lambda \in \Delta^\circ : \lambda_e \ge 1 - \epsilon\}$ ($e \in \mathcal{E}$) are nonempty and pairwise disjoint (since $\epsilon < 1/2$). On $C_e$, $t_{p(e)}(\lambda) \ge 1 - \epsilon \ge 1/m$ while $t_j(\lambda) \le \epsilon < 1/m$ for $j \neq p(e)$, so $S(\lambda) = \{p(e)\}$, and the second inequalities remove precisely $i \notin e$, leaving exact codeword $M_{p(e)} \cap e = e$. Outside all caps, every $\lambda_e < 1 - \epsilon$, so the codeword is $\bigcap_{j \in S(\lambda)} M_j \in \mathcal{B}$. Every nonempty $S \subseteq [m]$ is attained outside all caps by setting $t_j = 1/m$ if $S = [m]$, or fixing $0 < \eta < 1/m$ and taking $t_j = \eta$ ($j \notin S$) and $t_j = (1 - (m - |S|)\eta)/|S| > 1/m$ ($j \in S$), with extra coordinates $\lambda_e$ chosen arbitrarily small inside each group. Hence $\code(\mathcal{U}) = \mathcal{C}$.
+\end{proof}
+
+\begin{corollary}[Exact $3$-neuron classification]\label{cor:3neuron}
+Among all $2^7 = 128$ labeled $3$-neuron codes containing $\varnothing$, exactly $109$ are max-intersection-complete (hence open-polytope realizable and below $L^+(\mathcal{M})$), and the remaining $19$ admit no open convex realization in any dimension.
+\end{corollary}
+
+\begin{proof}
+For $n = 3$, any missing nonempty intersection of maximal codewords must be a singleton $\{i\} = \{i, j\} \cap \{i, k\}$ with $\{1,2,3\} \notin \mathcal{C}$ and $\{i\} \notin \mathcal{C}$. In any open realization, $U_i = (U_i \cap U_j) \sqcup (U_i \cap U_k)$ would partition the nonempty convex set $U_i$ into two disjoint nonempty relatively open subsets. All other $109$ codes satisfy Theorem~\ref{thm:mic}.
+\end{proof}
+
+\paragraph{Exact finite verification.}
+The companion script \texttt{explore.py} checks affine feasibility via exact integer Fourier--Motzkin elimination (propagating strictness on lower-dimensional faces), verifying all results summarized in Table~\ref{tab:checks}.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Verification check (\texttt{explore.py}) & Exact result \\
+\midrule
+Labeled $3$-neuron codes containing $\varnothing$ & $109$ polytope / $19$ obstructed \\
+Trunk maps from subsets of distinct proper trunks ($128$ sources) & $3{,}399$ passed \\
+$1$D families of $1$--$6$ open intervals with endpoints in $\{0,1,2,3,4\}$ & $847$ matched homogenization \\
+$5$-neuron closed fan $\mathcal{C}_5$ and $6$-neuron central open code $\mathcal{C}_6$ & $12$ and $13$ codewords \\
+Six tangent $3$D balls ($\pm r e_j$, $r = 1,\dots,6$) vs.\ coordinate halfspaces & $27$ codewords each \\
+Worked downward cover in Trang--Jeffs (\href{https://arxiv.org/abs/2512.04241}{arXiv:2512.04241}) & $8 \to 7$ nonempty trunks \\
+\bottomrule
+\end{tabular}
+\caption{Exact integer Fourier--Motzkin and combinatorial checks in \texttt{explore.py}.}\label{tab:checks}
+\end{table}
+
+\paragraph{Attribution and open frontier.}
+Kunin, Lienkaemper, and Rosen (\href{https://arxiv.org/abs/2002.03542}{arXiv:2002.03542}) established Theorem~\ref{thm:klr}, while the two closed-convex counterexamples in Theorem~\ref{thm:closed} are due to Lienkaemper, Shiu, and Woodstock (\href{https://arxiv.org/abs/1509.03328}{arXiv:1509.03328}) and Cruz, Giusti, Itskov, and Kronholm (\href{https://arxiv.org/abs/1609.03502}{arXiv:1609.03502}), presented here with self-contained proofs. Our new contributions are the common convex function polyhedralization theorem (Theorem~\ref{thm:common-q} and Corollary~\ref{cor:balls}), the intermediate-word inner-exhaustion criterion and its comparison with CGIK non-degeneracy (Theorem~\ref{thm:iwc} and Corollary~\ref{cor:transverse}), and the open-simplex polytope certificate (Theorem~\ref{thm:mic}). Whether every arbitrary open convex realization in dimension $d \ge 3$ admits an open polytope replacement in some dimension remains open.
+
+\end{document}

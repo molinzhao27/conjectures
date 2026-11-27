@@ -1,0 +1,227 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\title{\bfseries Resolution of the Golden-Ratio Barrier Conjecture for Timely Language Generation}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: A.~Ganju, T.~McVoy, S.~Dughmi, and S.-H.~Teng,\\
+\emph{A Theory of Time-Sensitive Language Generation: Sparse Hallucination Beats Mode Collapse},\\
+\href{https://arxiv.org/abs/2605.11302}{arXiv:2605.11302} (v2), \S5, Conjecture~1\\[0.35em]
+Companion verification: \texttt{solutions/timely\_lm\_hallucination/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We settle both natural formalizations of the Golden-Ratio Barrier Conjecture of Ganju, McVoy, Dughmi, and Teng (\href{https://arxiv.org/abs/2605.11302}{arXiv:2605.11302v2}, \S5).
+First, for the \emph{first actual speculation} from the target language $K = L^s$, the barrier is false: a single online generator using $(s, k)$ product-order probe scheduling achieves pointwise vanishing hallucination (in expectation and pathwise), element-wise timely lower density $\ge 1/2$ almost surely under string deadline $D(i) = \lceil i \log^3(2i) \rceil$ (and every $D(i) = \lceil i^{1+\alpha} \rceil$, $\alpha > 0$), and first probe of $s$ by $O(s \log^2(2s))$ rounds on every run, driving the joint polynomial infimum down to~$1$.
+Second, for \emph{uniform sustained positive density} starting at prefix rank $i \ge C s^q$ under $D(i) = \lceil i^p \rceil$, a golden-ratio theorem holds: $p \ge 1 + 1/q$ is necessary even with unrestricted hallucination, yielding the exact balanced infimum $\varphi = (1 + \sqrt{5})/2$; our same generator attains density $\ge 1/2 - o(1)$ with exponential lower-tail bounds uniformly for $i \ge s^\varphi \log^4(2s)$ at $D(i) = \lceil i^\varphi \rceil$, whereas under pointwise vanishing hallucination the pure-power endpoint $p = 1 + 1/q$ (including $p = q = \varphi$) is impossible.
+We also identify a quantifier discrepancy between the paper's introduction and positive theorem, proving that uniform-over-instances hallucination decay is impossible in the total-enumeration game.
+\end{abstract}
+
+\section{Game, Clocks, and the Quantifier Catch}
+
+Let $L^1, L^2, \dots$ be a known countable family of infinite languages over a countably infinite ordered universe $\mathcal{U}$.
+Before the generator's random bits are drawn, an adversary selects a target index $s \ge 1$ ($K := L^s$) and a total enumeration $E = (e_1, e_2, \dots)$ of $K$ (repetitions allowed).
+At round $t \ge 1$, the generator observes $e_t$ and must output a fresh string $o_t \in \mathcal{U} \setminus (\{e_1, \dots, e_t\} \cup \{o_1, \dots, o_{t-1}\})$.
+
+Write $K_i := \{k_1, \dots, k_i\}$ for the first $i$ strings of $K$ in universe preference order.
+Given a nondecreasing string deadline $D : \mathbb{N}_+ \to \mathbb{N}_+$, a string $k_j \in K$ earns timely credit only if the generator outputs $k_j$ by round $D(j)$ (strings supplied only by the adversary earn zero credit).
+Let $\mu_i$ be the fraction of strings in $K_i$ earning timely credit.
+An output $o_t \notin K$ is a \emph{hallucination}.
+Following the introduction of \href{https://arxiv.org/abs/2605.11302}{arXiv:2605.11302v2}, \emph{vanishing hallucination} is defined pointwise: for every fixed instance $(s, E)$, the expected hallucination fraction through round $t$ tends to $0$ as $t \to \infty$ (whereas \emph{eventual consistency} permits only finitely many hallucinations on $(s, E)$).
+
+\begin{proposition}[Quantifier catch: uniform hallucination decay is impossible]\label{prop:quantifier}
+In the total-enumeration game, no generator can satisfy $\sup_{(s, E)} \mathbb{E}[\text{hallucination fraction through } t] \to 0$ as $t \to \infty$, even on a two-language family.
+\end{proposition}
+
+\begin{proof}
+Let $L^1, L^2$ be two infinite languages sharing exactly one common string $c$, and fix any horizon $t \ge 1$.
+For each $s \in \{1, 2\}$, choose a total enumeration $E^{(s)}$ of $L^s$ starting with $t$ repetitions of $c$.
+Both instances induce the identical transcript through round $t$.
+Every legal output $o_1, \dots, o_t$ differs from $c$ and therefore lies outside at least one of $L^1, L^2$.
+Summing hallucination counts over $s \in \{1, 2\}$ gives at least $t$, so $\max_{s \in \{1,2\}} \mathbb{E}[\text{hallucination fraction through } t] \ge 1/2$ for every $t \ge 1$.
+\end{proof}
+
+\begin{remark}[Quantifiers and clocks in \href{https://arxiv.org/abs/2605.11302}{arXiv:2605.11302v2}]
+The introduction places the supremum over instances \emph{outside} $\lim_{t \to \infty}$, whereas a display in the positive theorem (\texttt{possibility.tex}) places the supremum \emph{inside} a decay bound at round $t$.
+By Proposition~\ref{prop:quantifier}, only the pointwise definition is satisfiable.
+Similarly, in \texttt{possibility.tex}, $m$ indexes epochs ending at round $D(m)$ with $C(m) = o(D(m) - D(m-1)) = o(m^\alpha)$ for $D(m) = \lceil m^{1+\alpha} \rceil$, so at first eligibility $m/s^{1/\alpha} \to \infty$, and converting epochs to rounds raises the near-extremal exponent from $1/\alpha$ to $(1+\alpha)/\alpha$.
+In what follows, a \emph{probe of $s$} designates index $s$ and outputs the earliest unused string of $L^s$.
+\end{remark}
+
+\section{A Single Online Generator and Pathwise Charging}
+
+\paragraph{Product-order probe allocation.}
+Order all pairs $(s, k) \in \mathbb{N}_+^2$ by increasing product $sk$, breaking ties by increasing $s$.
+Assign the $n$-th pair $(s_n, k_n)$ a block of $\ell_n := 1 + \lfloor \log_2 n \rfloor$ consecutive rounds, and independently choose one uniformly random slot in that block to probe $s_n$ (executing the $k_n$-th probe of $s_n$).
+Define
+\[
+A(m) := \sum_{d=1}^m \left\lfloor \frac{m}{d} \right\rfloor,
+\qquad
+B(n) := \sum_{b=1}^n \ell_b,
+\qquad
+T_s(i) := B\bigl(A(si)\bigr).
+\]
+Since $A(m) \le m(1 + \log m)$ and $B(n) \le n(1 + \log_2 n)$, we have
+\[
+T_s(i) = O\bigl(si \log^2(2si)\bigr).
+\]
+Every pair $(s, k)$ with $1 \le k \le i$ has $sk \le si$ and thus appears among the first $A(si)$ blocks.
+Hence at least $i$ probes of $s$ execute by the deterministic round $T_s(i)$ on every realization of the random slots.
+While any member of $K_i$ remains unused, a probe of $s$ consumes one; thus every string in $K_i$ is observed or output by round $T_s(i)$.
+Taking $i = 1$ gives a first probe of $s$ by $O(s \log^2(2s))$ rounds deterministically, and $\ell_n \to \infty$ ensures $o(t)$ speculative rounds through time $t$ on every run.
+
+\paragraph{Ordinary rounds.}
+Let $r(t) := \lfloor t^{1/\varphi} \rfloor$.
+Call $L^j$ \emph{viable} at round $t$ if it contains $\{e_1, \dots, e_t\}$.
+For $0 \le j \le r(t)$, let $V_j$ be the intersection of the viable languages among $L^1, \dots, L^j$ (with $V_0 := \mathcal{U}$); these sets nest downward in $j$.
+Set $M := (t + 4)^2$, and let $I_t$ be the finite universe prefix ending at the largest of the $M$-th strings of $\mathcal{U}$ and of $L^1, \dots, L^{r(t)}$.
+On an ordinary round $t$, pick the largest $j \le r(t)$ for which $V_j \cap I_t$ contains an unused string, and output its earliest such string.
+Since $|I_t| \ge M > 2t$ while at most $2t - 1$ strings are used before the generator's move, $j = 0$ is always feasible and each round takes finite computation given membership queries.
+
+Fix $(s, E)$ with $K = L^s$.
+Each $L^j$ ($j \le s$) not containing $K$ is permanently eliminated upon seeing a witness in $E$.
+After finite instance-dependent time, $r(t) \ge s$ and $V_s = K$; because $I_t$ contains at least $M > 2t - 1$ strings of $K$, every subsequent ordinary move chooses $j \ge s$ and outputs in $K$.
+Thus total hallucinations through round $t$ are bounded by an instance-dependent constant plus the $o(t)$ probe blocks started, establishing pointwise vanishing hallucination both in expectation and pathwise.
+
+\begin{lemma}[Pathwise charging and uniform exponential tail]\label{lem:charging}
+Fix any family, any instance $(s, E)$, and any rank $i \ge 1$, and put $T := T_s(i)$.
+Let $G$ be the number of generator outputs in $K_i$ by round $T$, and let $Z_i$ count strings in $K_i$ whose first occurrence in $E$ falls in a probe slot.
+Then, pathwise,
+\[
+2G \ge i - O\bigl(s^\varphi + \sqrt{i} + 1\bigr) - 2r(T) - Z_i,
+\]
+and for any deadline function $D$, with $b_D(T) := |\{j \le i : D(j) < T\}|$,
+\[
+\mu_i \ge \frac{1}{2} - O\!\left(\frac{s^\varphi + \sqrt{i} + 1 + r(T)}{i}\right) - \frac{Z_i}{2i} - \frac{b_D(T)}{i}.
+\]
+Furthermore, $\mathbb{E}[Z_i] = o(i)$ uniformly over all instances, and for every $\eta > 0$ there is $i_0(\eta)$ independent of the family, $s$, and $E$ such that $\Pr(Z_i > \eta i) \le e^{-\eta i/2}$ for all $i \ge i_0(\eta)$.
+In particular, $Z_i/i \to 0$ almost surely on every fixed instance.
+\end{lemma}
+
+\begin{proof}
+Assign ownership of each string in $K_i$ to whichever player (adversary observation or generator output) produces it first (observation precedes output within a round); all $i$ strings have owners by round $T$.
+Discard the first $t_0 := O(s^\varphi + \sqrt{i} + 1)$ rounds so that for all $t > t_0$, $r(t) \ge s$ and $M = (t + 4)^2 \ge i$ (ensuring $K_i \subset I_t$).
+Partition $(t_0, T]$ into maximal stretches on which $r(t)$ and the viable subset of $\{1, \dots, r(t)\}$ (evaluated after observing $e_t$) are constant; each index $j \le r(T)$ enters once and can be eliminated at most once, giving at most $2r(T) + 1$ stretches.
+
+On a stretch, let $V := V_{r(t)} \subset K$.
+When the observation first claims a string of $K_i$ on an ordinary round in the stretch, either a fresh string in $V \cap K_i \subset I_t$ remains---so $j = r(t)$ is feasible and the generator outputs a fresh string from $V \cap K_i$ that round---or none remains, making this the last new observation claim in $K_i$ during the stretch.
+Thus at most one ordinary observation claim per stretch lacks a distinct generator reply in $K_i$.
+Remaining uncharged observation claims occur either before $t_0$ (at most $t_0$) or in probe slots (at most $Z_i$).
+Hence the number of observation-owned strings in $K_i$ is at most $G + t_0 + 2r(T) + 1 + Z_i$, yielding $2G \ge i - O(s^\varphi + \sqrt{i} + 1) - 2r(T) - Z_i$.
+Subtracting at most $b_D(T)$ outputs in $K_i$ that could miss their individual deadlines $D(j)$ gives the bound on $\mu_i$.
+
+The first-occurrence times of $K_i$ in $E$ are at most $i$ distinct deterministic rounds fixed independently of the probe slots.
+At most $\sqrt{i}$ fall before round $\sqrt{i}$; every later block $b$ has length $\ell_b \ge L(i) \to \infty$ independently of the instance.
+Each block $b$ contributes an independent Bernoulli variable $X_b$ with mean $p_b = m_b / \ell_b$ (where $m_b$ counts first occurrences in block $b$, $\sum_b m_b \le i$), so $\mathbb{E}[Z_i] \le \sqrt{i} + i/L(i) = o(i)$ uniformly.
+By independence, $\mathbb{E}[e^{Z_i}] = \prod_b (1 + (e - 1)p_b) \le \exp\bigl((e - 1)\mathbb{E}[Z_i]\bigr)$, so Markov's inequality yields $\Pr(Z_i > \eta i) \le \exp\bigl((e - 1)\mathbb{E}[Z_i] - \eta i\bigr) \le e^{-\eta i/2}$ for all $i \ge i_0(\eta)$.
+Borel--Cantelli implies $Z_i/i \to 0$ almost surely on every fixed instance.
+\end{proof}
+
+\section{Reading 1: First Actual Speculation Beats \texorpdfstring{$\varphi$}{phi}}
+
+\begin{theorem}[Refutation under first-speculation timeliness]\label{thm:first}
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item The online generator of Section~2 achieves pointwise vanishing hallucination (in expectation and pathwise), first actual probe of hypothesis $s$ by $O(s \log^2(2s))$ rounds on every run, and $\liminf_{i \to \infty} \mu_i \ge 1/2$ almost surely under string deadline $D(i) = \lceil i \log^3(2i) \rceil$ (and simultaneously under every $D(i) = \lceil i^{1+\alpha} \rceil$, $\alpha > 0$). In particular, pure powers $3/2$ for both bounds already beat $\varphi$.
+\item The joint polynomial infimum $1$ is sharp: guaranteeing a first probe for every $s \le S$ with constant probability $c > 0$ requires $\Omega(S)$ rounds, and sublinear (or, under vanishing hallucination, linear) string deadlines preclude positive limiting density. Under pointwise vanishing hallucination, even a uniform $O(s)$ constant-probability first-probe guarantee for earliest-fresh probes is impossible.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), fix $(s, E)$. Then $T = T_s(i) = O_s(i \log^2(2i))$, so $r(T) = O(T^{1/\varphi}) = o(i)$.
+Under $D(i) = \lceil i \log^3(2i) \rceil$ (or any $D(i) = \lceil i^{1+\alpha} \rceil$, $\alpha > 0$), for every $\delta > 0$ we have $T < D(\lceil \delta i \rceil)$ for all large $i$, whence $b_D(T) \le \delta i$ and $b_D(T) = o(i)$.
+Lemma~\ref{lem:charging} yields $\liminf_{i \to \infty} \mu_i \ge 1/2$ almost surely.
+
+For~(2), consider the \emph{one-common-symbol petal family}: each $L^s$ ($s \ge 1$) consists of one shared symbol $c$ plus its own infinite disjoint private petal.
+Repeating $c$ through round $t$ is extendible to every $L^s$ and produces a single transcript per seed.
+Since at most $t$ distinct indices can be probed in $t$ rounds, summing probabilities over $s \le S$ gives $cS \le t$.
+Sublinear deadlines fail by the one-output-per-round limit, and \href{https://arxiv.org/abs/2605.11302}{arXiv:2605.11302v2} rules out linear string deadlines under vanishing hallucination.
+
+For the $O(s)$ first-probe endpoint under pointwise vanishing hallucination, use the \emph{powers-of-two core family} of Theorem~\ref{thm:sustained}(3) below: $L^1 = \{2^m : m \ge 0\}$, and for $s \ge 1$, $L^{s+1}$ adds a disjoint infinite private petal to $L^1$, ordering pairs $(s, k) \in \mathbb{N}_+^2$ by increasing $s + k$ (ties by $s$) onto $\mathbb{N}_+ \setminus L^1$.
+The first private string of petal $s \le S$ has universe position $O(S^2)$.
+On the fixed total enumeration $1, 2, 4, 8, \dots$ of $L^1$, after $O(\log(2S))$ rounds all earlier core strings are observed, so any later earliest-fresh probe of petal $s \le S$ either outputs a private string of petal $s$ or finds one already output.
+Since no private string is observed on $L^1$ and at most $O(\log(2S))$ labels can be probed earlier, a constant-probability first-probe guarantee by $t = O(S)$ for each $s \le S$ forces $\Omega(S)$ expected hallucinations by round $t = O(S)$ on this fixed core run, contradicting pointwise vanishing hallucination.
+\end{proof}
+
+\section{Reading 2: The Golden-Ratio Theorem for Sustained Density}
+
+\begin{theorem}[Golden-Ratio Barrier for sustained prefix-rank density]\label{thm:sustained}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{(Packing lower bound)} Suppose $D(i) = O(i^p)$ and a generator guarantees $\mathbb{E}[\mu_i] \ge \rho > 0$ uniformly over all families, instances $(s, E)$, and prefix ranks $i \ge C s^q$ (even with unrestricted hallucination). Then $p \ge 1 + 1/q$. For the balanced objective $p = q$, necessarily $p \ge \varphi = (1 + \sqrt{5})/2$.
+\item \emph{(Critical achievability with polylog slack)} At $D(i) = \lceil i^\varphi \rceil$, the generator of Section~2 achieves pointwise vanishing hallucination and, for every $\epsilon \in (0, 1/2)$, constants $c_\epsilon > 0$ and $i_1(\epsilon)$ independent of the family, $s$, and $E$ such that
+\[
+\Pr\!\left(\mu_i < \frac{1}{2} - \epsilon\right) \le \exp(-c_\epsilon i)
+\qquad \text{for all } i \ge \max\!\bigl\{i_1(\epsilon),\; s^\varphi \log^4(2s)\bigr\}
+\]
+(giving $\mathbb{E}[\mu_i] \ge 1/2 - o(1)$ uniformly on $i \ge s^\varphi \log^4(2s)$ and simultaneous high-probability density for all qualifying prefixes above any large rank). Every balanced pure power $d > \varphi$ (deadline $\lceil i^d \rceil$, onset $i \ge C s^d$) is therefore achievable.
+\item \emph{(Pure-power endpoint impossibility)} Under pointwise vanishing hallucination, no generator can guarantee $\mathbb{E}[\mu_i] \ge \rho > 0$ uniformly for $D(i) = O(i^p)$ and $i \ge C s^q$ on the boundary $p = 1 + 1/q$---in particular at $D(i) = O(i^\varphi)$, $i \ge C s^\varphi$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{Part~(1).} Take the one-common-symbol petal family. For large $S$, set $i := \lceil C S^q \rceil$ and feed $c$ through round $t := D(i)$.
+This input extends to every $L^s$ ($1 \le s \le S$).
+On the shared transcript, $c$ is ineligible and the remaining prefix strings of $L^1, \dots, L^S$ are pairwise disjoint, so the sum of timely credits over $s = 1, \dots, S$ is at most $t = D(i)$ for every seed.
+Taking expectations gives $\rho S i \le D(i) = O(i^p)$; since $S = \Theta(i^{1/q})$, this forces $p \ge 1 + 1/q$, and $p = q$ gives $p \ge \varphi$.
+
+\emph{Part~(2).} Set $p = \varphi$, $D(i) = \lceil i^\varphi \rceil$, and assume $i \ge s^\varphi \log^4(2s)$.
+Splitting at $s = i^{1/(2\varphi)}$ (above which $\log(2s) = \Theta(\log(2i))$) yields $s = O\bigl(i^{1/\varphi} / \log^{4/\varphi}(2i)\bigr)$ uniformly as $i \to \infty$.
+Hence $s^\varphi = o(i)$ and, since $1 + 1/\varphi = \varphi$ and $4/\varphi > 2$,
+\[
+T = T_s(i) = O\bigl(si\log^2(2si)\bigr)
+= O\!\left(i^\varphi \log^{2 - 4/\varphi}(2i)\right)
+= o(i^\varphi).
+\]
+Consequently $r(T) = O(T^{1/\varphi}) = o(i)$ and $b_D(T) \le T^{1/\varphi} = o(i)$ uniformly in this range.
+Substituting into Lemma~\ref{lem:charging} establishes the uniform exponential tail and expectation guarantees.
+
+\emph{Part~(3).} Use the powers-of-two core family ($L^1 = \{2^m : m \ge 0\}$, and $L^{s+1}$ adds a diagonally ordered private petal to $L^1$ on $\mathbb{N}_+ \setminus L^1$).
+For $1 \le s \le S$ and $k \le i$, pair $(s, k)$ lies on diagonal $s + k \le S + i$, so accounting for intervening powers of two gives universe position $O((S + i)^2)$ for the $i$-th private point of petal $s$.
+Thus at most $O(\log(2 + S + i))$ of the first $i$ strings of $L^{s+1}$ lie in $L^1$, and the rest are private.
+
+Run on the fixed total enumeration $E^* = (1, 2, 4, 8, \dots)$ of $L^1$.
+For each $S \ge 1$, set $i := \lceil C(S + 1)^q \rceil$ and $t := D(i)$.
+Each $L^{s+1}$ ($1 \le s \le S$) admits a total enumeration agreeing with $E^*$ through round $t$.
+If each had expected timely density at least $\rho$ at rank $i$, then the fixed run on $(L^1, E^*)$ would emit at least $S(\rho i - O(\log(2 + S + i))) = \Omega(Si)$ expected outputs outside $L^1$ by round $t$.
+At $p = 1 + 1/q$, we have $t = D(i) = O(i^{1 + 1/q}) = O(Si)$, forcing a constant lower bound on the expected hallucination fraction along an unbounded sequence of horizons on $(L^1, E^*)$ and contradicting pointwise vanishing hallucination.
+\end{proof}
+
+\section{Scope and Computational Verification}
+
+\paragraph{Open unbalanced region.}
+Theorem~\ref{thm:sustained} settles the balanced objective $p = q$ (exact infimum $\varphi$), proves $p \ge 1 + 1/q$ everywhere, and refutes the pure-power boundary $p = 1 + 1/q$ under pointwise vanishing hallucination.
+The full unbalanced $(p, q)$ achievability region ($p > 1 + 1/q$, $p \neq q$) remains open here.
+Notice also that a prefix-rank onset $i_0(s)$ corresponds to round $D(i_0(s))$ through the string deadline, and neither onset implies language identification.
+
+\paragraph{Computational verification.}
+The companion script \texttt{explore.py} (Python~3.10+ standard library, exact integer arithmetic; run via \texttt{.venv/bin/python -B} from the repository root on \texttt{solutions/\allowbreak timely\_\allowbreak lm\_\allowbreak hallucination/\allowbreak explore.py}) checks:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item All $15{,}518$ product-order probe pairs $(s, k)$ through $sk \le 2{,}000$ against $A(m)$ and exact block endpoints $B(n)$.
+\item $48$ online games across $2$ core types (singleton finite core and infinite core $7\mathbb{Z}_{\ge 0}$), $4$ targets ($s \in \{1, 2, 5, 8\}$), $3$ enumeration policies (\texttt{ordered}, \texttt{delayed}, \texttt{mixed}), and $2$ seeds (\texttt{17}, \texttt{2605}). Across $1{,}828{,}104$ rounds ($1{,}276{,}373$ repeat observations and $8{,}152$ finite-core fallback rounds), all $384$ tested prefixes ($i \in \{1, 2, 4, 8, 16, 32, 64, 128\}$) pass the coverage, pathwise charging, and element-wise deadline ($D(j) = \lceil j^{3/2} \rceil$) checks. (Note: \texttt{explore.py} tests the unbounded-interval idealization, selecting the earliest fresh string of the chosen viable language directly rather than truncating at $M = (t + 4)^2$; both coincide once $I_t$ covers the earliest fresh string, as guaranteed after warmup.)
+\item $20$ sparse-core packing checks over $(S, i) \in \{2, 5, 13, 32, 80\} \times \{16, 64, 256, 1024\}$ verifying the $O((S+i)^2)$ universe-position bound and disjoint private witnesses.
+\end{itemize}
+
+\end{document}

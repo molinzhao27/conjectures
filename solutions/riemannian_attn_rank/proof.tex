@@ -1,0 +1,209 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\EffRank}{EffRank}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\SiLU}{SiLU}
+
+\title{\bfseries Refutation of Riemannian Attention Rank-Preservation Conjectures and Exact Two-Token Criterion}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: S.~Song,\\
+\emph{Riemannian Attention Mechanisms for Transformers: A Theoretical Framework and Architecture Design},\\
+\href{https://arxiv.org/abs/2608.01283}{arXiv:2608.01283}, Section~3, Conjectures~\texttt{conj:rankpreserve} and~\texttt{conj:rankstrong}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute both rank-preservation conjectures (\texttt{conj:rankpreserve} and \texttt{conj:rankstrong}) of Song (\href{https://arxiv.org/abs/2608.01283}{arXiv:2608.01283}) for pure Riemannian self-attention stacks.
+First, a single-layer active counterexample with full-rank metrics spanning the entire query--key difference subspace, positive diversity, and arbitrarily large within-row metric contrast produces identical attention rows ($\sigma_2(A) = 0$ and $\EffRank(H_1) = 1$) without any depth-dependent weights.
+Second, a deep two-token stack with distinct preferred keys in every row and arbitrarily large fixed score margins $b_n = b$ still collapses to $\EffRank(H_n) = 1 + \tanh(b/2)^{2n} \to 1$ despite $\sigma_2(A_n) = \tanh(b/2)$ remaining arbitrarily close to $1$ (we note explicitly that realizing fixed margins in self-attention requires exponentially growing decoder norms $\|B_n\|_{\mathrm{op}}$, whereas uniformly bounded weights force even faster, doubly exponential collapse whenever the consensus limit is nonzero).
+We establish a general Dobrushin consensus theorem, document an equilateral-triangle zero-limit exception where $\EffRank(H_n) = 2$ for every finite $n$ even in the subcritical regime, and prove an exact necessary and sufficient summable-leakage criterion for two-token effective-rank preservation.
+\end{abstract}
+
+\section{Model and Statements}
+
+Consider a pure Riemannian self-attention stack (identity values, no skip connections, no feed-forward sublayers) $H_n = A_n H_{n-1} = P_n H_0$ with $P_n := A_n \cdots A_1$ for $n \ge 1$.
+Writing $v_{ij} := q_i - k_j$ for query and key row vectors, \href{https://arxiv.org/abs/2608.01283}{arXiv:2608.01283} defines
+\[
+E_{ij} := \|v_{ij}\|^2, \qquad
+G_{ij} := \frac{1}{2}\bigl(\|U_i^\top v_{ij}\|^2 + \|U_j^\top v_{ij}\|^2\bigr), \qquad
+A_{ij} := \frac{\exp[-(E_{ij} + G_{ij})/\tau]}{\sum_k \exp[-(E_{ik} + G_{ik})/\tau]}.
+\]
+Let $D := \spn\{v_{ij}\}$ be the active difference subspace, $\bar U^2 := \max_i \|U_i\|_F^2$ the metric strength, $\sigma_U^2 := \Var_i(\|U_i\|_F^2)$ the population metric diversity, and $\EffRank(X) := \|X\|_F^2/\sigma_1(X)^2$ the stable rank for $X \neq 0$.
+
+Conjecture~\texttt{conj:rankpreserve} asserts a depth-uniform bound $\EffRank(H_n) \ge f(r, \sigma_U^2) > 1$ when $\sigma_U^2 > 0$, $r \ge r_{\min}(d, L)$, and the metric factors overlap $D$ with non-row-constant $G$.
+Conjecture~\texttt{conj:rankstrong} pairs a subcritical regime ($\bar U^2 < \Theta(\tau/L)$, collapsing as in Dong et~al.~\cite{dong2021attention}) with a supercritical regime ($\bar U^2 > \Theta(\tau/L)$, $\sigma_U^2 > 0$, overlap with $D$, non-row-constant $G$, and large within-row contrasts $G_{ij} - G_{ik}$ relative to $\tau$), claiming both a single-layer lower bound on $\sigma_2(A)$ and a depth-uniform lower bound $\EffRank(H_n) \ge f(r, \sigma_U^2) > 1$.
+
+\section{Single-Layer Active Full-Rank Collapse}
+
+\begin{theorem}[Exact rank-one collapse at layer~$1$]\label{thm:onelayer}
+Take $L = d = r = 2$, $H_0 = I_2$, and any $s, \tau > 0$. Choose linear query/key projections giving $q_1 = k_1 = 0$, $q_2 = 2e_2$, $k_2 = e_1$, and full-rank metric factors
+\[
+U_1 = \sqrt{s}\,\diag(\sqrt{5}, 1), \qquad U_2 = \sqrt{s}\,\diag(1, \sqrt{2}),
+\]
+which are realized exactly by a shared $\SiLU$ MetricNet on $H_0$.
+Then $D = \mathbb{R}^2$, $\bar U^2 = 6s$, $\sigma_U^2 = \frac{9}{4}s^2 > 0$, every row of $G$ is nonconstant with contrast $3s$, and $G$ strictly modifies the Euclidean attention probabilities; yet both rows of $A$ equal $(p, 1-p)$ with $p = (1 + e^{-(1+3s)/\tau})^{-1}$, so $\sigma_2(A) = 0$ and $\EffRank(H_1) = 1$.
+\end{theorem}
+
+\begin{proof}
+Since $H_0 = I_2$, linear maps $W_Q, W_K$ realize $(q_1, q_2)$ and $(k_1, k_2)$ directly. For MetricNet, choosing first linear layer $I_2$ sends the two rows of $H_0$ to $\SiLU(1)\,e_1$ and $\SiLU(1)\,e_2$, so the output linear map assigns $(U_1, U_2)$ exactly.
+The differences $v_{11} = 0$, $v_{12} = -e_1$, $v_{21} = 2e_2$, $v_{22} = -e_1 + 2e_2$ span $D = \mathbb{R}^2$, and direct substitution yields
+\[
+E = \begin{pmatrix} 0 & 1 \\ 4 & 5 \end{pmatrix}, \qquad
+G = s \begin{pmatrix} 0 & 3 \\ 6 & 9 \end{pmatrix}, \qquad
+E + G = \begin{pmatrix} 0 & 1 + 3s \\ 4 + 6s & 5 + 9s \end{pmatrix}.
+\]
+Row~$2$ of $E + G$ equals row~$1$ plus the row constant $4 + 6s$, which softmax cancels. Hence both rows of $A$ equal $(p, 1-p)$, giving $\rank(A) = 1$, $\sigma_2(A) = 0$, and $\EffRank(H_1) = \EffRank(A) = 1$ for every $s, \tau > 0$. Taking $s/\tau$ arbitrarily large defeats every finite strength or within-row contrast threshold, and all subsequent stochastic multiplications fix the identical rows.
+\end{proof}
+
+\begin{remark}[All ranks $1 \le r \le d$ and lengths $L \ge 2$]
+For $r = 1$, the same queries and keys with $U_1 = 2\sqrt{s}\,e_1$ and $U_2 = \sqrt{s}\,e_2$ give $G = s\begin{psmallmatrix}0 & 2 \\ 2 & 4\end{psmallmatrix}$ and identical rows. For any $2 \le r \le d$, padding $(U_1, U_2)$ with $r - 2$ common orthogonal columns along additional feature axes and padding $H_0, W_Q, W_K$ with zeros preserves all conclusions; duplicating either token type extends to every $L \ge 2$. Crucially, Theorem~\ref{thm:onelayer} uses no depth-dependent weights.
+\end{remark}
+
+\section{Deep Collapse with Distinct Preferred Keys at Every Depth}
+
+\begin{theorem}[Deep collapse under persistent margins]\label{thm:deep}
+Fix $H_0 = I_2$, $\tau = 1$, and any margin schedule $b_n > 1$, setting $s_n := (b_n - 1)/2 > 0$. There is a pure two-token Riemannian self-attention plus shared $\SiLU$ MetricNet stack such that at every layer $n \ge 1$, the metric factors have full rank $r = 2$, $\bar U_n^2 = 1 + 3s_n$, $\sigma_{U,n}^2 = s_n^2 > 0$, each token strictly prefers itself by score margin $b_n$ (metric contrast $2s_n$), and
+\[
+A_n = J + \rho_n T, \qquad \rho_n := \tanh(b_n/2) = \sigma_2(A_n), \qquad
+H_n = P_n = J + t_n T, \qquad t_n := \prod_{j=1}^n \rho_j,
+\]
+where $J := \frac{1}{2}\mathbf{1}\mathbf{1}^\top$ and $T := I_2 - J$, giving $\EffRank(H_n) = 1 + t_n^2$. In particular, for any fixed $b_n = b > 1$, $\sigma_2(A_n) = \tanh(b/2)$ can be arbitrarily close to $1$ while $\EffRank(H_n) = 1 + \tanh(b/2)^{2n} \to 1$.
+\end{theorem}
+
+\begin{proof}
+At layer~$n$, prescribe $q_1 = k_1 = 0$, $q_2 = k_2 = e_1$, and $U_1 = \diag(\sqrt{s_n}, 1)$, $U_2 = \diag(\sqrt{3s_n}, 1)$. Then $E = \begin{psmallmatrix}0 & 1 \\ 1 & 0\end{psmallmatrix}$ and $G = \begin{psmallmatrix}0 & 2s_n \\ 2s_n & 0\end{psmallmatrix}$, so $E + G = \begin{psmallmatrix}0 & b_n \\ b_n & 0\end{psmallmatrix}$ and
+\[
+A_n = \frac{1}{1 + e^{-b_n}}\begin{pmatrix} 1 & e^{-b_n} \\ e^{-b_n} & 1 \end{pmatrix} = J + \rho_n T, \qquad \rho_n = \tanh(b_n/2).
+\]
+Since $J$ and $T$ are complementary orthogonal projections, induction gives $H_n = P_n = J + t_n T$ with singular values $1$ and $t_n$, whence $\EffRank(H_n) = 1 + t_n^2$.
+
+To realize layer~$n$ from $H_{n-1}$, set $t_0 := 1$ and define the predetermined decoder $B_n := J + t_{n-1}^{-1} T$, which satisfies $H_{n-1} B_n = I_2$. Choosing $W_Q^{(n)} = W_K^{(n)} = B_n Q_*$ (with rows of $Q_*$ equal to $0$ and $e_1^\top$) generates the prescribed queries and keys, and taking $B_n$ as the first linear layer of MetricNet gives $\SiLU(H_{n-1} B_n) = \SiLU(1)\,I_2$, allowing its second linear layer to output $(U_1, U_2)$ exactly.
+\end{proof}
+
+\begin{remark}[Weight-norm growth versus single-layer collapse]
+In Theorem~\ref{thm:deep}, maintaining a fixed constant margin $b_n = b$ as the states coalesce requires exponentially growing decoder norms $\|B_n\|_{\mathrm{op}} = t_{n-1}^{-1} = \tanh(b/2)^{-(n-1)}$. Neither \texttt{conj:rankpreserve} nor \texttt{conj:rankstrong} imposes a uniform norm bound on the layer weights. By contrast, Theorem~\ref{thm:onelayer} requires no depth-dependent weights at all, and Theorem~\ref{thm:dobrushin} below shows that imposing uniformly bounded weights actually forces \emph{doubly exponential} collapse whenever the consensus limit is nonzero.
+\end{remark}
+
+\section{General Dobrushin Consensus and Zero-Limit Exception}
+
+For a row-stochastic matrix $A$, the Dobrushin coefficient~\cite{dobrushin1956clt} is
+\[
+\delta(A) := \frac{1}{2}\max_{i,k}\sum_j |A_{ij} - A_{kj}| = 1 - \min_{i,k}\sum_j \min(A_{ij}, A_{kj}).
+\]
+For any row matrix $X$ with row diameter $d(X) := \max_{i,k}\|X_i - X_k\|$ (in any fixed norm), canceling the shared mass of any two rows of $A$ leaves equal remainders of mass at most $\delta(A)$, giving $d(AX) \le \delta(A)\,d(X)$ and $\delta(AB) \le \delta(A)\,\delta(B)$.
+
+\begin{theorem}[General consensus and doubly exponential collapse]\label{thm:dobrushin}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Let $R_n$ be the maximum within-row score range at layer~$n$; for Riemannian scores, $R_n \le (1 + \bar U_n^2)M_n/\tau_n$ where $M_n := \max_{i,j}\|q_i - k_j\|^2$. Then $\delta(A_n) \le 1 - e^{-R_n}$. Whenever $\sum_{n=1}^\infty e^{-R_n} = \infty$ (in particular, for any uniformly bounded $R_n$, on either side of $\bar U_{\mathrm{crit}}^2 = \Theta(\tau/L)$), we have $\delta(P_n) \to 0$ and $P_n \to \mathbf{1}\pi^\top$ for a probability vector $\pi$ (cf.~\cite{wolfowitz1963products,leizarowitz1992infinite}). If $\pi^\top H_0 \neq 0$, then $\EffRank(H_n) \to 1$.
+\item If the layer weights $W_Q^{(n)}, W_K^{(n)}, U_t^{(n)}$ are uniformly bounded and $\tau_n \ge \tau > 0$, then there is a constant $C'$ independent of $n$ such that $d(H_n) \le C'\,d(H_{n-1})^2$. Since part~(1) forces $d(H_n) \to 0$, once $C' d(H_n) < 1$ the diameter decays doubly exponentially; if $\pi^\top H_0 \neq 0$, then $\EffRank(H_n) - 1$ decays doubly exponentially (matching~\cite{dong2021attention}).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), bounded within-row score range $R_n$ implies $A_{ij} \ge e^{-R_n}/L$, so $\sum_j \min(A_{ij}, A_{kj}) \ge e^{-R_n}$ and $\delta(A_n) \le 1 - e^{-R_n} \le \exp(-e^{-R_n})$. Thus $\sum e^{-R_n} = \infty$ implies $\delta(P_n) \le \prod_{j=1}^n \delta(A_j) \to 0$. The convex hulls of the rows of $P_n$ are nested compact sets with diameters tending to $0$, so $P_n \to \mathbf{1}\pi^\top$ and $H_n \to \mathbf{1}(\pi^\top H_0)$. Continuity of $\EffRank$ at any nonzero rank-$1$ matrix gives $\EffRank(H_n) \to 1$.
+
+For~(2), convex averaging keeps $\|H_n\|$ uniformly bounded, so $R_n$ is uniformly bounded and~(1) gives $d(H_n) \to 0$. At layer~$n$, replacing all $q_i, k_j$ in $E_{ij} + G_{ij}$ by $q_1, k_1$ while keeping $U_i, U_j$ fixed yields scores of the form $c + a_i + a_j$, whose row-wise softmax has identical rows ($\delta = 0$). Using $|v^\top g v - w^\top g w| \le \|g\|_{\mathrm{op}}\|v - w\|(\|v\| + \|w\|)$ and uniform boundedness of weights and $H_{n-1}$, each score changes by at most $C\,d(H_{n-1})$. Since row-wise softmax is Lipschitz, $\delta(A_n) \le C'\,d(H_{n-1})$, whence $d(H_n) \le \delta(A_n)\,d(H_{n-1}) \le C'\,d(H_{n-1})^2$. When $\pi^\top H_0 \neq 0$, $\sigma_1(H_n)$ stays bounded below while the distance from $H_n$ to a rank-$1$ matrix is at most $\sqrt{L}\,d(H_n)$, giving doubly exponential decay of $\EffRank(H_n) - 1$.
+\end{proof}
+
+\begin{remark}[Equilateral-triangle zero-limit exception]
+The nonvanishing hypothesis $\pi^\top H_0 \neq 0$ in Theorem~\ref{thm:dobrushin} is essential. Let the rows of $H_0 \in \mathbb{R}^{3 \times 2}$ be three unit vectors forming a centered equilateral triangle in $\mathbb{R}^2$, with $Q = K = H$ and $U = 0$. If $H = x H_0$, every off-diagonal squared distance is $3x^2$, and with $z = e^{-3x^2/\tau}$ attention multiplies the centered subspace by $(1 - z)/(1 + 2z) > 0$. Thus $H_n = x_n H_0$ with $x_n > 0$ for all finite $n$ and $x_n \to 0$, while its two nonzero singular values remain equal, so $\EffRank(H_n) = 2$ for every $n$.
+Embedding the triangle into the first two coordinates of $\mathbb{R}^3$ (with one initial vertex at $(1,0,0)$) and setting $U(h) = \eta\diag(1, 1, 2 + h_1)$---realizable by a biased $\SiLU$ MLP via $\SiLU(x) - \SiLU(-x) = x$---scales every active distance uniformly by $1 + \eta^2$, maintains $\sigma_U^2 > 0$ at every finite depth, and keeps $\bar U^2 \le 11\eta^2$ arbitrarily subcritical, yet still preserves $\EffRank(H_n) = 2$ for every $n$ while $H_n \to 0$.
+\end{remark}
+
+\section{Exact Two-Token Preservation Criterion}
+
+\begin{theorem}[Necessary and sufficient condition for $L = 2$]\label{thm:iff}
+Let $A_j = \begin{psmallmatrix}1 - a_j & a_j \\ b_j & 1 - b_j\end{psmallmatrix}$ ($j \ge 1$) be any sequence of $2 \times 2$ row-stochastic matrices, set $u_j := |1 - a_j - b_j|$, and let $H_0 \in \mathbb{R}^{2 \times d}$ have rank~$2$. Then $\inf_n \EffRank(H_n) > 1$ if and only if
+\[
+u_j > 0 \quad (\forall j \ge 1) \qquad \text{and} \qquad \sum_{j=1}^\infty (1 - u_j) < \infty.
+\]
+\end{theorem}
+
+\begin{proof}
+For any $2 \times 2$ row-stochastic matrix $A = \begin{psmallmatrix}1-a & a \\ b & 1-b\end{psmallmatrix}$, one has $\delta(A) = |1 - a - b| = |\det A|$. By multiplicativity of the determinant, $\delta(P_n) = |\det P_n| = \prod_{j=1}^n u_j$. By the standard infinite-product criterion ($-\log u \sim 1 - u$ near $1$), $\inf_n |\det P_n| > 0$ holds if and only if $u_j > 0$ for all $j$ and $\sum_{j=1}^\infty (1 - u_j) < \infty$.
+
+Since $P_n$ is $2 \times 2$ row-stochastic, $1 \le \sigma_1(P_n) \le \sqrt{2}$, so
+\[
+\frac{1}{2}|\det P_n| \le \frac{\sigma_2(P_n)}{\sigma_1(P_n)} = \frac{|\det P_n|}{\sigma_1(P_n)^2} \le |\det P_n|.
+\]
+Because $\rank(H_0) = 2$, $H_0 H_0^\top \succ 0$ satisfies $\sigma_2(H_0)^2 P_n P_n^\top \preceq H_n H_n^\top \preceq \sigma_1(H_0)^2 P_n P_n^\top$, transferring the equivalence directly to $\sigma_2(H_n)/\sigma_1(H_n)$ and hence to $\EffRank(H_n) = 1 + (\sigma_2(H_n)/\sigma_1(H_n))^2$.
+\end{proof}
+
+For the symmetric margin family of Theorem~\ref{thm:deep}, $1 - u_j = 2/(1 + e^{b_j})$, so preservation holds iff $\sum_j e^{-b_j} < \infty$: even diverging margins such as $b_j = \log(2j+1)$ collapse, whereas $b_j = \log(2(j+1)^2 - 1)$ preserves rank strictly above~$1$.
+In general dimension $L \ge 2$, the paper's permutation-margin result (Proposition~\texttt{prop:margin}, requiring $\|A_j - \Pi_j\|_{\mathrm{op}} \le \varepsilon_j < 1$ with $\sum \varepsilon_j < \infty$) remains a valid sufficient condition.
+
+\section{Numerical Verification}
+
+The script \texttt{solutions/riemannian\_attn\_rank/explore.py} (NumPy + \texttt{mpmath} at $90$ decimal digits) verifies Theorem~\ref{thm:onelayer} for $s \in \{1, 4, 16\}$ and checks all $600$ stack-depth assertions across three margin schedules up to depth $200$ (Table~\ref{tab:stacks}).
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Margin $b_j$ at layer $j$ & Exact $\sigma_2(H_n) = \delta(P_n)$ & $\sigma_2(A_{200})$ & $\EffRank(H_{200})$ & $\lim_{n\to\infty} \EffRank(H_n)$ \\
+\midrule
+$4$ & $\tanh(2)^n$ & $0.9640275801$ & $1.0000004323$ & $1$ \\
+$\log(2j + 1)$ & $1/(n + 1)$ & $0.9950248756$ & $1.0000247519$ & $1$ \\
+$\log(2(j+1)^2 - 1)$ & $(n + 2)/(2(n + 1))$ & $0.9999752481$ & $1.2524937502$ & $1.25$ \\
+\bottomrule
+\end{tabular}
+\caption{Verified two-token Riemannian stacks up to depth $n = 200$ (Theorem~\ref{thm:deep} and Theorem~\ref{thm:iff}).}\label{tab:stacks}
+\end{table}
+
+\begin{thebibliography}{9}
+\bibitem{dobrushin1956clt}
+R.~L.~Dobrushin.
+Central limit theorem for nonstationary Markov chains.~I.
+\emph{Theory of Probability and Its Applications}, 1(1):65--80, 1956.
+
+\bibitem{dong2021attention}
+Y.~Dong, J.-B.~Cordonnier, and A.~Loukas.
+Attention is not all you need: Pure attention loses rank doubly exponentially with depth.
+In \emph{Proceedings of the 38th International Conference on Machine Learning (ICML)}, PMLR~139, pages 2793--2803, 2021.
+
+\bibitem{leizarowitz1992infinite}
+A.~Leizarowitz.
+On infinite products of stochastic matrices.
+\emph{Linear Algebra and Its Applications}, 168:189--219, 1992.
+
+\bibitem{song2026riemannian}
+S.~Song.
+Riemannian attention mechanisms for transformers: A theoretical framework and architecture design.
+\href{https://arxiv.org/abs/2608.01283}{arXiv:2608.01283}, 2026.
+
+\bibitem{wolfowitz1963products}
+J.~Wolfowitz.
+Products of indecomposable, aperiodic, stochastic matrices.
+\emph{Proceedings of the American Mathematical Society}, 14(5):733--737, 1963.
+\end{thebibliography}
+
+\end{document}

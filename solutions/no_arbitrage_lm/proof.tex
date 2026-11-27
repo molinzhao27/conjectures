@@ -1,0 +1,170 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\conv}{conv}
+
+\title{\bfseries Analysis and Refutation of Conjecture \texttt{conj:spread}:\\ Equilibrium Spreads under No-Arbitrage}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: D.~Dragonevskiy,\\
+\emph{Understanding as No-Arbitrage: Bounded Dutch Books as a Definition}\\
+\emph{and Training Objective for Language Models},\\
+\href{https://arxiv.org/abs/2609.39341}{arXiv:2609.39341} (September 2026), Section~4, Conjecture (\texttt{conj:spread})\\[0.35em]
+Companion verification script: \texttt{solutions/no\_arbitrage\_lm/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We examine Conjecture~\texttt{conj:spread} (\emph{Equilibrium spread}) of Dragonevskiy (\href{https://arxiv.org/abs/2609.39341}{arXiv:2609.39341}).
+First, we note candidly that the conjecture is underspecified in the source paper: no interval scoring rule, calibration-bettor information protocol, credibility level, or convergence limit is fixed.
+Second, we refute the conjectured equality under natural formalizations of the stated pressures.
+In the exchangeable Beta model against a public-information calibration bettor and any finite-budget logical trader, the unique minimax quote for every strictly proper binary loss is the zero-width singleton $[m, m]$ (spread~$0$, versus $19/20$ for every $95\%$ credible interval of $\mathrm{Beta}(1,1)$), and any single-bit settlement payoff depends on the posterior only through its mean $m$; in repeated play, sequential predictive means yield zero spread at every finite horizon.
+Giving the bettor one extra private draw induces positive spread, but its width depends strictly on the scoring rule and bettor budget and is capped at $1/(2a+1)$ ($1/3 < 19/20$ for $a=1$).
+Finally, by Walley's nonempty-core criterion, every singleton inside the natural-extension interval avoids sure loss; on $\varphi \Rightarrow A$ with $P(A)=1/2$, quoting $1/2$ on $A$ and singleton $q(\varphi)=1/4$ defeats all logical traders despite natural-extension width~$1/2$.
+We contrast this with the proper interval score of Gneiting and Raftery~(2007), which recovers Beta equal-tailed credible intervals only by settling directly on the latent parameter $\theta$ at an explicit tail level~$\alpha$.
+\end{abstract}
+
+\section{Statement and Specification Gaps}
+
+In \href{https://arxiv.org/abs/2609.39341}{arXiv:2609.39341} (Sections~3--4), $W \subseteq \{0, 1\}^\Phi$ denotes the finite set of admissible truth assignments, $C := \conv(W)$ is the coherent polytope, and logical portfolios satisfy $\|x\|_1 \le 1$ with worst-world profit $\min_{w \in W} x \cdot (w - q)$. Proposition~\texttt{prop:walley} (restating Walley~\cite{walley1991}) characterizes sure-loss avoidance for interval credences $[l(\varphi), u(\varphi)]$ by existence of $p \in C$ with $l \le p \le u$, and defines the natural extension via the LP bounds $[\min, \max]\, p(\psi)$ over $\{p \in C : l \le p \le u \text{ on quoted propositions}\}$. Immediately following is:
+
+\begin{quote}
+\textbf{Conjecture (\texttt{conj:spread}, \href{https://arxiv.org/abs/2609.39341}{arXiv:2609.39341}, Section~4).}
+\emph{Under a proper-scoring/\allowbreak coverage pressure (narrowing) opposed by logical traders and calibration bettors \cite{foster1998} settling on a verifiable anchor set (widening where unfounded), equilibrium spread width on $\varphi$ converges to the epistemic uncertainty consistent with the anchor and $\varphi$'s logical relations to it. In the exchangeable toy case (Beta posterior over a settleable event family), the equilibrium width equals the credible-interval width.}
+\end{quote}
+
+\begin{remark}[Underspecification in the source paper]
+The paper leaves unspecified: (i)~the interval scoring rule or coverage penalty (experiment E-A1b uses a point Brier anchor $\mu(p - t)^2$ with $\mu = 0.5$, and E-A2 leaves spread-valued credences open), (ii)~the calibration bettor's information structure and utility, (iii)~the credibility level $1-\alpha$ and interval convention (equal-tailed vs.\ highest-density), and (iv)~the convergence limit. There is therefore no unique numerical equilibrium attributable to the paper's prose alone; Sections~\ref{sec:public}--\ref{sec:logic} test explicit, natural formalizations of the stated pressures.
+\end{remark}
+
+\section{Public-Information Beta Saddle and 1-Bit Non-Identifiability}\label{sec:public}
+
+Condition on the public history, let $\theta \sim \mathrm{Beta}(a, b)$ ($a, b > 0$), draw $Y \mid \theta \sim \mathrm{Bernoulli}(\theta)$, and write $m := \mathbb{E}[Y] = a/(a + b)$. The model posts $0 \le l \le u \le 1$. A public-information bettor chooses stake $x \in [-B, B]$ with settlement payoff
+\[
+G(l, u, x, Y) := x^+(Y - u) + x^-(l - Y), \qquad x^+ := \max(x, 0),\; x^- := \max(-x, 0).
+\]
+Because both truth values $Y \in \{0, 1\}$ are admissible, any finite-budget logical trader has optimal worst-world profit $0$ at every legal interval $[l, u] \subseteq [0, 1]$. Let $S(q, Y)$ be any strictly proper binary loss with finite Bayes risk $R(q; m) := \mathbb{E}_m[S(q, Y)]$, let $c > 0$ be a unit width charge, and set (absorbing any positive adversary multiplier into $B$)
+\[
+L(l, u, x) := \frac{1}{2}\bigl[R(l; m) + R(u; m)\bigr] + c(u - l) + \mathbb{E}[G(l, u, x, Y)].
+\]
+
+\begin{theorem}[Public-information Beta saddle]\label{thm:saddle}
+For every $a, b > 0$, strictly proper binary loss $S$, width charge $c > 0$, and finite budget $B \ge 0$, the unique minimax quote is the zero-width singleton $[m, m]$, with optimal bettor stake $x = 0$ and game value $R(m; m)$.
+\end{theorem}
+
+\begin{proof}
+Because $\mathbb{E}[G(l, u, x, Y)] = x^+(m - u) + x^-(l - m)$, maximizing over $|x| \le B$ gives $B\max(0, m - u, l - m) \ge 0$. At $[l, u] = [m, m]$, every stake yields zero expected gain, so $L(m, m, x) = R(m; m)$. Against $x = 0$, strict propriety of $S$ and $c > 0$ yield
+\[
+L(l, u, 0) = \frac{1}{2}\bigl[R(l; m) + R(u; m)\bigr] + c(u - l) \ge R(m; m),
+\]
+with equality if and only if $l = u = m$. Hence $L(m, m, x) = R(m; m) = L(m, m, 0) \le L(l, u, 0)$ for all admissible $(l, u, x)$, establishing both saddle inequalities and uniqueness of $[m, m]$ for $\max_{|x|\le B} L(l, u, x)$. The same argument holds for strictly proper midpoint scoring $R(\frac{l+u}{2}; m)$ plus any strictly increasing width cost minimized at $0$.
+\end{proof}
+
+For $\mathrm{Beta}(1, 1)$, every $95\%$ credible interval has width $19/20$ (the equal-tailed interval is $[1/40, 39/40]$), and every positive-mass credible interval of a proper Beta law has positive length, whereas Theorem~\ref{thm:saddle} gives spread $0$.
+
+\begin{proposition}[1-bit non-identifiability and repeated settlement]\label{prop:nonident}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For any fixed $(l, u, x)$ and integrable payoff $h(l, u, x, Y)$ settled on the next binary draw $Y$, $\mathbb{E}[h(l, u, x, Y)] = (1-m)h(l, u, x, 0) + mh(l, u, x, 1)$ depends on the posterior solely through $m$. For example, $\mathrm{Beta}(1, 1)$ and $\mathrm{Beta}(20, 20)$ share $m = 1/2$ while having $95\%$ equal-tailed widths $0.950000$ and $0.304396$.
+\item In repeated settlement with public filtration $\mathcal{F}_t$ and predictive means $m_t = (a + \sum_{i=1}^t Y_i)/(a + b + t)$, quoting $[m_t, m_t]$ gives $\mathbb{E}[x_t(Y_{t+1} - m_t) \mid \mathcal{F}_t] = 0$ for every bounded $\mathcal{F}_t$-predictable stake $x_t$ (including forecast-bin calibration bets~\cite{foster1998}). Cumulative gain is a zero-mean martingale whose per-round average vanishes almost surely for uniformly bounded stakes (by Hoeffding--Azuma and Borel--Cantelli). Under additive per-round losses with exogenous draws, $[m_t, m_t]$ and $x_t = 0$ attain the saddle at every horizon, keeping the ratio of equilibrium spread to Beta credible width identically~$0$ at every finite~$t$.
+\end{enumerate}
+\end{proposition}
+
+\section{Private-Signal Calibration Bettor: Score- and Budget-Dependent Cap}
+
+Keep the same endpoint loss with $c = 1/16$ and start at a symmetric posterior $\mathrm{Beta}(a, a)$ ($a \ge 1$). Now add private information: after $[l, u]$ is posted, the bettor privately observes one extra conditionally independent draw $X \mid \theta \sim \mathrm{Bernoulli}(\theta)$ before betting on $Y$. The conditional means $p_X = \mathbb{P}(Y = 1 \mid X) = \frac{1}{2} \pm D$ each have probability $1/2$, where $D := \frac{1}{2(2a + 1)}$, and the informed bettor's best response earns conditional expected profit $B\max(0, p_X - u, l - p_X)$.
+
+For binary log loss, binary Brier loss $(q - Y)^2$, and negative spherical score $-[Yq + (1-Y)(1-q)]/\sqrt{q^2+(1-q)^2}$, the forecast slopes $g_S(d) := R'(\frac{1}{2} + d; \frac{1}{2})$ are
+\[
+g_{\mathrm{log}}(d) = \frac{d}{1/4 - d^2}, \qquad
+g_{\mathrm{Brier}}(d) = 2d, \qquad
+g_{\mathrm{spherical}}(d) = \frac{d}{(1/2 + 2d^2)^{3/2}}.
+\]
+
+\begin{theorem}[Private-signal equilibrium]\label{thm:informed}
+For each of the three scores above, any $a \ge 1$, $c = 1/16$, and $B \ge 0$, the unique subgame-perfect equilibrium quote is $[1/2 - d, 1/2 + d]$ with
+\[
+d = \bigl(g_S|_{[0, D]}\bigr)^{-1}\!\Bigl(\min\bigl\{g_S(D),\, \max(0, B - 2c)\bigr\}\Bigr) \in [0, D].
+\]
+Hence equilibrium spread $2d$ depends strictly on both the score $S$ and budget $B$, and is capped at $2D = \frac{1}{2a + 1}$ for all $B$.
+\end{theorem}
+
+\begin{proof}
+Clipping $(l, u)$ to $[\frac{1}{2} - D, \frac{1}{2} + D]$ cannot increase width or any profitable trade against $p_X = \frac{1}{2} \pm D$, while strictly lowering $R(\cdot; \frac{1}{2})$ on any moved endpoint because $R'(q; \frac{1}{2})$ has the sign of $q - \frac{1}{2}$. Every optimum therefore satisfies $\frac{1}{2} - D \le l \le u \le \frac{1}{2} + D$. On $|d| \le D \le 1/6$, all three scores are strictly convex: $g'_{\mathrm{spherical}}(d) = (\frac{1}{2} - 4d^2)/(\frac{1}{2} + 2d^2)^{5/2} > 0$ since $4D^2 \le 1/9 < 1/2$, and $g'_{\mathrm{log}}, g'_{\mathrm{Brier}} > 0$ directly. Expected optimal profit is convex in $(l, u)$ as an average of maxima of affine functions. The strictly convex model objective therefore has a unique minimizer, which is symmetric by invariance under $(l, u) \mapsto (1 - u, 1 - l)$. At radius $0 \le d \le D$, the optimized loss reduces to $R(\frac{1}{2} + d; \frac{1}{2}) + 2cd + B(D - d)$, whose derivative $g_S(d) + 2c - B$ and endpoint conditions yield the formula.
+\end{proof}
+
+For $\mathrm{Beta}(1, 1)$, the $95\%$ credible width is $19/20 = 0.95$ at every budget, whereas the informed-game spread is capped at $2D = 1/3$ and varies across scores below saturation:
+
+\begin{table}[h]\centering\small
+\begin{tabular}{rrrrr}
+\toprule
+Budget $B$ & Log width & Brier width & Spherical width & $\mathrm{Beta}(1,1)$ 95\% width \\
+\midrule
+0.125 & 0.000000 & 0.000000 & 0.000000 & 0.950000 \\
+0.250 & 0.062258 & 0.125000 & 0.089451 & 0.950000 \\
+0.500 & 0.181335 & 0.333333 & 0.302342 & 0.950000 \\
+1.000 & 0.333333 & 0.333333 & 0.333333 & 0.950000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Logical Traders, Anchors, and Interval Scoring}\label{sec:logic}
+
+\begin{proposition}[Anchor singleton defeats all logical traders]\label{prop:anchor}
+Fix consistent anchor quotes with nonempty compact convex coherent set $K \subseteq C$, and let $[L, U] := \{p(\varphi) : p \in K\}$ be the natural extension at $\varphi$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item By Walley's nonempty-core criterion~\cite{walley1991}, quoting $[l, u]$ on $\varphi$ together with the anchors avoids sure loss if and only if $[l, u] \cap [L, U] \neq \varnothing$. In particular, every singleton $[q, q]$ with $q \in [L, U]$ defeats all logical traders.
+\item Let $\varphi \Rightarrow A$ with verifiable anchor probability $P(A) = 1/2$. Then the natural extension of $\varphi$ is $[0, 1/2]$ (width $1/2$), while quoting $1/2$ on $A$ and the singleton $q(\varphi) = 1/4$ (width $0$) achieves zero guaranteed logical profit, zero expected gain for public anchor bettors, and every individual lower bound on model loss (proper score on $A$ plus width penalty on both quotes).
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Part~(1) follows from convexity of $K$: $[L, U]$ is an interval, so $[l, u] \cap [L, U] \neq \varnothing \iff \exists p \in K$ with $l \le p(\varphi) \le u$. (Covering \emph{every} coherent extension requires the strictly stronger condition $l \le L \le U \le u$, whose sharpest solution is $[L, U]$.) For~(2), in coordinate order $(A, \varphi)$ the admissible worlds are $\{00, 10, 11\}$. Every distribution $(1/2, 1/2 - r, r)$ with $r \in [0, 1/2]$ extends $P(A) = 1/2$ with $P(\varphi) = r$; taking $r = 1/4$ witnesses coherence of $(1/2, 1/4)$ against all logical traders, and all such laws generate identical anchor observations under independent repetition, preserving the width gap ($0$ vs.\ $1/2$) at every horizon.
+\end{proof}
+
+\begin{remark}[When credible widths are elicited]
+To elicit an equal-tailed $(1 - \alpha)$ credible interval for a target $Z \sim F$, one must fix $\alpha \in (0, 1)$ and score $[l, u]$ directly against $Z$ with the interval score of Gneiting and Raftery~\cite[Section~6.2]{gneiting2007}:
+\[
+S_\alpha(l, u; Z) = (u - l) + \frac{2}{\alpha}\bigl[(l - Z)_+ + (Z - u)_+\bigr],
+\]
+whose expected partial derivatives $-1 + 2F(l)/\alpha$ and $1 - 2[1 - F(u)]/\alpha$ uniquely select $[F^{-1}(\alpha/2), F^{-1}(1 - \alpha/2)]$. Setting $Z = \theta$ recovers the Beta equal-tailed credible interval, confirming that settling on the latent parameter $\theta$ and fixing a tail level $\alpha$ supply essential structure absent from a single-bit anchor game.
+\end{remark}
+
+\section{Reproducible Verification}
+
+The script \texttt{solutions/no\_arbitrage\_lm/explore.py} independently minimizes over unrestricted endpoints $(l, u)$ using linear epigraph constraints for every pure contingent trading strategy (\texttt{SLSQP}) across 126 public-information cases and 63 private-signal cases, matching Theorems~\ref{thm:saddle} and~\ref{thm:informed} with maximum endpoint discrepancy $4.8 \times 10^{-7}$. It also solves two anchor extrema LPs (natural extension $[0, 0.5]$) and three primal logical-trader LPs (verifying profit $0$ at $[0, 0.5]$ and singleton $[0.25, 0.25]$, vs.\ unit-budget guaranteed profit $0.05$ at the disjoint quote $[0.6, 0.7]$).
+
+\begin{thebibliography}{9}
+\bibitem{foster1998}
+D.~P.~Foster and R.~V.~Vohra, \emph{Asymptotic calibration}, Biometrika \textbf{85}(2) (1998), 379--390.
+
+\bibitem{gneiting2007}
+T.~Gneiting and A.~E.~Raftery, \emph{Strictly proper scoring rules, prediction, and estimation}, J.\ Amer.\ Statist.\ Assoc.\ \textbf{102}(477) (2007), 359--378.
+
+\bibitem{walley1991}
+P.~Walley, \emph{Statistical Reasoning with Imprecise Probabilities}, Chapman \& Hall, London, 1991.
+\end{thebibliography}
+
+\end{document}

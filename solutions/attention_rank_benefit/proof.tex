@@ -1,0 +1,265 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Unif}{Unif}
+\DeclareMathOperator{\Bin}{Bin}
+\DeclareMathOperator{\ReLU}{ReLU}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{\bfseries Refutation of the All-Length Low-Rank Attention Conjecture}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: N.~Amsel, G.~Yehudai, and J.~Bruna,\\
+\emph{Quality over Quantity in Attention Layers} (ICLR~2025;\\
+arXiv title: \emph{On the Benefits of Rank in Attention Layers}, \href{https://arxiv.org/abs/2407.16153}{arXiv:2407.16153}), \S6, Conjecture~8\\[0.35em]
+Companion verification: \texttt{solutions/attention\_rank\_benefit/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~8 (\texttt{conjecture:N}) of Amsel, Yehudai, and Bruna (\emph{Quality over Quantity in Attention Layers}, ICLR~2025; \href{https://arxiv.org/abs/2407.16153}{arXiv:2407.16153}) under the expected squared Euclidean error criterion used in the paper's adjacent theorems.
+For every fixed dimension $d \ge 2$ and every $\epsilon > 0$, we construct a fixed-size, fixed-weight three-layer rank-$1$ softmax Transformer $T$ (with rank-$1$ query/key and value/output matrices in every head, using diagonally-masked attention and residuals alone) satisfying $\sup_{N \ge 1} \mathbb{E}\|T(x_1,\dots,x_N,y) - f(X;y)\|_2^2 < \epsilon$ for i.i.d.\ uniform spherical candidates and query.
+Serializing the three stages yields an equivalent fixed-depth architecture with one rank-$1$ head per layer, and an MLP variant removes the period-two parity positional bit.
+We also delineate explicit scope boundaries: the width and head count grow exponentially in $d$ through a $\rho$-net (while remaining completely independent of $N$), worst-case-over-inputs error is at least $1$ at $N = 2$ for any continuous network of any rank, and exact hardmax retrieval and $\operatorname{poly}(d)$-efficient $N$-independent constructions remain open.
+\end{abstract}
+
+\section{Problem Statement and Architecture Model}
+
+For $d \ge 2$ and $N \ge 1$, let $X = (x_1, \dots, x_N)$ and $y$ be drawn independently and uniformly from the unit sphere $\mathbb{S}^{d-1} \subset \mathbb{R}^d$.
+The nearest-neighbor target is
+\[
+f(X; y) := \argmax_{x_i \in \{x_1, \dots, x_N\}} x_i^\top y = \argmin_{x_i \in \{x_1, \dots, x_N\}} \|x_i - y\|_2,
+\]
+which is almost surely unique.
+In \href{https://arxiv.org/abs/2407.16153}{arXiv:2407.16153} (ICLR~2025), Fact~1 and the Section~6 depth theorem measure approximation by expected squared Euclidean error $\mathbb{E}\|T(X, y) - f(X; y)\|_2^2$ under this uniform product law (the orthogonal-candidate distribution used in shallow lower bounds is only defined for $N \le d$).
+
+\begin{quote}
+\textbf{Conjecture~8 (\texttt{conjecture:N}, \href{https://arxiv.org/abs/2407.16153}{arXiv:2407.16153} / ICLR~2025, \S6).}
+\emph{There is no multi-layer transformer (with fixed size and weight matrices) of rank $r < d$ that approximates the target $f(X; y)$ for all $N$.}
+\end{quote}
+
+We use the exact theoretical architecture of Section~6 of the paper: each layer applies diagonally-masked multi-head softmax self-attention, sums the heads, and adds the input as a residual; a final linear map reads out the last token.
+Concatenated constant, positional, and scratch coordinates are permitted.
+In our construction, every head has both its query/key matrix and its value/output matrix of rank~$1$, and no MLP or normalization layer is used.
+
+\section{Uniform Finite Softmax Temperature Across All Lengths}
+
+For any candidate tuple $X = (x_1, \dots, x_N) \in (\mathbb{S}^{d-1})^N$ and any vector $v \in \mathbb{R}^d$, define
+\[
+B_X(v) := \frac{\sum_{i=1}^N e^{v^\top x_i} x_i}{\sum_{i=1}^N e^{v^\top x_i}},
+\qquad
+\mu_X := B_X(0) = \frac{1}{N}\sum_{i=1}^N x_i.
+\]
+
+\begin{lemma}[Uniformity in length and directional stability]\label{lem:uniform}
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $\displaystyle \lim_{\beta \to \infty} \sup_{N \ge 1} \mathbb{E}\bigl\|B_X(\beta y) - f(X; y)\bigr\|_2^2 = 0$.
+\item For every $N \ge 1$, $X \in (\mathbb{S}^{d-1})^N$, and $v, w \in \mathbb{R}^d$, $\|B_X(v) - B_X(w)\|_2 \le \|v - w\|_2$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+For~(1), fix $\delta \in (0, 1)$.
+Conditional on $y \in \mathbb{S}^{d-1}$, let $p := \Pr(x_1^\top y \ge 1 - \delta) > 0$, independent of $y$ by rotational invariance.
+Then $M_N := |\{i \in [N] : x_i^\top y \ge 1 - \delta\}| \sim \Bin(N, p)$, and Chebyshev's inequality gives
+\[
+\Pr(M_N < Np/2) \le \frac{Np(1-p)}{(Np/2)^2} \le \frac{4}{Np}.
+\]
+On the event $\{M_N \ge Np/2\}$, the maximizing candidate satisfies $\|f(X; y) - y\|_2^2 \le 2\delta$.
+Moreover, the total softmax mass $w$ placed on candidates with $x_i^\top y < 1 - 2\delta$ satisfies
+\[
+w \le \frac{N e^{\beta(1 - 2\delta)}}{(Np/2) e^{\beta(1 - \delta)}} = \frac{2}{p} e^{-\beta\delta}.
+\]
+Candidates with $x_i^\top y \ge 1 - 2\delta$ satisfy $\|x_i - y\|_2^2 \le 4\delta$, and all candidates satisfy $\|x_i - y\|_2^2 \le 4$.
+By convexity of $z \mapsto \|z - y\|_2^2$, we have $\|B_X(\beta y) - y\|_2^2 \le 4\delta + 4w$, so on $\{M_N \ge Np/2\}$,
+\[
+\|B_X(\beta y) - f(X; y)\|_2^2
+\le 2\|B_X(\beta y) - y\|_2^2 + 2\|y - f(X; y)\|_2^2
+\le 12\delta + 8w
+\le 12\delta + \frac{16}{p} e^{-\beta\delta}.
+\]
+Since $\|B_X(\beta y) - f(X; y)\|_2^2 \le 4$ everywhere, taking expectations yields
+\[
+\mathbb{E}\bigl\|B_X(\beta y) - f(X; y)\bigr\|_2^2
+\le 12\delta + \frac{16}{p} e^{-\beta\delta} + \frac{16}{Np}.
+\]
+Given $\eta > 0$, pick $\delta > 0$ with $12\delta < \eta/3$, then $N_0 \in \mathbb{N}$ with $16/(N_0 p) < \eta/3$, and then $\beta_1 > 0$ so that $\frac{16}{p}e^{-\beta\delta} < \eta/3$ for all $\beta \ge \beta_1$; this controls every $N \ge N_0$ uniformly.
+For each of the finitely many lengths $N < N_0$, the unique maximizing candidate receives softmax weight converging to $1$ almost surely as $\beta \to \infty$, so dominated convergence yields $\beta_2 \ge \beta_1$ controlling all $N < N_0$ simultaneously.
+
+For~(2), the Jacobian $D B_X(v)$ is the covariance matrix of a random vector drawn from $\{x_1, \dots, x_N\}$ with the softmax weights.
+Since $\|x_i\|_2 = 1$, for every unit vector $u \in \mathbb{S}^{d-1}$ we have $u^\top D B_X(v) u \le \mathbb{E}[(u^\top x)^2] \le 1$, hence $\|D B_X(v)\|_{\mathrm{op}} \le 1$ and $\|B_X(v) - B_X(w)\|_2 \le \|v - w\|_2$.
+\end{proof}
+
+\section{Three-Layer Rank-1 Construction and Error Bound}
+
+Fix a finite Euclidean $\rho$-net of distinct unit directions $u_1, \dots, u_K \in \mathbb{S}^{d-1}$ ($K \ge 2$).
+For each $y \in \mathbb{S}^{d-1}$, let $h_*(y) := \argmax_{1 \le h \le K} u_h^\top y$ (unique away from a finite union of great subspheres), so $\|u_{h_*(y)} - y\|_2 \le \rho$.
+
+Embed the $(N+1)$-token sequence $(x_1, \dots, x_N, y)$ into $\mathbb{R}^{2d + 2K + 2}$ by appending to token $i \in \{1, \dots, N+1\}$ a constant $1$, the period-two parity bit $b_i := \mathbf{1}_{i \text{ odd}}$, and $2K + d$ zero scratch coordinates partitioned into blocks $\texttt{wins} \in \mathbb{R}^K$, $\texttt{gates} \in \mathbb{R}^K$, and $\texttt{out} \in \mathbb{R}^d$.
+Each layer reads only previously written coordinates and writes only into its fresh block, so original data, constants, and parity bits persist unchanged through all residuals.
+
+\paragraph{Parity-bit comparator.}
+For $N \ge 2$, consider a rank-$1$ head evaluated at the final query token $N + 1$ with scalar query $t$, key $b_i$, and value $b_i$.
+Diagonal masking leaves the $N$ candidates, of which $n_1 := \lceil N/2 \rceil$ satisfy $b_i = 1$ and $n_0 := \lfloor N/2 \rfloor$ satisfy $b_i = 0$.
+Its scalar output is
+\[
+S_N(t) = \frac{n_1 e^t}{n_0 + n_1 e^t} = \sigma(t + \ell_N),
+\qquad
+\ell_N := \log\frac{n_1}{n_0} \in [0, \log 2],
+\]
+where $\sigma(z) = (1 + e^{-z})^{-1}$.
+Because the constant coordinate $1$ is present, any affine functional of earlier coordinates is a valid scalar query, so $S_N(t) \to 1$ as $t \to +\infty$ and $S_N(t) \to 0$ as $t \to -\infty$, uniformly over all $N \ge 2$, without computing $N$ or $\ell_N$.
+
+\paragraph{Three attention layers.}
+With gains $a_1, a_2 > 0$ (or $a = a_1 = a_2$) and inverse temperature $\beta > 0$, define three diagonally-masked self-attention layers (applied uniformly to all token positions):
+\begin{enumerate}[label=\textup{\arabic*.},leftmargin=2em,itemsep=2pt]
+\item \emph{Pairwise comparisons ($K(K-1)$ heads):} For each ordered pair $h \neq k$, a rank-$1$ head uses scalar query $a_1(u_h - u_k)^\top y$, key $b_i$, value $b_i$, and writes into $\texttt{wins}_h$. At token $N + 1$,
+\[
+c_h = \sum_{k \neq h} S_N\bigl(a_1(u_h - u_k)^\top y\bigr).
+\]
+\item \emph{Winner gating ($K$ heads):} For each $h \in [K]$, a rank-$1$ head uses scalar query $a_2\bigl(c_h - (K - \tfrac{3}{2})\bigr)$, key $b_i$, value $b_i$, and writes $g_h = S_N\bigl(a_2(c_h - (K - \tfrac{3}{2}))\bigr)$ into $\texttt{gates}_h$.
+\item \emph{Directional search and mean cancellation ($d(K+1)$ heads):} For each $h \in [K]$ and $j \in [d]$, a rank-$1$ head uses key $u_h^\top x_i$, scalar query $\beta g_h$, value $x_{ij}$, and writes into $\texttt{out}_j$; together these $d$ heads contribute $B_X(\beta g_h u_h)$. Another $d$ heads with constant key $1$, constant query $1$, and value $(1 - K)x_{ij}$ add $(1 - K)\mu_X$ into $\texttt{out}$. The linear readout extracts $\texttt{out}$, giving
+\[
+T(X, y) = \mu_X + \sum_{h=1}^K \bigl[B_X(\beta g_h u_h) - \mu_X\bigr].
+\]
+\end{enumerate}
+
+Every head's query/key matrix is a rank-$1$ outer product, and every head's value/output matrix is a rank-$1$ outer product.
+At token $N + 1$, keys and values read from tokens $1, \dots, N$ depend only on their preserved data, constants, and parity bits, never on other tokens' scratch values; $T(X, y)$ is permutation-invariant in $x_1, \dots, x_N$.
+When $N = 1$, every retrieval head outputs $x_1$ and $\mu_X = x_1$, so $T(x_1, y) = x_1 = f(x_1; y)$ identically for any gate values.
+
+\begin{theorem}[Uniform all-length approximation by a fixed rank-1 Transformer]\label{thm:main}
+For every $d \ge 2$ and $\epsilon > 0$, there exist finite $\beta, \rho, a_1, a_2$ (hence fixed width $2d + 2K + 2$, fixed head counts, and fixed weights independent of $N$) such that the three-layer rank-$1$ softmax Transformer $T$ above satisfies
+\[
+\sup_{N \ge 1} \mathbb{E}\bigl\|T(x_1, \dots, x_N, y) - f(X; y)\bigr\|_2^2 < \epsilon.
+\]
+\end{theorem}
+
+\begin{proof}
+Set $a_1 = a_2 = a$ (distinct sufficiently large gains work identically).
+Outside the measure-zero union of great subspheres $\bigcup_{h \neq k}\{y \in \mathbb{S}^{d-1} : (u_h - u_k)^\top y = 0\}$, every pairwise comparison is strict.
+Because $\ell_N \in [0, \log 2]$ is uniformly bounded, as $a \to \infty$ we have $c_{h_*(y)} \to K - 1$ and $\max_{h \neq h_*(y)} c_h \le K - 2 + o(1)$ uniformly over $N \ge 2$.
+Once $c_{h_*(y)} \ge K - \tfrac{5}{4}$ and $c_h \le K - \tfrac{7}{4}$ for all $h \neq h_*(y)$, the second stage yields
+\[
+e_a(y) := \sup_{N \ge 2} \max_{1 \le h \le K} \bigl|g_h - \mathbf{1}_{h = h_*(y)}\bigr| \longrightarrow 0
+\qquad (a \to \infty)
+\]
+for almost every $y \in \mathbb{S}^{d-1}$.
+Since $0 \le e_a(y) \le 1$, dominated convergence gives $\mathbb{E}[e_a(y)^2] \to 0$ as $a \to \infty$ for each fixed grid.
+
+For every $N \ge 2$, using $\mu_X = B_X(0)$ and Lemma~\ref{lem:uniform}(2) on each summand of $T(X, y) - B_X(\beta y)$,
+\begin{align*}
+\bigl\|T(X, y) - B_X(\beta y)\bigr\|_2
+&\le \bigl\|B_X(\beta g_{h_*} u_{h_*}) - B_X(\beta y)\bigr\|_2
+   + \sum_{h \neq h_*} \bigl\|B_X(\beta g_h u_h) - B_X(0)\bigr\|_2 \\
+&\le \beta\|g_{h_*} u_{h_*} - y\|_2 + (K - 1)\beta e_a(y)
+ \le K\beta e_a(y) + \beta\rho,
+\end{align*}
+since $\|g_{h_*} u_{h_*} - y\|_2 \le |g_{h_*} - 1| + \|u_{h_*} - y\|_2 \le e_a(y) + \rho$.
+Choose the parameters sequentially:
+\begin{enumerate}[label=\textup{(\roman*)},leftmargin=2.2em,itemsep=1pt]
+\item By Lemma~\ref{lem:uniform}(1), pick $\beta > 0$ so that $\sup_{N \ge 1} \bigl(\mathbb{E}\|B_X(\beta y) - f(X; y)\|_2^2\bigr)^{1/2} < \sqrt{\epsilon}/3$.
+\item Pick a finite $\rho$-net $\{u_1, \dots, u_K\} \subset \mathbb{S}^{d-1}$ with $\beta\rho < \sqrt{\epsilon}/3$.
+\item Pick $a > 0$ so that $K\beta\bigl(\mathbb{E}[e_a(y)^2]\bigr)^{1/2} < \sqrt{\epsilon}/3$.
+\end{enumerate}
+By Minkowski's inequality in $L^2$, for every $N \ge 2$,
+\[
+\bigl(\mathbb{E}\|T(X, y) - f(X; y)\|_2^2\bigr)^{1/2}
+\le \bigl(\mathbb{E}\|B_X(\beta y) - f(X; y)\|_2^2\bigr)^{1/2} + \beta\rho + K\beta\bigl(\mathbb{E}[e_a(y)^2]\bigr)^{1/2}
+< \sqrt{\epsilon}.
+\]
+Together with exactness at $N = 1$, this yields $\sup_{N \ge 1}\mathbb{E}\|T(X, y) - f(X; y)\|_2^2 < \epsilon$.
+\end{proof}
+
+\begin{corollary}[Single rank-1 head per layer]\label{cor:serial}
+Replacing each parallel layer by a sequence of single-head residual layers---one per original head---computes the exact same map $T(X, y)$ at fixed depth $K(K-1) + K + d(K+1)$, independent of $N$.
+\end{corollary}
+
+\begin{proof}
+Within each stage, every head ignores the scratch coordinates written by that stage, so serial residual additions leave all logits and values identical to parallel evaluation at every token.
+\end{proof}
+
+\begin{corollary}[Position-free ReLU MLP variant]\label{cor:mlp}
+With a pointwise ReLU MLP and shared zero scratch space, the parity bits can be omitted: compute
+\[
+g_h(y) = \min\!\Bigl(1,\; \max\!\Bigl(0,\; \min_{k \neq h} \frac{(u_h - u_k)^\top y}{\eta}\Bigr)\Bigr)
+\]
+via affine maps and ReLUs (using $\min(s, t) = s - \ReLU(s - t)$), then apply Layer~3.
+For almost every $y$, $g_h(y) = \mathbf{1}_{h = h_*(y)}$ for all sufficiently small $\eta > 0$, yielding the same uniform bound using only content and shared constants.
+\end{corollary}
+
+\section{Scope Boundaries and Computational Verification}
+
+\begin{proposition}[Impossibility of worst-case-over-inputs approximation]\label{prop:worst}
+For $N = 2$ and any $d \ge 2$, every continuous map $T : (\mathbb{S}^{d-1})^3 \to \mathbb{R}^d$ satisfies $\sup_{x_1, x_2, y \in \mathbb{S}^{d-1}} \|T(x_1, x_2, y) - f(x_1, x_2; y)\|_2 \ge 1$.
+\end{proposition}
+
+\begin{proof}
+Set $x_1 = e_1$, $x_2 = -e_1$, and $y_\pm(\theta) = \cos\theta\, e_2 \pm \sin\theta\, e_1$ with $\theta \downarrow 0$.
+Then $f(x_1, x_2; y_\pm(\theta)) = \pm e_1$ while $T(x_1, x_2, y_\pm(\theta)) \to T(x_1, x_2, e_2)$, so by the triangle inequality
+\[
+\max\bigl\{\|T(x_1, x_2, e_2) - e_1\|_2,\; \|T(x_1, x_2, e_2) + e_1\|_2\bigr\} \ge 1. \qedhere
+\]
+\end{proof}
+
+\begin{remark}[Scope boundaries]
+Theorem~\ref{thm:main} settles Conjecture~8 under the paper's mean-square criterion, with three explicit scope boundaries:
+\begin{enumerate}[label=\textup{(\alph*)},leftmargin=2.2em,itemsep=1pt]
+\item \emph{Dimension scaling:} While all parameters are independent of $N$, the width $2d + 2K + 2$ and head counts grow exponentially in $d$ through the $\rho$-net size $K$. Whether a $\operatorname{poly}(d)$-size, $N$-independent low-rank Transformer exists remains open.
+\item \emph{Worst-case loss:} By Proposition~\ref{prop:worst}, replacing expected squared error by a worst-case supremum over inputs makes error $< 1$ impossible at $N = 2$ for any continuous network, regardless of attention rank.
+\item \emph{Hardmax attention:} Exact hardmax retrieval across all $N$ by a fixed-size low-rank Transformer remains open.
+\end{enumerate}
+\end{remark}
+
+\paragraph{Computational verification.}
+The companion script \texttt{explore.py} (in \texttt{solutions/\allowbreak attention\_\allowbreak rank\_\allowbreak benefit/}, NumPy, seed~\texttt{240716153}, run with \texttt{.venv/bin/python -B} and single-threaded BLAS) checks:
+(i)~$24$ literal diagonally-masked parallel and serial Transformer evaluations across $N \in \{1, 2, 3, 4, 7, 16\}$ (including a routing boundary query and candidate reversal invariance), agreeing with the closed-form readout to within $2 \times 10^{-15}$; and
+(ii)~fixed-weight Monte Carlo simulations ($a_1 = 30000$, $a_2 = 90$, $\beta = 300$) using $64$ equally spaced circle directions ($d = 2$) and $96$ Fibonacci-sphere directions ($d = 3$) across $N = 1$ to $4097$ (Table~\ref{tab:mse}), with largest observed MSE $0.1866$ (SE $0.0189$) at $(d, N) = (3, 8)$.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Candidates $N$ & Trials per $d$ & Rank-$1$ MSE ($d=2$) & Rank-$1$ MSE ($d=3$) \\
+\midrule
+1    & 1024 & 0.000000 & 0.000000 \\
+2    & 1024 & 0.009742 & 0.054536 \\
+3    & 1024 & 0.034967 & 0.147365 \\
+8    & 1024 & 0.009806 & 0.186605 \\
+31   & 1024 & 0.012650 & 0.122857 \\
+128  & 1024 & 0.004507 & 0.062665 \\
+511  & 256  & 0.000899 & 0.036309 \\
+2048 & 256  & 0.000846 & 0.024176 \\
+4097 & 256  & 0.000887 & 0.021389 \\
+\bottomrule
+\end{tabular}
+\caption{Sample mean squared vector error of the fixed-weight three-layer rank-$1$ softmax Transformer ($a_1 = 30000$, $a_2 = 90$, $\beta = 300$, $K = 64$ for $d = 2$ and $K = 96$ for $d = 3$) across context lengths $N = 1$ to $4097$.}
+\label{tab:mse}
+\end{table}
+
+\end{document}

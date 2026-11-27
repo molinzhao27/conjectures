@@ -1,0 +1,303 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Bin}{Bin}
+\DeclareMathOperator{\vecop}{vec}
+
+\title{\bfseries Partial Resolution of Exact Muon Rates and Refutation of Literal Newton Matching on Associative Memory}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: J.~Kim, E.~Nichani, D.~Wu, A.~Bietti, and J.~D.~Lee,\\
+\emph{Sharp Capacity Scaling of Spectral Optimizers in Learning Associative Memory},\\
+\href{https://arxiv.org/abs/2603.26554}{arXiv:2603.26554}, Section~4 (Conjecture following Theorem~\texttt{thm:multi})\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We provide a partial resolution of the exact-Muon capacity conjecture and a refutation of literal Newton matching posed by Kim, Nichani, Wu, Bietti, and Lee (\href{https://arxiv.org/abs/2603.26554}{arXiv:2603.26554}).
+First, in the sparse-minibatch regime $B^{1/\alpha} \le d^{1/2-\epsilon}$ with $B/\log d \to \infty$ and horizon $T = O(\log d)$, we prove that the \emph{exact} softmax-gradient Muon iterates---including the unstabilized polar map $\lambda_t \equiv 0$ and all schedules $0 \le \lambda_t \le C\sqrt{d}/[B(\log d)^6]$---attain the conjectured prefix-recovery and population-loss rates, retaining every observed item with confidence $1 - \exp(-c\log^2 d)$, and we establish a matching batch-exponent lower bound.
+The key analytic tool is a uniform entrywise spectral perturbation bound for $h_\lambda(ADV^\top)$ independent of $\min_i D_i$ and $\lambda \ge 0$.
+The dimension-limited multistep exponent $2 - (1 - 1/(2\alpha))^t$ at $t \ge 2$ (including population Muon) remains open.
+Second, we refute literal matching between Muon and Newton's method: a four-item sheared memory yields $4/4$ one-step recovery for Newton versus $2/4$ for Muon at every $\lambda \ge 0$ and every positive step size (and the first directions are almost surely non-collinear for all $d \ge 2$, $N \ge 2d$); a three-item scalar memory produces a persistent $2$-cycle for unit-step polar Muon versus quadratic convergence for Newton; and in the high-dimensional Gaussian population model ($N/d^2 \to \infty$), fixed-step polar Muon cannot converge locally to the unique finite minimizer.
+Whether typical Gaussian multistep capacity exponents coincide under suitable schedules remains open.
+\end{abstract}
+
+\section{Model, Exact Dynamics, and Summary of Verdicts}
+
+Let input and output embeddings $v_1,\dots,v_N, u_1,\dots,u_N \in \mathbb{R}^d$ be i.i.d.\ $\mathcal{N}(0, I_d/d)$, with Zipf probabilities $p_i \propto i^{-\alpha}$ for fixed $\alpha > 1$.
+For $W \in \mathbb{R}^{d \times d}$, define logits $z_{ki} := u_k^\top W v_i$ and softmax probabilities $P_{ki}(W) := \exp(z_{ki}) / \sum_{j=1}^N \exp(z_{ji})$.
+Item $i$ is strictly recovered if $z_{ii} > \max_{k \neq i} z_{ki}$, and the population cross-entropy loss is $L(W) := -\sum_{i=1}^N p_i \log P_{ii}(W)$.
+Each minibatch draws $B$ i.i.d.\ items from $p$ with empirical frequencies $q^{(t)} = (q_1^{(t)}, \dots, q_N^{(t)})$ (with $q^{(t)} = p$ for population updates).
+Writing $\mu_i(W) := \sum_{k=1}^N P_{ki}(W) u_k$, the exact negative gradient is
+\[
+G_t := -\nabla \widehat{L}_t(W_t) = \sum_{i=1}^N q_i^{(t)} \bigl(u_i - \mu_i(W_t)\bigr) v_i^\top.
+\]
+For a singular value decomposition $G = U\diag(s)V^\top$, define $h_\lambda(G) := U\diag(h_\lambda(s))V^\top$, where $h_\lambda(s) := s/\sqrt{s^2+\lambda^2}$ for $\lambda > 0$ and $h_0(s) := \mathbf{1}_{s>0}$ (the partial polar factor).
+Starting from $W_0 = 0$, the exact Muon trajectory is $W_{t+1} = W_t + \eta h_{\lambda_t}(G_t)$.
+
+In \href{https://arxiv.org/abs/2603.26554}{arXiv:2603.26554}, Theorem~\texttt{thm:multi} analyzes a deflation surrogate $\bar G_t = \sum_{i > d_t} q_i^{(t)} u_i v_i^\top$ (omitting both $1 - P_{ii}$ and $\mu_i$) for $\eta \asymp \sqrt{d}/(\log d)^4$, polynomial $N \gtrsim d^{2\alpha+2}$, and $T = O(\log d)$, proving prefix recovery up to
+\[
+d_0 = 0, \qquad
+d_t = \widetilde\Theta\!\Bigl(\min\bigl\{d^{2-(1-1/(2\alpha))^t},\, B^{1/\alpha}\bigr\}\Bigr), \qquad
+L(W_t) \le \widetilde O\bigl(d_t^{1-\alpha}\bigr).
+\]
+(Note that Theorem~\texttt{thm:multi} displays $\lambda_t = \widetilde\Theta(\sqrt{d}\,d_{t+1}^{-\alpha})$, whereas its appendix proof takes $\lambda_0$ from the one-step theorem and $\lambda_t \asymp d_t^{1/2-\alpha}d^{-1/2}\log d$ for $t \ge 1$; Theorem~\ref{thm:sparse} below accommodates both.)
+The target conjecture in Section~4 asserts:
+\begin{quote}
+\emph{The recovery and convergence rates of Theorem~\textup{\texttt{thm:multi}} also hold for the exact Muon iterates $W_{t+1} = W_t + \eta h_{\lambda_t}(G_t)$. Moreover, Muon matches Newton's method throughout training.}
+\end{quote}
+
+Our results split the conjecture as follows:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \textbf{Sparse-minibatch exact Muon (Theorem~\ref{thm:sparse}): Proved} (including $\lambda_t \equiv 0$), with a matching batch-exponent lower bound.
+\item \textbf{Dimension-limited multistep exponent ($t \ge 2$, including population Muon): Open.}
+\item \textbf{Literal Newton matching (Theorems~\ref{thm:shear}, \ref{thm:scalar}, \ref{thm:gaussian-local}): Disproved} in one-step retrieval, first-step direction, and local convergence.
+\item \textbf{Typical Gaussian multistep capacity exponent equality: Open.}
+\end{itemize}
+
+\section{Exact Multistep Muon in the Sparse-Minibatch Regime}
+
+Write $\|M\|_{\max} := \max_{i,j}|M_{ij}|$. We first prove an entrywise spectral perturbation bound that is uniform over arbitrary positive scales $D_i > 0$ and all $\lambda \ge 0$.
+
+\begin{lemma}[Uniform spectral perturbation]\label{lem:spectral}
+There exist universal constants $c_0, C > 0$ such that if $A, V \in \mathbb{R}^{d \times m}$ satisfy $\|A^\top A - I_m\|_{\max} \le \delta$ and $\|V^\top V - I_m\|_{\max} \le \delta$ with $m\delta \le c_0$, then for every positive diagonal matrix $D = \diag(D_1, \dots, D_m) \succ 0$ and every $\lambda \ge 0$,
+\begin{equation}\label{eq:spectral-pert}
+h_\lambda(A D V^\top) = A\bigl[h_\lambda(D) + E\bigr]V^\top,
+\qquad
+\|E\|_{\max} \le C\delta.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Set $C_0 := \diag(A, V) \in \mathbb{R}^{2d \times 2m}$, $K := C_0^\top C_0$, and $J := \begin{psmallmatrix} 0 & D \\ D & 0 \end{psmallmatrix}$.
+Then $H := C_0 J C_0^\top$ is symmetric and the upper-right $d \times d$ block of $h_\lambda(H)$ equals $h_\lambda(ADV^\top)$.
+For every $z \in \mathbb{R}$ and $\lambda \ge 0$ (interpreting $0/0 = 0$), writing $s := \sqrt{\lambda^2 + x^2}$ gives the scalar integral representation
+\[
+h_\lambda(z) = \frac{2}{\pi} \int_0^\infty \operatorname{Re}\bigl((z - is)^{-1}\bigr)\,dx.
+\]
+Hence $h_\lambda(H) = \frac{2}{\pi}\int_0^\infty \operatorname{Re}\bigl((H - isI)^{-1}\bigr)\,dx$.
+On $(\operatorname{im} C_0)^\perp$, the resolvent $(H - isI)^{-1}$ acts as $\frac{i}{s}I$ (purely imaginary), while on $\operatorname{im} C_0$ it equals
+\[
+C_0 K^{-1}(J - is K^{-1})^{-1} K^{-1} C_0^\top.
+\]
+Let $F := K^{-1} - I_{2m} = \diag((A^\top A)^{-1} - I_m,\, (V^\top V)^{-1} - I_m)$.
+Products of $n$ error matrices with entrywise norm $\le \delta$ have entrywise norm $\le m^{n-1}\delta^n$, so for $m\delta \le c_0$ the Neumann series gives $\|F\|_{\max} \le 2\delta$ and $\|F\|_{\mathrm{op}} \le 2m\delta < 1/2$.
+
+Define $R(s) := (J - isI)^{-1}$. Since $s\|R(s)\|_{\mathrm{op}} \le 1$, the expansion
+\[
+(J - is K^{-1})^{-1} = (J - isI - isF)^{-1} = \sum_{n=0}^\infty R(s)\bigl(isF\,R(s)\bigr)^n
+\]
+converges in operator norm.
+The matrix $R(s)$ preserves the item index $i \in \{1,\dots,m\}$: on the $2 \times 2$ block for item $i$, its diagonal entries are $is/(D_i^2+s^2)$ and its cross-block entries are $D_i/(D_i^2+s^2)$.
+Because $F$ is block-diagonal, every path in the $n$-th term contributing to the upper-right block must cross blocks via $R(s)$ at least once.
+Keep one cross-block factor at index $i$ with modulus $D_i/(D_i^2+s^2)$ and bound each of the remaining $n$ resolvent factors by $1/s$, canceling all $n$ factors of $s$ from $(is)^n$.
+The retained factor integrates to
+\[
+\int_0^\infty \frac{D_i\,dx}{D_i^2 + \lambda^2 + x^2} = \frac{\pi}{2}\frac{D_i}{\sqrt{D_i^2 + \lambda^2}} \le \frac{\pi}{2},
+\]
+uniformly in $D_i > 0$ and $\lambda \ge 0$.
+For fixed endpoints and $n \ge 1$, there are at most $m^{n-1}$ intermediate item indices and $2^{n+1}$ block paths, so the integrated absolute entrywise contribution of order $n$ is at most $C_1^n m^{n-1}\delta^n$.
+Summing over $n \ge 1$ for $m\delta \le c_0$ justifies termwise integration and yields an $O(\delta)$ entrywise error.
+Order $n = 0$ integrates to $h_\lambda(D)$ in the upper-right block.
+Finally, pre- and post-multiplying by the blocks of $I + F$ preserves the $O(\delta)$ entrywise error because $h_\lambda(D)$ is diagonal with entries in $[0,1]$ and $\|F\|_{\max} \le 2\delta$.
+\end{proof}
+
+\begin{theorem}[Exact sparse-minibatch Muon]\label{thm:sparse}
+Fix $\alpha > 1$, $\epsilon > 0$, horizon $T = O(\log d)$, and polynomial $N \gtrsim d^{2\alpha+2}$.
+Suppose $B^{1/\alpha} \le d^{1/2-\epsilon}$ and $B/\log d \to \infty$.
+Run exact Muon $W_{t+1} = W_t + \eta h_{\lambda_t}(G_t)$ from $W_0 = 0$ with $\eta \asymp \sqrt{d}/(\log d)^4$ and any schedule satisfying
+\[
+0 \le \lambda_t \le \frac{C\sqrt{d}}{B(\log d)^6}.
+\]
+Then with high probability, simultaneously for all $1 \le t \le T$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Every item $i$ observed in the first $t$ batches satisfies $P_{ii}(W_t) \ge 1 - \exp(-c\log^2 d)$, while all off-diagonal logits satisfy $\max_{k \neq j} |z_{kj}(W_t)| = o(1)$.
+\item The strictly recovered prefix contains $\{1, \dots, \lfloor c'(tB/\log d)^{1/\alpha}\rfloor\}$, and
+\[
+L(W_t) \le O\!\left(\Bigl(\frac{tB}{\log d}\Bigr)^{(1-\alpha)/\alpha}\log N\right) + \exp(-c\log^2 d).
+\]
+\item \emph{(Sharp batch exponent)} For each fixed $t \ge 1$, with high probability $L(W_t) \gtrsim (tB)^{(1-\alpha)/\alpha}\log N$, and the guaranteed recovered prefix is $O((tB)^{1/\alpha})$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Fix $M > 0$. By Gaussian norm and inner-product concentration and a union bound over polynomially many pairs, with probability $1 - O(d^{-M})$ both full embedding dictionaries satisfy $|u_i^\top u_j - \delta_{ij}| \le \delta$ and $|v_i^\top v_j - \delta_{ij}| \le \delta$ with $\delta := C_M\sqrt{\log d / d}$, and $U = [u_1,\dots,u_N]$ obeys $\|U\|_{\mathrm{op}} = O(\sqrt{N/d})$.
+In each batch, ranks $i \le \lceil B^{1/\alpha}\rceil$ yield at most $\lceil B^{1/\alpha}\rceil$ distinct items, and draws from $i > \lceil B^{1/\alpha}\rceil$ follow $\Bin(B, \sum_{i > \lceil B^{1/\alpha}\rceil} p_i)$ with mean $O(B^{1/\alpha})$.
+By Chernoff and a union bound over $T = O(\log d)$ steps, the active count $m = |S_t|$ (where $S_t := \{i : q_i^{(t)} > 0\}$) satisfies $m = O(B^{1/\alpha} + \log d)$ simultaneously, hence $m\delta = o(1)$.
+
+We induct on $t \in \{0, \dots, T\}$ to maintain $\max_{k \neq j} |z_{kj}(W_t)| \le C_2 t\eta\delta = o(1)$ (trivial at $t = 0$).
+At step $t$, write $\mu_i(W_t) = P_{ii} u_i + (1 - P_{ii}) b_i$ for each $i \in S_t$, where $b_i := \sum_{k \neq i} w_{ki} u_k$ with $w_{ki} := P_{ki}/(1 - P_{ii})$.
+Since all off-diagonal logits for input $i$ lie in an interval of length $o(1)$, every $w_{ki} = O(1/N)$, so $\|w_{\cdot,i}\|_2 = O(N^{-1/2})$ and $\|b_i\|_2 \le \|U\|_{\mathrm{op}}\|w_{\cdot,i}\|_2 = O(d^{-1/2})$ uniformly, even when $P_{ii}$ is exponentially close to $1$.
+Moreover, $|u_k^\top b_i| \le w_{ki}\|u_k\|_2^2 + \max_{r \neq k}|u_k^\top u_r| = O(1/N + \delta) = O(\delta)$ for every $k \in [N]$.
+
+Factor the exact negative gradient over $S_t$ as $G_t = A D V^\top$ with columns $a_i = u_i - b_i$, $v_i$, and positive diagonal entries $D_i = q_i^{(t)}(1 - P_{ii}(W_t)) > 0$.
+The active Gram matrices $A^\top A$ and $V^\top V$ satisfy Lemma~\ref{lem:spectral} with error $O(\delta)$.
+For all $k, j \in [N]$, the probe vectors $A^\top u_k$ and $V^\top v_j$ differ entrywise from $\mathbf{1}_{k \in S_t} e_k$ and $\mathbf{1}_{j \in S_t} e_j$ by $O(\delta)$ and have $\ell_1$-norm $O(1 + m\delta) = O(1)$.
+Applying~\eqref{eq:spectral-pert} yields
+\[
+u_k^\top h_{\lambda_t}(G_t) v_j
+= (A^\top u_k)^\top \bigl[h_{\lambda_t}(D) + E\bigr](V^\top v_j)
+= \mathbf{1}_{k=j,\, j \in S_t}\, h_{\lambda_t}(D_j) + O(\delta),
+\]
+since contracting the two $O(\delta)$ probe errors against the bounded diagonal $h_{\lambda_t}(D)$ costs $O(m\delta^2) = o(\delta)$.
+As $T\eta\delta = O((\log d)^{-5/2}) = o(1)$, this closes the induction.
+
+Before an item's first appearance, $z_{ii}(W_t) = O(T\eta\delta) = o(1)$, so $P_{ii} = O(1/N)$ and on its first active step $D_i \ge 1/(2B)$.
+Its diagonal logit gains at least
+\[
+\eta\, h_{\lambda_t}\!\left(\frac{1}{2B}\right) \ge c_1 \eta \min\!\left\{1,\, \frac{1}{B\lambda_t}\right\} \gtrsim (\log d)^2
+\]
+(taking the minimum as $1$ when $\lambda_t = 0$).
+Every subsequent diagonal main term is nonnegative and accumulated uniform errors remain $o(1)$, giving $P_{ii}(W_t) \ge 1 - \exp(-c\log^2 d)$ for every observed item and loss $\log N + o(1)$ for every unseen item.
+By $(1 - p_i)^{tB} \le e^{-tB p_i}$ and a union bound, all $i \le c'(tB/\log d)^{1/\alpha}$ appear in the first $t$ batches with high probability; summing the unseen tail mass times $\log N + o(1)$ establishes~(1) and~(2).
+
+For~(3), take the block $[r, 2r)$ with $r := \lceil C_3(tB)^{1/\alpha}\rceil$.
+Its expected draw count in $tB$ samples is $O(tB r^{1-\alpha}) < r/4$ for large $C_3$, so with probability $1 - e^{-\Omega(r)}$ at least $k \ge r/2$ items in $[r, 2r)$ are unseen.
+Conditional on the batches, all outputs $\{u_\ell\}$, and all observed inputs, $W_t$ is fixed and the unseen inputs are i.i.d.\ $\mathcal{N}(0, I_d/d)$.
+Their strict-recovery probabilities $a_i$ are normal-cone probabilities for a single linear classifier, so $\sum_i a_i \le 1$, and by AM--GM the probability that all $k$ unseen items win is $\prod a_i \le k^{-k}$.
+In the sparse regime each unseen item incurs loss $\log N + o(1)$ and has weight $p_i \ge c_4 r^{-\alpha}$, giving $L(W_t) \gtrsim r^{1-\alpha}\log N \asymp (tB)^{(1-\alpha)/\alpha}\log N$ with high probability.
+\end{proof}
+
+\begin{remark}[Where the dimension-limited argument stops]
+In the population limit ($B = \infty$) or dense batches, all $N \gg d$ columns are active and $m\delta \ll 1$ fails.
+Unlike the deflation surrogate, exact residuals $1 - P_{ii}(W_t)$ and wrong-class means $\mu_i(W_t)$ depend on the embeddings themselves.
+Small operator-norm perturbations do not control $h_\lambda$: for instance, $\diag(1, e)$ and $\diag(1, -e)$ differ by $2e$ in operator norm, while their polar factors differ by $2$ and their stabilized factors by $2e/\sqrt{e^2+\lambda^2}$.
+The general bound $\|h_\lambda(G) - h_\lambda(\bar G)\|_{\mathrm{op}} \le \|G - \bar G\|_{\mathrm{op}}/\lambda$ degrades as $\lambda_t$ shrinks.
+Proving the conjectured dimension-limited exponent $2 - (1 - 1/(2\alpha))^t$ at $t \ge 2$ for exact dense or population Muon remains open.
+\end{remark}
+
+\section{Refutation of Literal Newton Matching}
+
+Differentiating the softmax objective gives the exact Hessian action on $X \in \mathbb{R}^{d \times d}$:
+\[
+H_W[X] = \sum_{i=1}^N q_i C_i(W) X v_i v_i^\top,
+\qquad
+C_i(W) := \sum_{k=1}^N P_{ki}(W)\bigl(u_k - \mu_i(W)\bigr)\bigl(u_k - \mu_i(W)\bigr)^\top.
+\]
+At $W = 0$, every $C_i(0)$ equals the unweighted output covariance $\Sigma_u := \frac{1}{N}\sum_k (u_k - \bar u)(u_k - \bar u)^\top$, so $H_0[X] = \Sigma_u X M_v$ with $M_v := \sum_i q_i v_i v_i^\top$, giving Newton direction $D_N = \Sigma_u^{-1} G M_v^{-1}$ whenever $\Sigma_u, M_v$ are invertible (in sparse minibatches with $m < d$, $M_v$ is singular and $H_W^{-1}$ does not exist).
+
+\begin{theorem}[Four-item shear and generic first-step mismatch]\label{thm:shear}
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Take $d = 2$, $N = 4$, $p_i \propto i^{-2}$, inputs $(v_1, v_2, v_3, v_4) = (e_1, -e_1, e_2, -e_2)$, and outputs $u_i = A v_i$ with $A = \begin{psmallmatrix} 1 & 2 \\ 0 & 1 \end{psmallmatrix}$. From $W_0 = 0$, one Newton step retrieves $4/4$ items for every $\eta_N > 0$, whereas one Muon step retrieves only $2/4$ items ($\pm e_2$, failing on $\pm e_1$) for every $\lambda \ge 0$ and every $\eta > 0$.
+\item For each fixed $\lambda \ge 0$, this strict retrieval gap persists on a nonempty open neighborhood of embeddings, hence with strictly positive probability under finite-dimensional isotropic Gaussian sampling.
+\item For every $d \ge 2$ and $N \ge 2d$, under i.i.d.\ isotropic Gaussian embeddings $u_i, v_i \sim \mathcal{N}(0, I_d/d)$ (population updates), $D_N$ and $h_\lambda(G_0)$ are non-collinear almost surely (even allowing data-dependent scalar step sizes).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), put $a := p_1 + p_2 > b := p_3 + p_4 > 0$.
+Since $\bar u = 0$, at $W_0 = 0$ we have $G = A\diag(a, b)$, $\Sigma_u = \frac{1}{2} A A^\top$, and $M_v = \diag(a, b)$, whence
+\[
+D_N = \Sigma_u^{-1} G M_v^{-1} = 2 A^{-\top} = \begin{pmatrix} 2 & 0 \\ -4 & 2 \end{pmatrix}.
+\]
+Thus $u_k^\top D_N v_i = 2 v_k^\top v_i$, yielding correct logit $2$ against competitors $0, 0, -2$ on all four inputs.
+For Muon, set $S := G^\top G + \lambda^2 I_2$ and $r := \sqrt{\det S} = \sqrt{a^2 b^2 + \lambda^2(a^2+5b^2) + \lambda^4} \ge ab > b^2$.
+By the $2 \times 2$ square-root identity $S^{-1/2} \propto (\tr S + r)I_2 - S$ (with positive scalar factor), the two columns of $h_\lambda(G) = G S^{-1/2}$ are positively proportional by a common factor to
+\[
+\begin{pmatrix} a(b^2 + \lambda^2 + r) \\ -2ab^2 \end{pmatrix},
+\qquad
+\begin{pmatrix} 2b(\lambda^2 + r) \\ b(a^2 + \lambda^2 + r) \end{pmatrix}.
+\]
+On input $e_1$, output $Ae_2 = (2, 1)^\top$ beats the true output $Ae_1 = (1, 0)^\top$ by a positive multiple of $a(\lambda^2 + r - b^2) > 0$; by sign symmetry, $-e_1$ also fails.
+The second column has strictly positive entries, so $\pm e_2$ are strictly recovered, giving $2/4$ for all $\lambda \ge 0$ and $\eta > 0$.
+
+Part~(2) follows because invertibility and strict margin inequalities are open conditions.
+For~(3), every spectral increment $S_G = h_\lambda(G)$ makes $G S_G^\top$ symmetric.
+Extending the shear witness to arbitrary $d \ge 2$ and $N \ge 2d$ via pairs $\pm e_j$ on axes $j = 3,\dots,d$, extending $A$ by the identity, and padding remaining items by zeros yields $G D_N^\top = \frac{N}{2} A M_v A^{-1}$, which has nonzero antisymmetric part since $a \neq b$.
+Multiplying by $\det(\Sigma_u)\det(M_v)$ makes the antisymmetric part a nonzero polynomial in $(u, v)$, whose zero set has Gaussian probability zero, while $\Sigma_u$ and $M_v$ are invertible almost surely for $N \ge 2d$.
+\end{proof}
+
+\begin{theorem}[Scalar three-item 2-cycle]\label{thm:scalar}
+Take $d = 1$, $v_1 = v_2 = v_3 = 1$, $u = (0, 1, 2)$, and $p_i \propto i^{-2}$.
+Then $L(w)$ has a unique minimizer $w_* \in (-2, -1)$ ($w_* \approx -1.1994401007$). From $w_0 = 0$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Unit-step polar Muon ($\lambda = 0, \eta = 1$) alternates forever between $-1$ and $-2$.
+\item Unit-step Newton decreases monotonically to $w_*$ with quadratic local convergence.
+\item Fixed-$\lambda > 0$ stabilized Muon has derivative $1 - \eta L''(w_*)/\lambda$ at $w_*$, giving local linear convergence whenever $|1 - \eta L''(w_*)/\lambda| \in (0, 1)$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Here $L'(w) = \mu(w) - \frac{17}{49}$ with $\mu(w) = (e^w + 2e^{2w})/(1 + e^w + e^{2w})$ and $\mu'(w) = (2\cosh w + 4)/(1 + 2\cosh w)^2 > 0$.
+Since $\mu(-2) < 17/49 < \mu(-1) < \mu(0)$, the unique root satisfies $w_* \in (-2, -1)$, and $L'(0) > 0$, $L'(-1) > 0$, $L'(-2) < 0$, forcing unit-step polar Muon into the $2$-cycle $-1, -2, -1, -2, \dots$.
+For $w \le 0$, $\mu''(w) = -2\sinh w\,(2\cosh w + 7)/(1 + 2\cosh w)^3 \ge 0$, so $\mu$ is increasing and convex on $(-\infty, 0]$, yielding monotone quadratic Newton convergence from $w_0 = 0$.
+For fixed $\lambda > 0$, differentiating $w \mapsto w - \eta h_\lambda(L'(w))$ at $L'(w_*) = 0$ gives $1 - \eta L''(w_*)/\lambda$.
+\end{proof}
+
+\begin{theorem}[Local dynamics in the Gaussian population model]\label{thm:gaussian-local}
+For i.i.d.\ $u_i, v_i \sim \mathcal{N}(0, I_d/d)$ with $p_i > 0$ and $N/d^2 \to \infty$, with probability $1 - o(1)$ the population loss $L$ is strictly convex and coercive, attaining a unique finite minimizer $W_* \in \mathbb{R}^{d \times d}$ with $H_{W_*} \succ 0$.
+On this event, Newton's method has local quadratic convergence to $W_*$, whereas fixed-step polar Muon ($\lambda = 0, \eta > 0$) satisfies $\|W_{t+1} - W_t\|_F = \eta\sqrt{\rank(G_t)} \ge \eta$ at every $W_t \neq W_*$ and cannot converge locally to $W_*$.
+\end{theorem}
+
+\begin{proof}
+Put $D := d^2$ and $m := \lfloor N/2 \rfloor$, and consider the $m$ independent centrally symmetric vectors $x_j := \vecop((u_{2j-1} - u_{2j}) v_{2j-1}^\top) \in \mathbb{R}^D$.
+Any $D$ of them are linearly independent almost surely (their determinant is a nonzero polynomial, witnessed by selecting the $D$ matrix units).
+Since $m$ central hyperplanes in general position cut $\mathbb{R}^D$ into at most $2\sum_{k=0}^{D-1}\binom{m-1}{k}$ open sign regions and independent sign flips preserve the law of $\{x_j\}$, the probability that all $x_j$ lie in a common open homogeneous half-space is at most $2^{1-m}\sum_{k=0}^{D-1}\binom{m-1}{k} = o(1)$ as $m/D \to \infty$.
+By general position, any nonzero weak separator places at most $D - 1$ points on its boundary, which can be perturbed off to produce a strict separator.
+Thus with probability $1 - o(1)$, every unit $W \in \mathbb{R}^{d \times d}$ has a strictly negative paired margin $(u_{2j-1} - u_{2j})^\top W v_{2j-1} < 0$; by compactness, the worst paired margin is uniformly negative, so $L(tW)$ grows at least linearly as $t \to \infty$ (since $\min_i p_i > 0$).
+Almost surely for $N > d$, the outputs affinely span $\mathbb{R}^d$ and the inputs span $\mathbb{R}^d$, making $H_W \succ 0$ everywhere.
+Hence $W_*$ is unique with $H_{W_*} \succ 0$, giving local quadratic convergence for Newton.
+At any $W \neq W_*$, $G(W) \neq 0$, so $\|h_0(G(W))\|_F = \sqrt{\rank(G(W))} \ge 1$ and $\|W_+ - W_*\|_F \ge \eta - \|W - W_*\|_F$, precluding local attraction for fixed-step polar Muon.
+\end{proof}
+
+\begin{remark}[Capacity exponents remain open]
+Theorems~\ref{thm:shear}--\ref{thm:gaussian-local} refute literal equivalence of iterates, retrieval outcomes, and local convergence rates.
+Kim et~al.\ (\href{https://arxiv.org/abs/2603.26554}{arXiv:2603.26554}, Theorem~\texttt{thm:newton}) prove matching one-step capacity and loss bounds up to logarithms for stabilized Muon and Newton at $B = \widetilde\Omega(d^\alpha)$ under different step-size scalings.
+Whether typical isotropic Gaussian multistep capacity exponents coincide under suitable schedules remains open.
+\end{remark}
+
+\section{Numerical Verification}
+
+The verification script \texttt{solutions/muon\_assoc\_memory/explore.py} (run via \texttt{.venv/bin/python -B solutions/muon\_assoc\_memory/explore.py}) verifies the exact gradient and Hessian against central differences, checks invariance of Newton's trajectory under invertible output rescalings, and passes all executable assertions:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Finite examples:} The 4-item shear gives Newton $4/4$ ($D_N = \begin{psmallmatrix}2 & 0\\-4 & 2\end{psmallmatrix}$) and Muon $2/4$ across $\lambda \in \{0, 10^{-4}, 0.2, 1, 100\}$; the 3-item scalar memory confirms the $\{-1, -2\}$ polar $2$-cycle and Newton convergence to $-1.1994401006992608$ ($|L'(w)| < 10^{-14}$).
+\item \emph{Lemma~\ref{lem:spectral} check:} Across 27 tests ($m = 8$, $\delta \in \{10^{-2}, 10^{-3}, 10^{-4}\}$, diagonal condition numbers up to $10^8$, $\lambda \in \{0, 10^{-5}, 1\}$), the maximum observed ratio $\|E\|_{\max}/\delta$ was $0.935444$.
+\item \emph{Sparse minibatches:} At $d = 128$, $N = 512$, $B = 12$, $\alpha = 1.5$, cumulative observed counts over 4 batches were $6, 10, 13, 17$; both polar ($\lambda = 0$) and stabilized ($\lambda = 1/B$) exact-gradient Muon strictly retained every observed item at every step.
+\item \emph{Population conditioning sweep ($d = 12$, $N = 4d^2$, $\alpha = 1.5$, medians over 3 paired seeds):}
+\end{itemize}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}rllrr@{}}
+\toprule
+Output $\kappa$ & Method & Prefix (steps 1, 2, 3) & Total correct (step 3) & Loss (step 3) \\
+\midrule
+1   & Polar                      & 2, 3, 4 & 5 & 3.065747 \\
+1   & Stabilized exact gradient  & 2, 3, 3 & 5 & 2.741540 \\
+1   & Deflation surrogate        & 2, 1, 2 & 5 & 3.752249 \\
+1   & Newton                     & 2, 2, 2 & 5 & 3.819951 \\
+256 & Polar                      & 0, 0, 0 & 2 & 4.197713 \\
+256 & Stabilized exact gradient  & 0, 0, 0 & 1 & 4.379866 \\
+256 & Deflation surrogate        & 0, 0, 0 & 1 & 6.210624 \\
+256 & Newton                     & 2, 2, 2 & 5 & 3.819951 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

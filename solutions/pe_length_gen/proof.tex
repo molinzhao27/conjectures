@@ -1,0 +1,198 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\vecop}{vec}
+
+\title{\bfseries Length-Generalization Impossibility and Exact Feasibility for a Positional Attention Head}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: J.~Han, Y.~Chai, and J.~Wang,\\
+\emph{A Positional Realizability Theory of Length Generalization in Single-Head Attention},\\
+\href{https://arxiv.org/abs/2610.41218}{arXiv:2610.41218} (TMLR, October 2026), Conjecture~\texttt{conj:general}\\[0.35em]
+Companion verification script: \texttt{solutions/pe\_length\_gen/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve Conjecture~\texttt{conj:general} of Han, Chai, and Wang (\href{https://arxiv.org/abs/2610.41218}{arXiv:2610.41218}, TMLR 2026) on single-head positional length generalization under scope assumptions S1--S3.
+First, we prove the printed implication directly via positive scaling of $W$: any unconstrained head strictly solving both lengths $L_0$ and $L$ rescales to achieve any prescribed old-row margin $\gamma > 0$, contradicting the quantified separation premise regardless of the projection condition.
+Second, we give an exact necessary and sufficient finite criterion for joint strict-argmax realizability via Gordan's theorem of the alternative (1873) for unconstrained $W$ and Farkas' lemma (1902) for sign-constrained families such as ALiBi, noting the distinction between \texttt{old+new} and \texttt{old+long} when a task such as \texttt{copy} shifts old-row targets ($L < 2L_0 - 1$).
+Third, we refute the stronger implication from a nonzero projection residual alone using an explicit degree-$4$ monomial \texttt{copy} witness at $L_0 = 5, L = 10$ (with invertible $\Phi_5$): one admissible head achieves margins $1$ and $2$, while a fifth-forward-difference witness proves non-realizability of $R_{10}^{\mathrm{new}}$ under every masking and padding convention. On the same instance, the minimum-Frobenius-norm exact old-block interpolant $W_*$ exhibits selection failure ($\alpha_{10} = 1/5$, margins $(-15, 15, -35, -70, -126)$).
+\end{abstract}
+
+\section{Setup and Notation Caveats}
+
+Under scope hypotheses S1--S3 of \href{https://arxiv.org/abs/2610.41218}{arXiv:2610.41218}, a deterministic positional feature map $\varphi : \mathbb{N} \to \mathbb{R}^m$ defines positional logits $s_W(i, j) := \varphi(i)^\top W \varphi(j)$ for an unconstrained parameter $W \in \mathbb{R}^{m \times m}$.
+Stacking rows $\varphi(0)^\top, \dots, \varphi(n - 1)^\top$ into $\Phi_n \in \mathbb{R}^{n \times m}$ yields the realizable positional-kernel subspace $\mathcal{K}_n := \{\Phi_n W \Phi_n^\top : W \in \mathbb{R}^{m \times m}\} \subseteq \mathbb{R}^{n \times n}$.
+At sequence length $n$, a position-driven task specifies scored query rows $Q_n \subseteq \{0, \dots, n - 1\}$ and causal target positions $t_n(i) \in \{0, \dots, i\}$ for $i \in Q_n$, encoded by $R_n[i, j] := \mathbf{1}[j = t_n(i)]$.
+Under S2, $W$ \emph{solves} length $n$ if
+\[
+s_W(i, t_n(i)) \;>\; s_W(i, j) \qquad \forall\, i \in Q_n,\ \forall\, 0 \le j \le i,\ j \neq t_n(i).
+\]
+(A row with $i = 0$ has no competitors and imposes zero comparisons.)
+For $L > L_0$, the scored new rows are $\mathcal{S}_L := Q_L \cap [L_0, L)$.
+
+\begin{remark}[Notation and task-prefix caveats]\label{rmk:caveats}
+Two structural subtleties affect the statement of Conjecture~\texttt{conj:general}:
+\begin{enumerate}[label=\textup{(\arabic*)},itemsep=2pt]
+\item \emph{Ill-typed projection membership.} The conjecture writes $R_L^{\mathrm{new}} \notin \Pi_{\mathcal{K}_L}$, where $\Pi_{\mathcal{K}_L}$ denotes projection onto $\mathcal{K}_L$, without specifying an embedding of $R_L^{\mathrm{new}}$ into $\mathbb{R}^{L \times L}$, an inner product, or a masked projection. Under the natural reading $(I - \Pi_{\mathcal{K}_L}) R_L^{\mathrm{new}} \neq 0$ (nonmembership in the realizable score subspace), zero-padding to $\mathbb{R}^{L \times L}$ versus restricting to scored causal cells can yield different residuals. Theorem~\ref{thm:printed} deletes the projection premise altogether, while Theorem~\ref{thm:copy}(2) rules out realizability under \emph{every} masking and padding convention.
+\item \emph{Shifted old-row targets in \texttt{copy} (\texttt{old+new} vs.\ \texttt{old+long}).} For \texttt{copy}, $Q_n = \{\lceil n/2 \rceil, \dots, n - 1\}$ and $t_n(i) = i - \lceil n/2 \rceil$. Whenever $L < 2L_0 - 1$, we have $\lceil L/2 \rceil \le L_0 - 1$, so length $L$ places scored rows inside $[0, L_0)$ whose targets differ from $t_{L_0}(i)$. Consequently, checking $Q_{L_0} \cup \mathcal{S}_L$ (\texttt{old+new}) can miss contradictions present in $Q_{L_0} \cup Q_L$ (\texttt{old+long}); when $L \ge 2L_0 - 1$, $Q_L \cap [0, L_0) = \varnothing$ and the two constraint sets coincide.
+\end{enumerate}
+\end{remark}
+
+\section{Proof of the Printed Implication of Conjecture~\texttt{conj:general}}
+
+\begin{theorem}[Printed implication via positive scaling]\label{thm:printed}
+Under S1--S3 with $W$ ranging over a cone closed under positive scalar multiplication (in particular, unconstrained $\mathbb{R}^{m \times m}$ or nonpositive-slope ALiBi), fix any $\gamma > 0$. Suppose every admissible $W$ realizing $R_{L_0}$ with old-row margin at least $\gamma$ satisfies
+\[
+\max_{0 \le j \le i,\ j \neq t_L(i)} s_W(i, j) \;\ge\; s_W(i, t_L(i))
+\]
+on some scored new row $i \in \mathcal{S}_L$. Then no single admissible head $W$ solves both lengths $L_0$ and $L$.
+\end{theorem}
+
+\begin{proof}
+Suppose for contradiction that an admissible $W$ solves both $L_0$ and $L$ under S2. Then every required comparison at both lengths has a strictly positive gap.
+If the finite set of old comparisons $\{(i, j) : i \in Q_{L_0},\, 0 \le j \le i,\, j \neq t_{L_0}(i)\}$ is nonempty, let $m_0 > 0$ be its minimum gap and set $c := \max(1, \gamma / m_0) > 0$; if it is empty, set $c := 1$ (so the old-margin requirement holds vacuously).
+Because $s_{cW} = c\,s_W$ and $c > 0$, the admissible parameter $cW$ realizes $R_{L_0}$ with old-row margin at least $\gamma$, while preserving strict positivity of every comparison on $Q_L$ (and hence on $\mathcal{S}_L$).
+Applying the separation hypothesis to $cW$ produces a scored new row $i \in \mathcal{S}_L$ with a nonpositive gap, contradicting that $cW$ strictly solves length $L$.
+\end{proof}
+
+\begin{remark}[Role of scale freedom and S2]
+Theorem~\ref{thm:printed} relies only on positive-scaling closure of the admissible parameter cone. Imposing a norm cap or frozen logit scale changes the statement (a threshold $\gamma$ above every attainable old margin makes the premise vacuous under a norm cap), whereas weight decay in a training selector imposes no hard norm cap on existence. Under S2, softmax at any finite positive temperature preserves strict inequalities and ties; values, output projections, and content logits do not enter S2.
+\end{remark}
+
+\section{Exact Finite Feasibility Criterion}
+
+For any finite set $\mathcal{H}$ of required comparisons $h = (n, i, j)$ ($i \in Q_n$, $0 \le j \le i$, $j \neq t_n(i)$), define the comparison matrix
+\[
+D_h := \varphi(i)\bigl(\varphi(t_n(i)) - \varphi(j)\bigr)^\top \in \mathbb{R}^{m \times m},
+\]
+so that $\langle D_h, W \rangle_F = s_W(i, t_n(i)) - s_W(i, j)$. Stack $\vecop(D_h)^\top$ as the rows of $A \in \mathbb{R}^{|\mathcal{H}| \times m^2}$ and set $w := \vecop(W)$.
+
+\begin{theorem}[Exact feasibility via Gordan's and Farkas' alternatives]\label{thm:alt}
+Assume $\mathcal{H} \neq \varnothing$.
+\begin{enumerate}[label=\textup{(\arabic*)},itemsep=2pt]
+\item \emph{(Unconstrained $W$, Gordan~\cite{Gordan1873}.)} Exactly one of the following systems has a solution:
+\[
+Aw \ge \mathbf{1}
+\qquad\text{or}\qquad
+y \ge 0,\quad \mathbf{1}^\top y = 1,\quad A^\top y = 0.
+\]
+\item \emph{(Sign-constrained linear basis $w \ge 0$, Farkas~\cite{Farkas1902}.)} For a relative-score family $s_w(i, j) = \psi(i, j)^\top w$ with $w \ge 0$ (e.g., canonical ALiBi with feature $j - i$ and nonnegative recency magnitude) and rows $A_h = (\psi(i, t_n(i)) - \psi(i, j))^\top$, exactly one of the following systems has a solution:
+\[
+Aw \ge \mathbf{1},\ w \ge 0
+\qquad\text{or}\qquad
+y \ge 0,\quad \mathbf{1}^\top y = 1,\quad A^\top y \le 0.
+\]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), strict feasibility $Aw > 0$ is equivalent by positive scaling to $Aw \ge \mathbf{1}$. Any dual solution $y$ satisfies $y^\top A w = 0$ for all $w$, ruling out $Aw > 0$. Conversely, if no dual solution exists, the compact convex hull $C := \conv\{\vecop(D_h) : h \in \mathcal{H}\}$ does not contain $0$. Its unique nearest point $p \in C$ satisfies $\|p\|_2 > 0$, and differentiating $\|(1 - \theta)p + \theta d\|_2^2$ at $\theta = 0^+$ for any $d \in C$ gives $d^\top p \ge \|p\|_2^2 > 0$; thus $w := p / \|p\|_2^2$ satisfies $Aw \ge \mathbf{1}$ (Gordan~\cite{Gordan1873}).
+Part~(2) is the homogeneous Farkas alternative (Farkas~\cite{Farkas1902}): if $Aw \ge \mathbf{1}, w \ge 0$ and $y \ge 0, \mathbf{1}^\top y = 1, A^\top y \le 0$ both existed, then $1 \le y^\top Aw = (A^\top y)^\top w \le 0$, impossible; conversely, separating $0$ from $\conv(\{A_h^\top\} \cup \{-e_r\})$ (or standard LP duality) yields one of the two systems.
+\end{proof}
+
+Taking $\mathcal{H} = \mathcal{H}_{\mathrm{old}} \cup \mathcal{H}_{\mathrm{new}}$ characterizes the separation premise of Conjecture~\texttt{conj:general}: when $\mathcal{H}_{\mathrm{old}}$ is feasible, any dual certificate $y = (y_{\mathrm{old}}, y_{\mathrm{new}})$ has $b := \mathbf{1}^\top y_{\mathrm{new}} > 0$ and $a := \mathbf{1}^\top y_{\mathrm{old}} = 1 - b$, forcing a new comparison gap at most $-(a/b)\gamma \le 0$ whenever the old margin is at least $\gamma$.
+Taking $\mathcal{H} = \mathcal{H}_{\mathrm{old}} \cup \mathcal{H}_{\mathrm{long}}$ decides whether a single head solves both lengths $L_0$ and $L$.
+
+\section{Growing-Offset Counterexample and Min-Norm Selection Failure}
+
+We now show that a nonzero projection residual alone---even with full-column-rank $\Phi_{L_0}$ on a growing-offset task---does \emph{not} imply joint impossibility.
+
+\begin{theorem}[Degree-$4$ monomial \texttt{copy} witness at $L_0 = 5, L = 10$]\label{thm:copy}
+Let $\varphi(i) := (1, i, i^2, i^3, i^4)^\top \in \mathbb{R}^5$, and consider the \texttt{copy} task ($Q_n = \{\lceil n/2 \rceil, \dots, n - 1\}$, $t_n(i) = i - \lceil n/2 \rceil$) at $L_0 = 5$ (offset $3$) and $L = 10$ (offset $5$). Note that $\Phi_5 \in \mathbb{R}^{5 \times 5}$ is invertible and $L = 10 \ge 2L_0 - 1$, so \texttt{old+new} and \texttt{old+long} coincide. Then:
+\begin{enumerate}[label=\textup{(\arabic*)},itemsep=2pt]
+\item \emph{(Joint strict realizability.)} The kernel $s_W(i, j) := g(i - j)$ defined by
+\[
+g(d) := d - 2(d - 3)^2(d - 5)^2
+\]
+is realized by a single matrix $W \in \mathbb{R}^{5 \times 5}$ and strictly solves $L_0 = 5$ with minimum margin $1$ and $L = 10$ with minimum margin $2$.
+\item \emph{(Convention-independent non-realizability of $R_{10}^{\mathrm{new}}$.)} On row $i = 9$ (entirely unmasked, since all $j \in \{0, \dots, 9\}$ are causal), the fifth forward difference $\Delta_5(f) := \sum_{k=0}^5 (-1)^{5-k}\binom{5}{k} f(k)$ annihilates every realizable score row $j \mapsto s_W(9, j)$, yet evaluates to $-5 \neq 0$ on the one-hot target $\mathbf{1}[j = 4]$. Thus $R_{10}^{\mathrm{new}}$ has nonzero projection residual under every masking and padding convention.
+\item \emph{(Selection failure of the min-norm exact interpolant $W_*$.)} Extending $R_5$ by zeros on unscored rows (ones at $(3, 0)$ and $(4, 1)$), the unique exact old-block interpolant $W_* := \Phi_5^{-1} R_5 \Phi_5^{-\top}$ solves $L_0 = 5$ exactly, yet yields new-row margins $(-15, 15, -35, -70, -126)$ on rows $i = 5, 6, 7, 8, 9$ (hence $\alpha_{10} = 1/5$).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{Part~(1).} Expanding $g(i - j)$ gives a linear combination of $i^a j^b$ with $a + b \le 4$, hence $a, b \le 4$, so $g(i - j) = \varphi(i)^\top W \varphi(j)$ for one $W \in \mathbb{R}^{5 \times 5}$.
+At $L_0 = 5$, scored rows $i \in \{3, 4\}$ admit offsets $d \in \{0, \dots, i\} \subseteq \{0, 1, 2, 3, 4\}$ with values $g(3) = 3$, $g(4) = 2$, $g(2) = -16$, $g(1) = -127$, and $g(0) = -450$, so offset $3$ uniquely maximizes each row with minimum margin $3 - 2 = 1$.
+At $L = 10$, scored rows $i \in \{5, 6, 7, 8, 9\}$ admit offset $5$ with $g(5) = 5$; for $d \in \{6, 7, 8, 9\}$ we have $2(d - 3)^2(d - 5)^2 \ge 18 > d$, so $g(d) \le -12$, and the best competitor is offset $3$ with $g(3) = 3$, giving minimum margin $5 - 3 = 2$.
+
+\emph{Part~(2).} Every realizable score row $j \mapsto \varphi(9)^\top W \varphi(j)$ is a polynomial in $j$ of degree at most $4$, so $\Delta_5$ applied to the causal keys $\{0, 1, 2, 3, 4, 5\} \subseteq \{0, \dots, 9\}$ vanishes identically. On the one-hot target $\mathbf{1}[j = 4]$ of row $i = 9$, $\Delta_5$ evaluates to $(-1)^{5 - 4}\binom{5}{4} = -5 \neq 0$. Because only scored causal cells on row $9$ enter this linear functional, $R_{10}^{\mathrm{new}}$ lies outside the realizable subspace under every masking and padding convention.
+
+\emph{Part~(3).} Since $\Phi_5$ is an invertible $5 \times 5$ Vandermonde matrix, $W_* = \Phi_5^{-1} R_5 \Phi_5^{-\top}$ is the unique exact interpolant of $R_5$. Exact integer evaluation of $\Phi_{10} W_* \Phi_{10}^\top$ gives target-minus-best-competitor margins $(-15, 15, -35, -70, -126)$ on rows $5, 6, 7, 8, 9$, so only row $6$ succeeds and $\alpha_{10} = 1/5$.
+\end{proof}
+
+\begin{remark}[Scope of selection failure]
+Theorem~\ref{thm:copy}(3) proves selection failure for the minimum-Frobenius-norm exact old-block interpolant $W_* = \Phi_5^{-1} R_5 \Phi_5^{-\top}$. It does not evaluate the paper's regularized cross-entropy selector (400 Adam steps, weight decay $10^{-4}$).
+\end{remark}
+
+\section{Reproducible Verification}
+
+The script \texttt{solutions/pe\_length\_gen/explore.py} verifies Theorem~\ref{thm:alt} on 12 deterministic cases across \texttt{RoPE}, \texttt{sinusoidal}, \texttt{ALiBi}, and \texttt{monomial} families (testing \texttt{old}, \texttt{new}, \texttt{old+new}, and \texttt{old+long} with independent primal substitution and dual certificates at tolerance $10^{-7}$), and checks Theorem~\ref{thm:copy} symbolically via SymPy. All 48 LP verdicts and exact symbolic checks passed (Table~\ref{tab:cases}; NumPy 2.5.5, SciPy 1.18.1, SymPy 1.14.0).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llrc@{}}
+\toprule
+Family & Task & $L_0 \to L$ & \texttt{old} / \texttt{new} / \texttt{old+new} / \texttt{old+long} \\
+\midrule
+\texttt{RoPE}       & \texttt{prev}           & $4 \to 10$ & \texttt{YYYY} \\
+\texttt{RoPE}       & \texttt{copy}           & $4 \to 6$  & \texttt{YYNN} \\
+\texttt{sinusoidal} & \texttt{prev}           & $4 \to 10$ & \texttt{YYYY} \\
+\texttt{sinusoidal} & \texttt{copy}           & $4 \to 6$  & \texttt{YYYN} \\
+\texttt{ALiBi}      & \texttt{self}           & $4 \to 10$ & \texttt{YYYY} \\
+\texttt{ALiBi}      & \texttt{first}          & $4 \to 10$ & \texttt{NNNN} \\
+\texttt{ALiBi}      & \texttt{prev}           & $1 \to 4$  & \texttt{YNNN} \\
+\texttt{monomial1}  & \texttt{first}          & $4 \to 10$ & \texttt{YYYY} \\
+\texttt{monomial1}  & \texttt{prev}           & $2 \to 5$  & \texttt{YNNN} \\
+\texttt{monomial2}  & \texttt{prev}           & $4 \to 10$ & \texttt{YYYY} \\
+\texttt{monomial4}  & \texttt{copy}           & $5 \to 10$ & \texttt{YYYY} \\
+\texttt{monomial1}  & \texttt{changed prefix} & $3 \to 5$  & \texttt{YYYN} \\
+\bottomrule
+\end{tabular}
+\caption{Exact feasibility signatures verified by primal and dual LP witnesses. For \texttt{sinusoidal} \texttt{copy} ($4 \to 6$, where $L < 2L_0 - 1$), \texttt{old+new} is feasible while \texttt{old+long} fails on shifted old row $3$.}\label{tab:cases}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Farkas1902}
+J.~Farkas.
+Theorie der einfachen Ungleichungen.
+\emph{Journal f\"ur die reine und angewandte Mathematik}, 124:1--27, 1902.
+
+\bibitem{Gordan1873}
+P.~Gordan.
+Ueber die Aufl\"osung linearer Gleichungen mit reellen Coefficienten.
+\emph{Mathematische Annalen}, 6:23--28, 1873.
+
+\bibitem{Han2026}
+J.~Han, Y.~Chai, and J.~Wang.
+\emph{A Positional Realizability Theory of Length Generalization in Single-Head Attention}.
+\href{https://arxiv.org/abs/2610.41218}{arXiv:2610.41218} (TMLR), October 2026.
+
+\end{thebibliography}
+
+\end{document}

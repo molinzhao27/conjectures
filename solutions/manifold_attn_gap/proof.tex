@@ -1,0 +1,145 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\arctanh}{arctanh}
+
+\title{\bfseries Refutation of the Matched-Budget Attention Rate Gap (\texttt{conj:rate-gap}) and Depth-$L$ Polynomial Analysis}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: S.~Roheda, R.~Chowdhury, A.~S.~Unde, and A.~Bala,\\
+\emph{Polynomial Denoisers on the Image Manifold: Volterra Networks for Self-Contained Pixel Diffusion},\\
+\href{https://arxiv.org/abs/2611.10857}{arXiv:2611.10857}, Section~3 and Appendix (Proposition~2 and Conjecture~1 / \texttt{conj:rate-gap})\\[0.35em]
+Companion verification script: \texttt{solutions/manifold\_attn\_gap/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We disprove Conjecture~1 (\texttt{conj:rate-gap}) of Roheda et~al.\ (\href{https://arxiv.org/abs/2611.10857}{arXiv:2611.10857}) and resolve two structural questions raised in its Appendix.
+First, for the uniform 2-sphere $\mathcal{M} = R S^2 \subset \mathbb{R}^D$ ($D \ge 5$) with $t = \coth(1) - 1$ and $R = (1-t)/t$, the exact Gaussian MMSE denoiser satisfies $f_t(z) = z$ identically on $t\mathcal{M}$ (while remaining globally non-affine).
+A depth-$L$ residual softmax attention stack with zero output projections ($W_O = 0$) therefore achieves zero worst-case error on $t\mathcal{M}$ at every depth $L \ge 1$ and every matched budget $\mathsf{P} \ge \mathsf{P}_0(L, d')$, contradicting every strictly positive lower bound $C_2 K_L^{-2s}(1 + \Delta(s, L))$.
+Second, we extend Proposition~2(ii) to arbitrary finite depth $L$: any finite-depth residual softmax attention stack with affine values that agrees with a polynomial on an ambient open set is globally affine.
+Third, with fixed distinguishable positional encodings, we show via a small-logit Taylor squaring gadget that degree-$2^L$ patchwise polynomials lie in the compact-uniform closure of depth-$L$ softmax attention at the same $O(H^2)$ per-layer budget order, while explicitly noting that this closure requires $O(\epsilon^{-2})$ growing output weights---in contrast to $W_O = 0$ in the sphere counterexample.
+\end{abstract}
+
+\section{Setup and Conjecture Statement}
+
+Let $\mathcal{M} \subset \mathbb{R}^D$ be a compact $C^\infty$ submanifold of dimension $d_{\mathcal{M}}$ carrying a probability measure $\rho_{\mathrm{data}}$ that is not a Dirac mass. For $t \in (0, 1)$ and $\sigma := 1 - t$, let $z = tX + \sigma \varepsilon$ with $\varepsilon \sim \mathcal{N}(0, I_D)$ independent of $X \sim \rho_{\mathrm{data}}$, and let $f_t(z) := \mathbb{E}[X \mid tX + \sigma \varepsilon = z]$ be the optimal denoiser. Let $\pi : \mathbb{R}^D \to \mathbb{R}^{d'}$ ($d' = 2d_{\mathcal{M}} + 1$) be a linear bottleneck embedding $t\mathcal{M}$, and set $K_L := 2^L$ and $H := \binom{d' + K_L}{d'}$. Proposition~2(i) of \href{https://arxiv.org/abs/2611.10857}{arXiv:2611.10857} constructs a depth-$L$ normalization-free Volterra stack with $\mathsf{P}_0(L, d') = c_0 H^2$ parameters per layer realizing every degree-$K_L$ polynomial in $\pi(z)$ and achieving $\sup_{z \in t\mathcal{M}} \|f_t(z) - g(z)\|^2 \le C_1 K_L^{-2s}$.
+
+\begin{quote}
+\textbf{Conjecture~1 (\texttt{conj:rate-gap}, \href{https://arxiv.org/abs/2611.10857}{arXiv:2611.10857}).}
+\emph{Let $\mathcal{A}_{L, \mathsf{P}}$ be the class of depth-$L$ stacks of softmax self-attention blocks with residual connections and at most $\mathsf{P}$ parameters per layer. For matched depth $L$ and every $\mathsf{P} \ge \mathsf{P}_0(L, d')$,}
+\[
+\inf_{h \in \mathcal{A}_{L, \mathsf{P}}} \sup_{z \in t\mathcal{M}} \|f_t(z) - h(z)\|^2
+\;\ge\; C_2 \cdot K_L^{-2s} \cdot \bigl(1 + \Delta(s, L)\bigr)
+\]
+\emph{for a constant $C_2 > 0$ and a gap $\Delta(s, L) > 0$ nondecreasing in the smoothness order $s$.}
+\end{quote}
+
+\section{Exact Sphere Counterexample with Zero Output Weights}
+
+\begin{theorem}[Refutation of Conjecture~1]\label{thm:sphere}
+For every $D \ge 5$, let $E := \operatorname{span}(e_1, e_2, e_3) \subset \mathbb{R}^D$, set
+\begin{equation}\label{eq:sphere-params}
+t := \coth(1) - 1 \in (0, 1), \qquad R := \frac{1 - t}{t},
+\end{equation}
+and let $\rho_{\mathrm{data}}$ be the uniform surface measure on the connected, compact, smooth 2-sphere $\mathcal{M} := R S^2 \subset E$ ($d_{\mathcal{M}} = 2$, $d' = 5$). Then $f_t(z) = z$ for every $z \in t\mathcal{M}$ (while $f_t$ is globally non-affine on $\mathbb{R}^D$). Setting $W_O = 0$ in every attention layer gives an identity residual stack achieving
+\[
+\inf_{h \in \mathcal{A}_{L, \mathsf{P}}} \sup_{z \in t\mathcal{M}} \|f_t(z) - h(z)\|^2 = 0
+\]
+for every $L \ge 1$ and every common per-layer budget $\mathsf{P}$ covering $\mathsf{P}_0(L, 5)$ and the identity stack, contradicting Conjecture~1 for every $C_2 > 0$, $s > 0$, and $\Delta(s, L) \ge 0$.
+\end{theorem}
+
+\begin{proof}
+Projection onto the first five coordinates embeds $\mathcal{M}$ isometrically. Write $X = R U$ with $U$ uniform on $S^2 \subset E$. For $z = tRu \in t\mathcal{M}$ ($\|u\| = 1$, $u \in E$), expanding $\|z - tRv\|^2$ and using $\|v\| = 1$ shows that the posterior density of $U = v$ relative to normalized area is proportional to $\exp(\kappa u^\top v)$, where $\kappa := t^2 R^2 / \sigma^2$. Rotational symmetry around $u$ forces $f_t(tRu)$ to lie along $u$. Under uniform surface area on $S^2$, the height $a := u^\top v$ is uniform on $[-1, 1]$, so its exponentially tilted mean is
+\[
+A(\kappa) := \frac{d}{d\kappa}\log\biggl(\frac{1}{2}\int_{-1}^1 e^{\kappa a}\,da\biggr)
+= \coth\kappa - \frac{1}{\kappa},
+\qquad
+f_t(tRu) = R A(\kappa)\,u.
+\]
+Hence $f_t|_{t\mathcal{M}}$ is scalar linear for every $R > 0$ and $t \in (0, 1)$. With~\eqref{eq:sphere-params}, $t = A(1) \in (0, 1)$ (as the mean of a nondegenerate, positively tilted random variable on $[-1, 1]$), $\kappa = (tR/(1-t))^2 = 1$, and $RA(1) = tR$, yielding $f_t(z) = z$ on all of $t\mathcal{M}$. Globally on $\mathbb{R}^D$, $\|f_t(z)\| \le R$ everywhere while $f_t$ takes distinct values on $t\mathcal{M}$, so $f_t$ cannot be affine.
+
+In every attention block, set $W_O = 0$; the residual connection passes the stream unchanged, and the affine input/output maps copy the three coordinates of $E$ (padding other output coordinates with zero). If fixed additive positional encodings are present, reserve a signal subspace orthogonal to their span and let the readout read only that subspace (finite width for any fixed token count $N$). On an image of $N$ independent sphere patches with independent Gaussian noise, the posterior factorizes across patches, so the same $W_O = 0$ stack has zero error simultaneously on $(t\mathcal{M})^N$. Since the left-hand side of Conjecture~1 vanishes while the right-hand side is strictly positive for any $C_2 > 0$ and $\Delta(s, L) \ge 0$ (even if allowed to depend on the instance), the conjecture fails.
+\end{proof}
+
+\section{Depth-$L$ Exact Affine-Polynomial Content}
+
+\begin{theorem}[Depth-$L$ extension of Proposition~2(ii)]\label{thm:depthL}
+Let $F : \mathbb{R}^{N \times d_{\mathrm{in}}} \to \mathbb{R}^{N \times d_{\mathrm{out}}}$ be a finite-depth composition of an affine input embedding, $L$ residual multi-head softmax attention blocks with affine value projections, and an affine readout. If $F$ coincides with a polynomial map on a nonempty open subset of $\mathbb{R}^{N \times d_{\mathrm{in}}}$, then $F$ is affine on all of $\mathbb{R}^{N \times d_{\mathrm{in}}}$.
+\end{theorem}
+
+\begin{proof}
+Set $M(X) := \max_{1 \le j \le N} \|x_j\|$ for $X = (x_1, \dots, x_N)$. Each attention head forms a convex combination of affine transforms of $x_1, \dots, x_N$, so a single residual block $h$ obeys $M(h(X)) \le a M(X) + b$ for finite parameter-dependent constants $a, b \ge 0$. Composing $L$ blocks with affine input and output maps yields $M(F(X)) \le \tilde{a} M(X) + \tilde{b}$ for all $X$. Because every softmax denominator is strictly positive, $F$ is real-analytic on the connected space $\mathbb{R}^{N \times d_{\mathrm{in}}}$. Agreement with a polynomial $P$ on a nonempty open set therefore extends to $F \equiv P$ everywhere. If $\deg(P) \ge 2$, choose $V$ where the top-degree homogeneous part of $P$ is nonzero; evaluating $P(\lambda V)$ as $\lambda \to \infty$ violates linear growth. Thus $\deg(P) \le 1$, so $F$ is affine.
+\end{proof}
+
+\begin{remark}[Token conventions]
+On a single token ($N = 1$), softmax weights equal $1$, so pure-attention stacks are strictly affine and form a closed finite-dimensional space. For $N \ge 2$ tokens without positional encodings, identical input tokens $(x, \dots, x)$ stay identical through all layers, forcing affine dependence along that diagonal and preventing uniform approximation of general nonlinear patchwise polynomials on domains meeting the diagonal. Theorem~\ref{thm:sphere} holds under both conventions.
+\end{remark}
+
+\section{Small-Logit Squaring and Matched-Order Uniform Closure}
+
+\begin{theorem}[Small-logit uniform polynomial closure]\label{thm:taylor}
+Consider $N = 2$ patches with distinct fixed additive positional encodings (or any fixed $N \ge 2$ patches admitting a nonconstant linear position tag isolated from the signal channels). Every vector polynomial $Q \circ \pi$ of degree at most $K_L = 2^L$ on a compact domain lies in the uniform closure of depth-$L$ residual softmax attention with stream width $2H + 1$ and $4(2H + 1)^2 = O(H^2)$ projection parameters per layer, where $H = \binom{d' + K_L}{d'}$. The approximating family uses output projection weights growing as $O(\epsilon^{-2})$ as the uniform error $O(\epsilon^2) \to 0$.
+\end{theorem}
+
+\begin{proof}
+For $N = 2$, center the two distinct position vectors via the embedding bias and use stream coordinates containing $H$ data channels $w_1, \dots, w_H$, a scalar position tag $p_j \in \{+1, -1\}$, and a constant channel $1$ (with data and constant directions orthogonal to the position difference). A scalar head with query $q_i$ and keys and values both equal to $p_j$ returns $T(q_i) := \tanh(q_i)$ at patch $i$. Fix $b := \arctanh(1/2)$, where $T'(b) = 3/4$ and $T''(b) = -3/4$. Using scalar heads with queries $b + \epsilon w_i$, $b - \epsilon w_i$, and a single shared constant-query head $b$ ($2H + 1$ heads total), set $W_O$ to write only to the data channels so each channel outputs
+\[
+S_\epsilon(w) := w
++ \frac{T(b + \epsilon w) + T(b - \epsilon w) - 2T(b)}{\epsilon^2 T''(b)}
+- \frac{T(b + \epsilon w) - T(b - \epsilon w)}{2\epsilon T'(b)}.
+\]
+By Taylor's theorem, $S_\epsilon(w) = w^2 + O(\epsilon^2)$ uniformly on every bounded interval, while the tag and constant channels are preserved. Iterating $L$ layers approximates $w^{2^L}$ uniformly on compact sets by induction using the local Lipschitz constant of squaring on an enlarged bounded interval. Initializing the $H$ channels to a basis of affine forms $\ell_r(\pi(z))$ whose $K_L$-th powers span $\Pi_{K_L}(\mathbb{R}^{d'})$ (Lemma~\texttt{lem:waring} of \href{https://arxiv.org/abs/2611.10857}{arXiv:2611.10857}) and applying the same linear readout as the Volterra construction gives uniform convergence on compact sets with $4(2H + 1)^2$ dense parameters per block.
+
+For general fixed $N \ge 2$ with a nonconstant scalar position tag $p_j$, the head response is $T(q) = \sum_{j=1}^N p_j e^{qp_j}/\sum_{j=1}^N e^{qp_j}$. Its derivative is the strictly positive tilted variance of $p_j$; because $T$ is bounded and nonconstant, there exists $b \in \mathbb{R}$ with $T''(b) \neq 0$, and the same formula for $S_\epsilon$ applies at $b$.
+\end{proof}
+
+\begin{remark}[Weight-norm contrast]
+Theorem~\ref{thm:taylor} relies on $O(\epsilon^{-2})$ growing output weights, which a parameter-count cap permits but a uniform weight-norm bound would rule out. By contrast, Theorem~\ref{thm:sphere} sets $W_O = 0$ identically, requiring neither growing weights nor a limiting sequence.
+\end{remark}
+
+\section{Reproducible Verification}
+
+The script \texttt{solutions/manifold\_attn\_gap/explore.py} checks both constructions independently:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item \emph{Sphere quadrature:} Using 32 Gauss--Legendre height nodes and 64 equally spaced azimuths for $t = 0.313035285499$ and $R = 2.194528049465$, the maximum squared discrepancy from $f_t(z) = z$ across 97 seeded directions on $t\mathcal{M}$ is $1.855 \times 10^{-29}$.
+\item \emph{Small-logit squaring:} Explicit $(W_Q, W_K, W_V, W_O)$ stacks (width $7$, $196$ parameters/layer) evaluated on 1,681 distinct image pairs for $K = 2^L$ ($L = 1, 2, 3$) targeting $(x^K - y^K/2,\, ((x-y)/2)^K + y^K/4)$ yield:
+\end{enumerate}
+
+\begin{table}[h]\centering\small
+\begin{tabular}{rrrrr}
+\toprule
+Degree $2^L$ & Depth $L$ & Max sq.\ err.\ ($\epsilon = 0.2$) & ($\epsilon = 0.025$) & ($\epsilon = 0.00625$) \\
+\midrule
+2 & 1 & $7.163 \times 10^{-4}$ & $1.763 \times 10^{-7}$ & $6.888 \times 10^{-10}$ \\
+4 & 2 & $4.766 \times 10^{-3}$ & $1.249 \times 10^{-6}$ & $4.885 \times 10^{-9}$ \\
+8 & 3 & $2.206 \times 10^{-2}$ & $6.312 \times 10^{-6}$ & $2.472 \times 10^{-8}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At each of the last three halvings of $\epsilon$, every maximum squared error decreases by a factor in $(15, 17)$, confirming the $O(\epsilon^2)$ uniform function error.
+
+\end{document}

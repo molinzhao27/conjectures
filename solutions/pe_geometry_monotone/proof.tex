@@ -1,0 +1,196 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Stress}{Stress}
+
+\title{\bfseries Disproof of the Positional Monotonicity Conjecture}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: G.~Cirrincione,\\
+\emph{On the Geometry of Positional Encodings in Transformers},\\
+\href{https://arxiv.org/abs/2604.05217}{arXiv:2604.05217}, Conjecture~\texttt{conj:monotone} and Appendix~A\\[0.35em]
+Companion verification script: \texttt{solutions/pe\_geometry\_monotone/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We disprove the Monotonicity Conjecture (\texttt{conj:monotone}) of Cirrincione (\href{https://arxiv.org/abs/2604.05217}{arXiv:2604.05217}), already at the minimal nontrivial sequence length $n = 3$ and embedding dimension $d = 1$.
+On an explicit independent-token corpus whose exact squared Hellinger distances are $0 < 6/7 < 11/7 < 2$ at lags $0, 1, 2, \ge 3$, binary token tags yield positive-label marginals $(1, 9, 4, 10, 13)/14$.
+Under summed binary cross-entropy, the coercive, strictly convex objective satisfies all hypotheses H1--H3 of the Positional Separation Theorem and has a unique KKT minimizer obeying $p_1^* < p_3^* < p_2^*$, giving $|p_1^* - p_2^*| \approx 2.786624217$ strictly above $|p_1^* - p_3^*| \approx 1.495878375$ despite $|1 - 2| < |1 - 3|$.
+We prove that the same strict reversal persists at every global minimizer when a nonlinear self-attention head is activated ($\varepsilon = 10^{-4}$), for lengths $n \in \{3, 4, 5\}$, and in every dimension $d \ge 1$.
+We further diagnose two independent obstructions in Appendix~A (Hypothesis~\textup{A1} is impossible for all $n \ge 2$, and Lemma~\textup{G3} compares upper bounds rather than distances) and disprove the normalized raw-stress variant in $d = 1$ via an exact $u = v = 2/3$ minimizer of stress $1/9$.
+\end{abstract}
+
+\section{Problem Statement}
+
+In Cirrincione (\href{https://arxiv.org/abs/2604.05217}{arXiv:2604.05217}), the corpus, token embeddings $E$, and all non-positional network weights are held fixed while the expected task loss $\mathcal{L}(P)$ is minimized over the unconstrained positional matrix $P = (p_1, \dots, p_n) \in \mathbb{R}^{n \times d}$. The positional Hellinger metric (\texttt{eq:hellinger}) is the unnormalized chord distance
+\[
+d_H(\mu, \nu) := \|\sqrt{\mu} - \sqrt{\nu}\|_2.
+\]
+Following the Positional Separation Theorem (with hypotheses H1: distinct mean embeddings $\bar{e}_i$; H2: order sensitivity under token transpositions; H3: attention matrix $M = W_Q W_K^\top$ does not annihilate $\bar{e}_i - \bar{e}_j$), the paper states:
+
+\begin{quote}
+\textbf{Conjecture (\texttt{conj:monotone}, Monotonicity).}
+\emph{If $d_H(\mu_i, \mu_j) \le d_H(\mu_i, \mu_k)$ whenever $|i - j| \le |i - k|$, then every minimizer $P^*$ satisfies $\|p_i^* - p_j^*\| \le \|p_i^* - p_k^*\|$ under the same ordering.}
+\end{quote}
+
+Because any matrix $P$ satisfies the conclusion vacuously when $n \le 2$, sequence length $n = 3$ is minimal.
+
+\section{Corpus, Rational Hellinger Distances, and Tag Marginals}
+
+Fix $n \in \{3, 4, 5\}$ and vocabulary $\{1, \dots, n+2\}$. Draw tokens $T_1, \dots, T_n$ independently across positions, where at position $i \in \{1, \dots, n\}$ tokens $(i, i+1, i+2)$ have probabilities $(1/14, 4/14, 9/14)$ and all other tokens have probability $0$.
+
+\begin{lemma}[Exact squared Hellinger distances]\label{lem:hellinger}
+For every $n \in \{3, 4, 5\}$ and all $i, j \in \{1, \dots, n\}$,
+\[
+d_H(\mu_i, \mu_j)^2 = \begin{cases}
+0 & \text{if } |i - j| = 0,\\
+6/7 & \text{if } |i - j| = 1,\\
+11/7 & \text{if } |i - j| = 2,\\
+2 & \text{if } |i - j| \ge 3.
+\end{cases}
+\]
+Since $0 < 6/7 < 11/7 < 2$, the corpus satisfies $d_H(\mu_i, \mu_j) \le d_H(\mu_i, \mu_k)$ whenever $|i - j| \le |i - k|$ (including equal lags).
+\end{lemma}
+
+\begin{proof}
+The vector $\sqrt{\mu_i}$ is the translate of $(1, 2, 3)/\sqrt{14}$ supported on $\{i, i+1, i+2\}$. Hence $\langle \sqrt{\mu_i}, \sqrt{\mu_j} \rangle$ equals $1$ at lag $0$, $(2 + 6)/14 = 8/14$ at lag $1$, $3/14$ at lag $2$, and $0$ at lag $\ge 3$. Substituting into $d_H(\mu_i, \mu_j)^2 = 2 - 2\langle \sqrt{\mu_i}, \sqrt{\mu_j} \rangle$ gives the stated rational values.
+\end{proof}
+
+Assign each vocabulary token $v \in \{1, \dots, n+2\}$ a binary tag $g(v) \in \{0, 1\}$ from the first $n + 2$ entries of $g := (1, 0, 0, 1, 0, 1, 1)$, and set the target to the ordered binary vector $Y_i := g(T_i)$ ($i = 1, \dots, n$), equivalently sequence classification over $\{0, 1\}^n$ with factorized output distribution. The positive-label marginals $r_i := \Pr(Y_i = 1) = \frac{1}{14}g(i) + \frac{4}{14}g(i+1) + \frac{9}{14}g(i+2)$ are the first $n$ entries of
+\begin{equation}\label{eq:rates}
+\frac{1}{14}(1, 9, 4, 10, 13).
+\end{equation}
+In particular, $r_1 = 1/14 < r_3 = 4/14 < r_2 = 9/14$: Hellinger distance distinguishes every token, whereas the binary task groups tokens sharing a tag.
+
+\section{Exact Global Minimizer and Verification of H1--H3}
+
+Set $d = d_k = 1$, $E(v) := \beta g(v)$ with $\beta := \log 2$, and $W_Q = W_K = 1$ (so $M = 1$). Reading logits $h_i := E(T_i) + p_i$ from the residual stream with zero value projection under summed binary cross-entropy gives the exact expected loss
+\begin{equation}\label{eq:L0}
+\mathcal{L}_0(P) = \sum_{i=1}^n F_{r_i}(p_i),
+\qquad
+F_r(x) := (1 - r)\log(1 + e^x) + r\log(1 + e^{-x-\beta}).
+\end{equation}
+
+\begin{theorem}[Unique KKT minimizer and reversal]\label{thm:main}
+For every $n \in \{3, 4, 5\}$, $\mathcal{L}_0$ is coercive, strictly convex, and satisfies hypotheses \textup{H1--H3}. Its unique global minimizer $P^* = (p_1^*, \dots, p_n^*) \in \mathbb{R}^n$ is given by $p_i^* = \log z(r_i)$, where
+\[
+z(r) := \frac{2r - 1 + \sqrt{(2r - 1)^2 + 8r(1 - r)}}{4(1 - r)}.
+\]
+It satisfies $p_1^* < p_3^* < p_2^*$, whence $|p_1^* - p_2^*| > |p_1^* - p_3^*|$ ($2.786624217 > 1.495878375$), refuting Conjecture~\texttt{conj:monotone}.
+\end{theorem}
+
+\begin{proof}
+For every $r \in (0, 1)$, $F_r(x) \to +\infty$ as $|x| \to \infty$ (coercivity). Writing $z := e^x > 0$ and $\sigma(t) := (1 + e^{-t})^{-1}$,
+\[
+F_r'(x) = (1 - r)\frac{z}{1 + z} - r\frac{1}{1 + 2z},
+\qquad
+F_r''(x) = (1 - r)\sigma(x)(1 - \sigma(x)) + r\sigma(x+\beta)(1 - \sigma(x+\beta)) \in (0, 1/4].
+\]
+Thus $F_r$ is strictly convex. Clearing positive denominators in $F_r'(x) = 0$ yields $2(1-r)z^2 + (1-2r)z - r = 0$, whose unique positive root is $z(r)$, giving $p_i^* = \log z(r_i)$.
+Because $F_r'(x)$ is strictly decreasing in $r$ at fixed $x$ and strictly increasing in $x$ at fixed $r$, the unique zero $r \mapsto \log z(r)$ is strictly increasing on $(0, 1)$. From~\eqref{eq:rates}, $r_1 < r_3 < r_2$, so $p_1^* < p_3^* < p_2^*$ and $|p_1^* - p_2^*| = p_2^* - p_1^* > p_3^* - p_1^* = |p_1^* - p_3^*|$.
+
+Finally, we verify H1--H3. The mean embeddings $\bar{e}_i = \beta r_i$ are pairwise distinct (H1), and $M = 1$ gives $M(\bar{e}_i - \bar{e}_j) \neq 0$ (H3). For H2, fix $P \in \mathbb{R}^n$ and transpose input tokens $T_i, T_j$ ($i \neq j$) while keeping the true ordered target $Y$ fixed. Let $D(x) := \log(1 + e^{x+\beta}) - \log(1 + e^x) \in (0, \beta)$. At position $i$, bringing a tag-$1$ token to a tag-$0$ target raises loss by $D(p_i)$ with probability $(1 - r_i)r_j$, while bringing a tag-$0$ token to a tag-$1$ target raises loss by $\beta - D(p_i)$ with probability $r_i(1 - r_j)$. The expected loss increase at row $i$ is therefore at least $\beta \min((1 - r_i)r_j,\, r_i(1 - r_j))$. Row $j$ yields the identical bound, so every swap strictly raises $\mathcal{L}_0(P)$ by at least
+\begin{equation}\label{eq:swap}
+2\beta \min\bigl((1 - r_i)r_j,\, r_i(1 - r_j)\bigr) \ge \frac{2\beta}{196} > 0
+\end{equation}
+at every fixed $P \in \mathbb{R}^n$.
+\end{proof}
+
+\section{Active Self-Attention Head and Arbitrary Dimension}
+
+Keep $W_Q = W_K = 1$ and activate the self-attention head with scalar value $h_j = E(T_j) + p_j$ and coupling $\varepsilon := 10^{-4}$:
+\[
+A_{ij} := \frac{e^{h_i h_j}}{\sum_{k=1}^n e^{h_i h_k}},
+\qquad
+s_i := h_i + \varepsilon \tanh\!\biggl(\sum_{j=1}^n A_{ij} h_j\biggr),
+\]
+defining $\mathcal{L}_\varepsilon(P)$ as the expected summed binary cross-entropy of logits $s_i$.
+
+\begin{theorem}[Active attention and arbitrary dimension $d \ge 1$]\label{thm:active}
+For $n \in \{3, 4, 5\}$ and $\varepsilon = 10^{-4}$:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item $\mathcal{L}_\varepsilon$ is coercive, continuous, satisfies \textup{H1--H3}, and attains a global minimum on $\mathbb{R}^n$.
+\item Every global minimizer $P^\star$ of $\mathcal{L}_\varepsilon$ satisfies $p_1^\star < p_3^\star < p_2^\star$, hence $|p_1^\star - p_2^\star| > |p_1^\star - p_3^\star|$.
+\item For any $d > 1$, taking $E(v) = \beta g(v) e_1$, $W_Q = W_K = e_1$, first-coordinate value/readout, and adding $\frac{1}{2}\sum_{i=1}^n \sum_{m=2}^d p_{im}^2$ preserves domain $\mathbb{R}^{n \times d}$, coercivity, \textup{H1--H3}, and the strict reversal at every global minimizer.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Since binary cross-entropy is $1$-Lipschitz in its scalar logit and $|\varepsilon \tanh(\cdot)| \le \varepsilon$, $|\mathcal{L}_\varepsilon(P) - \mathcal{L}_0(P)| \le n\varepsilon$ pointwise in inputs, labels, and $P$. Coercivity and existence of a global minimizer follow immediately. Using $\beta = \log 2 > 1/2$ and~\eqref{eq:swap}, every token swap increases $\mathcal{L}_\varepsilon(P)$ by at least $2\beta/196 - 2n\varepsilon > 1/196 - 1/1000 > 0$, preserving H2.
+
+To certify $p_1^\star < p_3^\star < p_2^\star$ at any global minimizer $P^\star$, consider $r_a < r_b$ and $x_a \ge x_b$. Monotonicity of $F'_{r_a}$ with $z := e^{x_b} > 0$ gives
+\[
+F'_{r_a}(x_a) - F'_{r_b}(x_b)
+\ge F'_{r_a}(x_b) - F'_{r_b}(x_b)
+= (r_b - r_a)\biggl(\frac{z}{1 + z} + \frac{1}{1 + 2z}\biggr)
+\ge \frac{r_b - r_a}{2},
+\]
+since $\frac{z}{1+z} + \frac{1}{1+2z} - \frac{1}{2} = \frac{1 + z + 2z^2}{2(1+z)(1+2z)} > 0$. Hence $\max(|F'_{r_a}(x_a)|, |F'_{r_b}(x_b)|) \ge (r_b - r_a)/4$. Since $F_r'' \le 1/4$, the trial step $x - 4F'_r(x)$ gives
+\[
+F_r(x) - \min F_r \ge F_r(x) - F_r\bigl(x - 4F'_r(x)\bigr) \ge 4F'_r(x)^2 - \frac{1}{8}\bigl(4F'_r(x)\bigr)^2 = 2F'_r(x)^2.
+\]
+Violating $x_1 < x_3$ ($r_3 - r_1 = 3/14$) or $x_3 < x_2$ ($r_2 - r_3 = 5/14$) therefore costs at least $2((3/14)/4)^2 = 9/1568$ in $\mathcal{L}_0$. Yet comparing $P^\star$ with $P^*$ gives $\mathcal{L}_0(P^\star) - \mathcal{L}_0(P^*) \le 2n\varepsilon \le 1/1000 < 9/1568$, forcing $p_1^\star < p_3^\star < p_2^\star$.
+
+For $d > 1$, the separable quadratic term $\frac{1}{2}\sum_{i=1}^n \sum_{m=2}^d p_{im}^2$ sets $p_{im} = 0$ for all $m \ge 2$ at every optimum, leaves the swap margin and coercivity intact, and gives $M = e_1 e_1^\top$ with $M(\bar{e}_i - \bar{e}_j) = \beta(r_i - r_j)e_1 \neq 0$.
+\end{proof}
+
+\section{Diagnosis of Appendix~A and Raw-Stress Counterexample}
+
+\begin{proposition}[Obstructions in Appendix~A of \href{https://arxiv.org/abs/2604.05217}{arXiv:2604.05217}]\label{prop:appA}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=2em,itemsep=2pt]
+\item Hypothesis~\textup{A1} (requiring $\alpha \succ 0$ and $\alpha_{ij} = f(d_H(\mu_i, \mu_j))$ for all $i, j$ with $f$ strictly increasing) is impossible for every $n \ge 2$: for any $i \neq j$,
+\[
+(e_i - e_j)^\top \alpha (e_i - e_j) = 2\bigl(f(0) - f(d_H(\mu_i, \mu_j))\bigr) \le 0.
+\]
+\item Independently, the final step of Lemma~\textup{G3} infers $\|p_i^* - p_j^*\| \le \|p_i^* - p_k^*\|$ from the upper-bound comparison $\|p_i^* - p_j^*\| \le C\,d_H(\mu_i, \mu_j) \le C\,d_H(\mu_i, \mu_k)$, which leaves $\|p_i^* - p_k^*\|$ free to be strictly smaller than $\|p_i^* - p_j^*\|$.
+\end{enumerate}
+\end{proposition}
+
+Finally, we check the paper's normalized raw-stress objective,
+\[
+\Stress(P) := \frac{\sum_{1 \le i < j \le n}\bigl(\|p_i - p_j\| - d_H(\mu_i, \mu_j)\bigr)^2}{\sum_{1 \le i < j \le n} d_H(\mu_i, \mu_j)^2}.
+\]
+
+\begin{proposition}[Raw-stress counterexample at $u = v = 2/3$]\label{prop:stress}
+For $n = 3$ distinct point masses $\mu_i = \delta_i$ (all pairwise Hellinger distances equal to $D := \sqrt{2}$) and $d = 1$, $\Stress(P)$ has global minimum $1/9$, uniquely attained in every sorted order at equal successive gaps $u = v = 2/3$ (in units of $D$). Ordering positions as $p_1^* < p_3^* < p_2^*$ yields a global stress minimizer with $|p_1^* - p_2^*| = \frac{4}{3}D > \frac{2}{3}D = |p_1^* - p_3^*|$.
+\end{proposition}
+
+\begin{proof}
+In any sorted chamber with successive gaps $uD, vD$ ($u, v \ge 0$),
+\[
+\Stress(P) = S(u, v) := \frac{(u - 1)^2 + (v - 1)^2 + (u + v - 1)^2}{3}.
+\]
+Its Hessian is $\frac{2}{3}\begin{psmallmatrix}2 & 1 \\ 1 & 2\end{psmallmatrix} \succ 0$ and $\nabla S(u, v) = 0 \iff u = v = 2/3$, certifying the unique chamber minimum $S(2/3, 2/3) = 1/9$ for every permutation. Taking sorted order $(1, 3, 2)$ gives $|p_1^* - p_2^*| = (u + v)D = \frac{4}{3}D > \frac{2}{3}D = uD = |p_1^* - p_3^*|$.
+\end{proof}
+
+Note that when $d$ is at least the affine dimension of $\{\sqrt{\mu_1}, \dots, \sqrt{\mu_n}\}$ and the stress denominator is positive, zero stress is attainable and every stress minimizer reproduces the Hellinger distances exactly.
+
+\section{Exact Verification}
+
+Running \texttt{.venv/bin/python -B solutions/pe\_geometry\_monotone/explore.py} (Python~3 standard library with exact \texttt{fractions.Fraction} arithmetic) enumerates all $3^3 + 3^4 + 3^5 = 351$ token sequences, checks all $27 + 64 + 125 = 216$ Hellinger triples and $19$ pairwise swap margins, verifies all $12$ KKT quadratic roots by exact algebraic substitution and rational bisection bracketing of $p_1^* < p_3^* < p_2^*$, confirms the active-head perturbation bounds at $\varepsilon = 10^{-4}$, and verifies the $u = v = 2/3$, $\Stress = 1/9$ certificate.
+
+\end{document}

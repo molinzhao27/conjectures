@@ -1,0 +1,278 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\Pois}{Pois}
+\DeclareMathOperator{\Bin}{Bin}
+\DeclareMathOperator{\Dir}{Dirichlet}
+\DeclareMathOperator{\Unif}{Unif}
+\newcommand{\indep}{\perp\!\!\!\perp}
+
+\title{\bfseries Refutation of the Entropic Causal Identifiability Conjecture}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target papers: S.~Compton, M.~Kocaoglu, K.~Greenewald, and D.~Katz,\\
+\emph{Entropic Causal Inference: Identifiability and Finite Sample Results},\\
+NeurIPS 2020 (\href{https://arxiv.org/abs/2101.03501}{arXiv:2101.03501}), Section~2, Conjecture~1 (\texttt{conj:entropic}),\\
+restating M.~Kocaoglu, A.~G.~Dimakis, S.~Vishwanath, and B.~Hassibi (AAAI 2017, \href{https://arxiv.org/abs/1611.04035}{arXiv:1611.04035})\\[0.35em]
+Companion verification script: \texttt{solutions/entropic\_causal\_ident/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~1 (\texttt{conj:entropic}) of Kocaoglu et~al.\ (AAAI 2017) and Compton et~al.\ (NeurIPS 2020, \href{https://arxiv.org/abs/2101.03501}{arXiv:2101.03501}), both with the printed backward alphabet restriction $[m]$ and with unrestricted backward alphabets.
+All logarithms are natural (nats). Let $B_m$ be the minimum Shannon entropy of an independent backward noise $\tilde E \in [m]$ satisfying $X = g(Y, \tilde E)$, and let $G_m := H(Y) + B_m - H(X) - H(E)$ be the total-entropy identifiability gap.
+First, at quadratic alphabet $m = n^2$ and fixed cap offset $c = 2$ ($H(E) \le \log n + 2$), a finite greedy coupling on at most $1 + n(n-1)$ atoms combined with simplex volume concentration near the entropy cap proves $G_m \le -\gamma + o_P(1)$ for \emph{every} forward mechanism $f$ ($\gamma = 0.57721566\dots$).
+Second, at the exact zero-offset cutoff ($H(E) \le \log n$) with $m = \lceil e^{n^5} \rceil$, we determine all four entropy asymptotics including the exact backward optimum, obtaining $G_m \to -D(0) = -0.8515044932\dots$ in probability.
+Third, at exact zero offset with polynomial alphabet $m = n^{1024}$, a dyadic-scale coupling certifies $G_m < -0.073$ with probability tending to~$1$.
+We also characterize the remaining alphabet regimes, establishing a rational-independence support obstruction forcing $B_m = +\infty$ with high probability for fixed $m$ and for $m = \lfloor n^\alpha \rfloor$ ($0 < \alpha < 2$).
+\end{abstract}
+
+\section{Problem Statement, Scope, and Summary of Results}
+
+All logarithms and entropies below are natural (nats). Let $X \in [n]$, $Y \in [n]$, and $E \in [m]$ obey the structural causal model (SCM) $Y = f(X, E)$ with $X \indep E$. In Section~2 of Compton et~al.~\cite{Compton2020}, Conjecture~1 (\texttt{conj:entropic}), restating Conjecture~1 of Kocaoglu et~al.~\cite{Kocaoglu2017}, samples $(p, q, f)$ independently as follows:
+\begin{itemize}[leftmargin=2em,itemsep=1pt]
+\item $p = p(X)$ is uniform on the simplex $\Delta_n$ (i.e., $\Dir(1,\dots,1)$);
+\item $q = p(E)$ is uniform with respect to normalized simplex volume on $\{q \in \Delta_m : H(q) \le \log n + c\}$ for a fixed additive offset $c = O(1)$;
+\item $f$ is uniform over all tables $[n] \times [m] \to [n]$.
+\end{itemize}
+No growth law is imposed on $m$. Let $B_m := \inf\{H(\tilde E) : \tilde E \indep Y,\ \tilde E \in [m],\ X = g(Y, \tilde E)\}$ (with $B_m := +\infty$ if no such backward SCM exists). Conjecture~\texttt{conj:entropic} asserts that with probability tending to~$1$ as $n \to \infty$,
+\[
+G_m := H(Y) + B_m - H(X) - H(E) > 0.
+\]
+Kocaoglu et~al.~\cite{Kocaoglu2017} originally allowed an unrestricted backward alphabet (Theorem~1 there treats R\'enyi-$0$ cardinality under a generic-mechanism hypothesis, and Conjecture~1 treats Shannon entropy). Every counterexample proved below uses at most $m$ backward atoms and therefore refutes both formulations.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Alphabet $m$ & Entropy cap & Conclusion \\
+\midrule
+$m = n^2$ & $\log n + 2$ ($c = 2$) & $G_m \le -\gamma + o_P(1)$ ($\gamma = 0.5772\dots$), every $f$ (Theorem~\ref{thm:quad}) \\
+$m = \lceil e^{n^5} \rceil$ & $\log n$ ($c = 0$) & $G_m \to -D(0) = -0.8515044932\dots$ in probability (Theorem~\ref{thm:exact}) \\
+$m = n^{1024}$ & $\log n$ ($c = 0$) & $G_m < -0.073$ with probability $\to 1$ (Theorem~\ref{thm:poly}) \\
+\bottomrule
+\end{tabular}
+\caption{Summary of refutations of Conjecture~\texttt{conj:entropic}.}
+\label{tab:summary}
+\end{table}
+
+\begin{remark}[Sampled versus minimized forward entropy]
+Conjecture~\texttt{conj:entropic} explicitly compares $H(X) + H(E)$ (using the \emph{sampled} forward exogenous variable $E$) against $H(Y) + B_m$ (the minimum over backward SCMs). Comparing the \emph{minimized} exogenous entropies in both directions is a separate question. Moreover, the appendix simulations in~\cite{Compton2020} use an adaptive Dirichlet shape parameter $\alpha \neq 1$ (which changes the density on the accepted sublevel set) and compare greedy fits in both directions (where a forward greedy fit can have lower entropy than the sampled $E$).
+\end{remark}
+
+\paragraph{Coupling reformulation.}
+For each $y \in \supp(Y)$, set $P_y := p(X \mid Y = y)$. Each atom $\tilde e$ of a backward SCM assigns a response vector $(g(y, \tilde e))_{y \in \supp(Y)}$, so a backward SCM on at most $m$ states is equivalent to a coupling of $\{P_y\}_{y \in \supp(Y)}$ supported on at most $m$ atoms; merging atoms with identical response vectors only reduces entropy. Hence $B_m$ equals the minimum Shannon entropy of a coupling of $\{P_y\}$ on at most $m$ atoms, and $B_m \ge \max_y H(P_y)$. Both total scores $H(X) + H(E)$ and $H(Y) + B_m$ are at least $H(X, Y)$.
+
+\section{Finite Greedy Coupling and the Quadratic Counterexample}
+
+\begin{lemma}[Finite greedy coupling bound]\label{lem:greedy}
+For any collection of distributions $\{P_y\}_{y \in \supp(Y)}$ on $[n]$ ($|\supp(Y)| \le n$), there exists a coupling supported on at most $1 + \sum_y (|\supp(P_y)| - 1) \le 1 + n(n-1)$ atoms whose entropy is strictly less than $\log n + 1$.
+\end{lemma}
+
+\begin{proof}
+Initialize residual vectors $R_y \leftarrow P_y$, sharing common mass $R \in (0, 1]$. At each step, select $x_y^* \in \arg\max_x R_y(x)$ for every $y$, emit a shared atom on $(x_y^*)_y$ with weight $w := \min_y R_y(x_y^*)$, and subtract $w$ from $R_y(x_y^*)$ in every row. Since each residual row has at most $n$ nonzero entries summing to $R$, we have $w \ge R/n$. Every nonfinal step zeroes at least one entry, and the final step zeroes the last entry in every row simultaneously, so at most $1 + \sum_y (|\supp(P_y)| - 1) \le 1 + n(n-1)$ atoms are emitted.
+
+Let $J \in \{1, 2, \dots\}$ be the step index drawn with the emitted weights. After $k$ steps, $\Pr(J > k) \le (1 - 1/n)^k$, so $\mathbb{E}[J] = \sum_{k \ge 0} \Pr(J > k) \le n$. Nonnegativity of relative entropy $D_{\mathrm{KL}}(P_J \| \mathrm{Geom}(1/n)) \ge 0$ gives
+\[
+H(J) \le \log n - (\mathbb{E}[J] - 1)\log\!\left(1 - \frac{1}{n}\right)
+\le \log n - (n-1)\log\!\left(1 - \frac{1}{n}\right) < \log n + 1,
+\]
+using $(n-1)\log(1 + \frac{1}{n-1}) < 1$ for $n \ge 2$ (and $0 < 1$ for $n = 1$).
+\end{proof}
+
+\begin{lemma}[Volume concentration near the entropy cap]\label{lem:vol}
+Set $t := \log n + c$ (fixed $c \in \mathbb{R}$) and $L := \log m$. Assume $m / (n L^3) \to \infty$ (holding for $m = \lfloor n^\alpha \rfloor$ with fixed $\alpha > 1$ and for $m = \lceil e^{n^5} \rceil$). Then for every fixed $\varepsilon > 0$,
+\[
+\Pr\bigl(H(q) \le t - \varepsilon \mid H(q) \le t\bigr) \longrightarrow 0.
+\]
+\end{lemma}
+
+\begin{proof}
+On $H(q) \le t$, we have $\max_j q_j \ge e^{-t} = e^{-c}/n$. Partition $\{q \in \Delta_m : H(q) \le t - \varepsilon\}$ (up to null ties) into $m$ pieces by $i = \arg\max_j q_j$. On piece $i$, dilate about vertex $e_i$ by $T_i(q) := e_i + (1 + \delta)(q - e_i)$ with $\delta := 1/(n L^2)$. For large $n$, $T_i(q)_i = q_i - \delta(1 - q_i) \ge 0$, so $T_i(q) \in \Delta_m$. Moreover $\|T_i(q) - q\|_{\mathrm{TV}} \le \delta$, so coupling the two laws and revealing their disagreement bit gives $|H(T_i(q)) - H(q)| \le h(\delta) + \delta L = o(1)$, where $h(x) := -x\log x - (1-x)\log(1-x)$. Thus for large $n$ each $T_i$ injects piece $i$ into $\{H(q) \le t\}$ with simplex Jacobian $(1 + \delta)^{m-1}$, and the $m$ images overlap at most $m$ times:
+\[
+\Pr\bigl(H(q) \le t - \varepsilon \mid H(q) \le t\bigr)
+\le m(1 + \delta)^{-(m-1)} \longrightarrow 0. \qedhere
+\]
+\end{proof}
+
+\begin{theorem}[Quadratic-alphabet refutation]\label{thm:quad}
+Take $m = n^2$ and any fixed offset $c > 2 - \gamma$ (in particular $c = 2$), where $\gamma = 0.57721566\dots$ is the Euler--Mascheroni constant. Then for every forward table $f : [n] \times [n^2] \to [n]$,
+\[
+G_m \le 2 - \gamma - c + o_P(1).
+\]
+In particular, at $c = 2$, $G_m \le -\gamma + o_P(1) < 0$ with probability tending to~$1$, refuting Conjecture~\texttt{conj:entropic}.
+\end{theorem}
+
+\begin{proof}
+Represent $p_x = A_x / \sum_{j=1}^n A_j$ with i.i.d.\ $A_j \sim \mathrm{Exp}(1)$. By the law of large numbers for $A$ and $A \log A$, $H(X) = \log n - d + o_P(1)$ with $d := \mathbb{E}[A \log A] = 1 - \gamma$. By Lemma~\ref{lem:vol}, $H(E) = \log n + c - o_P(1)$. Since $1 + n(n-1) \le n^2 = m$, Lemma~\ref{lem:greedy} gives $B_m < \log n + 1$, while $H(Y) \le \log n$. Hence $G_m \le 1 + d - c + o_P(1) = 2 - \gamma - c + o_P(1)$.
+\end{proof}
+
+\section{Conditioned Noise Structure and Random-Map Output Entropy}
+
+\begin{lemma}[Dominant atom and uniform tail]\label{lem:noise}
+Fix $c \in \mathbb{R}$, set $L := \log m$ and $b := L^3 / m$, and let either $m = \lfloor n^\alpha \rfloor$ (fixed $\alpha > 1$) or $m = \lceil e^{n^5} \rceil$. Conditioned on $H(q) \le \log n + c$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item With probability tending to~$1$, the second-largest coordinate of $q$ is at most $b$.
+\item Writing $1 - s := \max_j q_j$ and $i := \arg\max_j q_j$, one has $s \to 1/\alpha$ in probability for $m = \lfloor n^\alpha \rfloor$ and $s \sim (\log n)/n^5$ in probability for $m = \lceil e^{n^5} \rceil$.
+\item Let $F(x) := f(x, i)$ (a uniform random map independent of $p, q$) and $\epsilon_n := (\log n)^{-2}$. With probability tending to~$1$, uniformly over all $x, y \in [n]$,
+\begin{equation}\label{eq:channel}
+p(y \mid x) = (1 - s)\,\mathbf{1}_{F(x) = y} + \frac{s}{n}\bigl(1 + O(\epsilon_n)\bigr).
+\end{equation}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+For~(1), partition $\{\text{second-largest coordinate} \ge b\}$ by the top two indices $(i, j)$ with $q_i \ge q_j = v \ge b$. Transferring $v/2$ from $j$ to $i$ has simplex Jacobian $1/2$ and decreases entropy by at least $v(\frac{3}{2}\log\frac{3}{2} + \frac{1}{2}\log\frac{1}{2}) > v/4$ (minimized at $q_i = v$ by differentiation). Dilating about $e_i$ by $1 + \eta$ with $\eta := b / (100 L)$ keeps the image in $\Delta_m$ and raises entropy by at most $h(\eta) + \eta L < b/4 \le v/4$ for large $m$. Thus each bad piece injects into $\{H(q) \le \log n + c\}$ with Jacobian $\frac{1}{2}(1 + \eta)^{m-1}$, giving bad probability at most $2m^2 (1 + \eta)^{-(m-1)} \to 0$.
+
+For~(2), on the good event, $s \log(1/b) \le H(E) \le h(s) + s\log(m-1)$. Since $\log(1/b) = (1 - o(1))L$ and $H(E) = \log n + c - o_P(1)$ by Lemma~\ref{lem:vol}, both limits for $s$ follow.
+
+For~(3), conditional on $q$, each tail cell $\sum_{e \neq i} q_e \mathbf{1}_{f(x,e)=y}$ is a sum of independent variables in $[0, b]$ with mean $s/n$ and variance at most $bs/n$. Bernstein's inequality and a union bound over $n^2$ cells give failure probability at most $2n^2 \exp(-C \epsilon_n^2 s / (nb)) \to 0$ in both regimes.
+\end{proof}
+
+\begin{proposition}[Output entropy of the random-map mixture]\label{prop:HY}
+Let $Z := \sum_{j=1}^K A_j$ with $K \sim \Pois(1)$ independent of i.i.d.\ $A_j \sim \mathrm{Exp}(1)$ ($0\log 0 := 0$), and define
+\[
+D(u) := \mathbb{E}\bigl[(u + (1 - u)Z)\log(u + (1 - u)Z)\bigr] \qquad (u \in [0, 1]).
+\]
+Under Lemma~\ref{lem:noise} with $s \to u \in [0, 1)$ in probability, $H(Y) = \log n - D(u) + o_P(1)$. Moreover, the empty-bin fraction of $F$ tends to $e^{-1}$ in probability, the maximum occupancy of $F$ is $K_* = O_P(\log n)$, and
+\[
+D(0) = e^{-1}\sum_{k=1}^\infty \frac{k\,\psi(k+1)}{k!} = 0.8515044932\ldots,
+\qquad
+\psi(k+1) = \sum_{j=1}^k \frac{1}{j} - \gamma.
+\]
+\end{proposition}
+
+\begin{proof}
+Replacing $1 + O(\epsilon_n)$ in~\eqref{eq:channel} by $1$ alters $p(Y)$ in total variation by $O(\epsilon_n)$, changing $H(Y)$ by $O(h(\epsilon_n) + \epsilon_n \log n) = o(1)$. Let $W_y := \sum_{x: F(x) = y} A_x$ and $S_n := \sum_{x=1}^n A_x$. For one bin, $W_y \Rightarrow Z$; for two distinct bins, $(W_{y_1}, W_{y_2}) \Rightarrow (Z_1, Z_2)$ (independent copies) by multinomial convergence and independent marks. Every fixed moment of $W_y$ is uniformly bounded (conditioning on the $\Bin(n, 1/n)$ count), so the empirical mean of $(u + (1-u)W_y)\log(u + (1-u)W_y)$ converges to $D(u)$ in probability by the two-bin variance formula and uniform integrability. Absorbing $S_n/n \to 1$ and $s \to u$ via truncation and moment bounds yields $H(Y) = \log n - D(u) + o_P(1)$. The same two-bin argument gives empty-bin fraction $e^{-1} + o_P(1)$, and a binomial tail union bound gives $K_* = O_P(\log n)$. Conditioning on $K = k \ge 1$ ($Z \sim \mathrm{Gamma}(k, 1)$) gives $\mathbb{E}[Z \log Z \mid K = k] = k\,\psi(k+1)$, yielding the series for $D(0)$.
+\end{proof}
+
+\section{Zero-Offset Counterexamples}
+
+\begin{theorem}[Exact four-entropy asymptotics at $m = \lceil e^{n^5} \rceil$]\label{thm:exact}
+Let $m = \lceil e^{n^5} \rceil$ and fix any $c \in \mathbb{R}$. Up to $o_P(1)$,
+\[
+H(X) = \log n - d, \qquad
+H(E) = \log n + c, \qquad
+H(Y) = \log n - D(0), \qquad
+B_m = \log n - d.
+\]
+Hence $G_m \to -D(0) - c$ in probability; at zero offset ($c = 0$), $G_m \to -0.8515044932\dots$ in probability, with reversals for every fixed $c > -D(0)$.
+\end{theorem}
+
+\begin{proof}
+Lemmas~\ref{lem:vol}--\ref{lem:noise} and Proposition~\ref{prop:HY} give $H(X)$, $H(E)$, and $H(Y)$ (with $s \sim (\log n)/n^5 \to 0$). On every empty $F$-bin $y$,~\eqref{eq:channel} yields $P_y(x) = p_x(1 + O(\epsilon_n))$ uniformly in $x$; since empty bins exist with high probability, $B_m \ge \max_y H(P_y) \ge H(X) - o_P(1)$.
+
+For the upper bound, a union bound on the $\mathrm{Beta}(1, n-1)$ marginal gives $\min_x p_x \ge n^{-3}$ with high probability. At every occupied bin $y$, preimages contribute at least $(1 - s)n^{-3}$ to $p(y)$ while the tail contributes $O(s/n)$, so the posterior mass outside the preimages is at most $a_* = O_P(s n^2)$ uniformly over occupied bins. Define $v_x := \min_{y \text{ empty}} P_y(x)$; uniformly $v_x / p_x = 1 + O(\epsilon_n)$ and $\sum_x v_x = 1 - O(\epsilon_n)$.
+
+Process $x = 1, \dots, n$ in order: in each empty bin allocate $v_x$ to $x$, and in each occupied bin allocate $v_x$ to a preimage with at least $v_x$ residual mass. Whenever the common residual mass $R$ exceeds $a_* + K_* \max_x v_x$, some preimage in each occupied bin can accommodate $v_x$. Stop when $R \le a_* + K_* \max_x v_x$ or the list ends. Then
+\[
+R = O\bigl(\epsilon_n + sn^2 + K_* \max_x p_x\bigr) = o_P(1/\log n)
+\]
+since $\max_x p_x = O_P((\log n)/n)$ and $K_* = O_P(\log n)$. Couple the normalized residual rows by Lemma~\ref{lem:greedy} using at most $1 + n(n-1)$ atoms (total atoms $\le n + 1 + n(n-1) \le m$). The first phase contributes at most $H(X) + o_P(1)$ to the entropy and the residual phase contributes at most $R(\log n + 1 - \log R) = o_P(1)$, proving $B_m \le \log n - d + o_P(1)$.
+\end{proof}
+
+\begin{theorem}[Polynomial-alphabet zero-offset refutation]\label{thm:poly}
+Take $m = n^{1024}$ and cap $H(E) \le \log n$ ($c = 0$). Then $B_m \le \log n + U + o_P(1)$ with $U = 0.3466016619\dots$, and
+\[
+G_m \le U + d - D(1/1024) + o_P(1) < -0.07354 + o_P(1) < -0.073
+\]
+with probability tending to~$1$.
+\end{theorem}
+
+\begin{proof}
+Set $u := 1/1024$. Lemmas~\ref{lem:vol}--\ref{lem:noise} and Proposition~\ref{prop:HY} give $H(X) = \log n - d + o_P(1)$, $H(E) = \log n - o_P(1)$, and $H(Y) = \log n - D(u) + o_P(1)$.
+
+At scale $w := z/n$ ($z > 0$ fixed), row $P_y$ leaves unusable remainder $R_y(z) := 1 - w\sum_{x=1}^n \lfloor P_y(x)/w \rfloor$. Write $a_y := (s/n)/p(y) \in [0, 1 + O(\epsilon_n)]$. Outside its at most $K_* = O_P(\log n)$ preimages, $P_y(x) = a_y p_x(1 + O(\epsilon_n))$ uniformly. For ideal diffuse entries $a p_x$, define
+\[
+r_a(z) := a - z\,\mathbb{E}\!\left\lfloor \frac{aA}{z} \right\rfloor = a - \frac{z}{e^{z/a} - 1} \quad (a > 0),
+\qquad r_0(z) := 0.
+\]
+By the law of large numbers on a finite grid of $a \in [0, 2]$, monotonicity, and continuity, we have $n^{-1}\sum_{x=1}^n \lfloor a n p_x / z \rfloor \to \mathbb{E}\lfloor aA/z \rfloor$ uniformly for $a \in [0, 2]$; bracketing $a$ absorbs both $S_n / n \to 1$ and the uniform $(1 + O(\epsilon_n))$ factor. Replacing the ideal remainders at the at most $K_*$ preimages changes $R_y(z)$ by at most $K_* z / n = o_P(1)$, so $R_y(z) = r_{a_y}(z) + o_P(1)$ uniformly in $y$. Since $\partial_a r_a(z) = 1 - [v/(2\sinh(v/2))]^2 \ge 0$ ($v = z/a$), $r_a(z)$ increases in $a$; empty bins have $a_y = 1 + O(\epsilon_n)$, so $\max_y R_y(z) \to r(z) := r_1(z) = 1 - z/(e^z - 1)$ in probability.
+
+Allocate shared atoms along the dyadic grid $z_j := 2^j$ in descending order $j = 5, 4, \dots, -12$, emitting at scale $j$ as many shared atoms of size $2^j / n$ as every row can simultaneously accept. Since all earlier allocations are integer multiples of $2^j/n$, the common residual mass after scale $j$ is \emph{exactly} $\max_y R_y(2^j)$, independent of placement. Couple the final normalized residual via Lemma~\ref{lem:greedy}, using at most $4096n + 1 + n(n-1) \le m$ atoms in total. Setting $r_j := r(2^j)$ and $r_6 := 1$, subtracting $\log n$ yields $B_m \le \log n + U + o_P(1)$ with
+\[
+U := -\sum_{j=-12}^{5} (r_{j+1} - r_j)\log(2^j) + r_{-12}(1 - \log r_{-12}) = 0.3466016619\ldots
+\]
+Finally, for every $z \ge 0$, $(u + (1-u)z)\log(u + (1-u)z) \ge u\log u + (1-u)z\log((1-u)z)$; taking expectations (with $\mathbb{E}[Z] = 1$) gives $D(u) \ge (1 - u)D(0) - h(u) > 0.84292$. Hence $G_m \le U + d - D(u) + o_P(1) < -0.07354 + o_P(1)$, as certified in \texttt{explore.py} by 50-digit interval arithmetic using the first 30 positive terms of the series for $D(0)$.
+\end{proof}
+
+\section{Other Alphabet Regimes and Support Obstruction}
+
+\begin{proposition}[Rational-independence support obstruction]\label{prop:obstruction}
+Fix the forward noise weights $q$ and table $f$, and set $v_{yx} := p(y \mid x)$, $L_y(A) := \sum_x v_{yx} A_x$, and $s_y := |\{x : v_{yx} > 0\}|$. For any subset $S \subseteq [n]$ of bins whose linear forms $\{L_y\}_{y \in S}$ are pairwise nonproportional, any backward coupling requires at least $1 + \sum_{y \in S}(s_y - 1)$ atoms almost surely over $A_1, \dots, A_n \stackrel{\mathrm{i.i.d.}}{\sim} \mathrm{Exp}(1)$.
+\end{proposition}
+
+\begin{proof}
+We claim that $1$ together with all positive entries $v_{yx} A_x / L_y(A)$ ($y \in S$, omitting one positive entry per row) are linearly independent over $\mathbb{Q}$ almost surely. Given a rational linear relation, multiply by $\prod_{y \in S} L_y(A)$ in $\mathbb{R}[A_1, \dots, A_n]$ and reduce modulo each distinct irreducible factor $L_y(A)$. Relative primality forces each row-$y$ numerator to be divisible by $L_y(A)$; omitting one positive entry forces the quotient to vanish, killing all row coefficients and hence the constant term. Nonidentities vanish on a null set, and there are countably many rational relations. Because $1$ and every posterior entry are subset sums of the backward atom weights, at least $1 + \sum_{y \in S}(s_y - 1)$ atoms are necessary.
+\end{proof}
+
+At zero offset ($c = 0$), the remaining regimes behave as follows:
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \emph{Fixed $m$:} $H(E)$ retains its $\Dir(1,\dots,1)$ entropy law (mean $\sum_{j=1}^m 1/j - 1$, non-concentrated for $m > 1$), $H(X) = \log n - d + o_P(1)$, and conditional on $q$, $H(Y) = \log n - \mathbb{E}[Z_q\log Z_q \mid q] + o_P(1)$ for $Z_q = \sum_{e=1}^m q_e Z_e$ ($Z_e$ i.i.d.\ copies of $Z$). The first column alone produces a bin with $> m$ preimages with high probability (fraction $\to \Pr(\Pois(1) > m) > 0$), so $B_m = +\infty$ with high probability. (With an unrestricted backward alphabet, the $\Omega(\log\log n)$ lower bound of~\cite{Compton2020} applies.)
+\item \emph{$m = \lfloor n^\alpha \rfloor$, $0 < \alpha \le 1$:} The cap is inactive, $H(E) = \log m - d + o_P(1)$, and $H(Y) = \log n + o_P(1)$ since the expected $\chi^2$ distance from uniform is $(n-1)\mathbb{E}[\sum p_x^2]\mathbb{E}[\sum q_e^2] = 4(n-1)/[(n+1)(m+1)] \to 0$. Two specified bins have $\Bin(n, 1 - (1 - 1/n)^m)$ support sizes summing to $> (1 + \delta)m$ and distinct supports with high probability, so Proposition~\ref{prop:obstruction} gives $B_m = +\infty$ with high probability.
+\item \emph{$m = \lfloor n^\alpha \rfloor$, $1 < \alpha < 2$:} Lemmas~\ref{lem:vol}--\ref{lem:noise} and Proposition~\ref{prop:HY} give $H(E) = \log n + o_P(1)$ and $H(Y) = \log n - D(1/\alpha) + o_P(1)$. All $n^2$ cells are hit with high probability, and for every pair of output bins some column hits both on distinct inputs (giving a $\pm 1$ minor at that vertex, hence nonzero a.e.\ under the conditioned law). Proposition~\ref{prop:obstruction} on all $n$ bins requires $1 + n(n-1) > m$ atoms, so $B_m = +\infty$ with high probability.
+\item \emph{$m = \lfloor n^\alpha \rfloor$, $\alpha \ge 2$ (fixed $c$):} $H(E) = \log n + c + o_P(1)$, $H(Y) = \log n - D(1/\alpha) + o_P(1)$, and $\log n - d - o_P(1) \le B_m \le \log n + U + o_P(1)$ (minimizing concave entropy over the coupling polytope face supported on the dyadic response vectors attains a vertex of support $\le 1 + n(n-1) \le m$). The exact $O(1)$ additive constant of $B_m$ for fixed $\alpha \ge 2$ remains undetermined here.
+\end{itemize}
+
+\section{Reproducible Numerical Checks}
+
+Running \texttt{.venv/bin/python -B solutions/entropic\_causal\_ident/explore.py} (seed \texttt{210103501}) performs direct rejection sampling from $\Dir(1,\dots,1)$ under $H(E) \le \log n + c$, verifies posterior reconstruction and majorization lower bounds, certifies $U + d - D(1/1024) < -0.07354$ via 50-digit interval arithmetic, runs exact rational optimization on 400 binary instances (337 feasible, 226 strict reversals) and 48 ternary instances (12 feasible, certified via 100-digit interval logarithms), and runs 128 surrogate single-map-plus-uniform-tail trials at $n = 8, 16, 32, 64$ (mean $H_{\mathrm{greedy}} - H(X)$ equal to $0.04954, 0.01329, 0.00485, 0.00148$ nats). Representative direct-trial means appear in Table~\ref{tab:direct}; all 256 quadratic trials at $c = 2$ ($n = 4, 8, 10, 12$) produced feasible reversing witnesses.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}rrrrrrrrrr@{}}
+\toprule
+$n$ & $m$ & $c$ & Trials & $\overline{H(X)}$ & $\overline{H(E)}$ & $\overline{H(Y)}$ & MEC lb & Greedy & Reversals \\
+\midrule
+16 &   2 & 2 & 64 & 2.3860 & 0.4850 & 2.2342 & 1.2365 & 1.5373 &  0/64 \\
+32 &  32 & 0 & 32 & 3.0571 & 3.0736 & 3.4146 & 2.7420 & 3.1643 &  0/32 \\
+ 4 &  16 & 2 & 64 & 1.0870 & 2.3639 & 1.3141 & 1.1935 & 1.5510 & 64/64 \\
+ 8 &  64 & 2 & 64 & 1.6981 & 3.7392 & 2.0531 & 1.8121 & 2.2722 & 64/64 \\
+10 & 100 & 2 & 64 & 1.9250 & 4.1928 & 2.2861 & 2.0348 & 2.5111 & 64/64 \\
+12 & 144 & 2 & 64 & 2.0932 & 4.4581 & 2.4710 & 2.1994 & 2.6754 & 64/64 \\
+\bottomrule
+\end{tabular}
+\caption{Direct rejection-sampling trials from \texttt{explore.py} (901 proposals for 64 accepted draws at $(12, 144)$).}
+\label{tab:direct}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Compton2020}
+S.~Compton, M.~Kocaoglu, K.~Greenewald, and D.~Katz,
+\emph{Entropic Causal Inference: Identifiability and Finite Sample Results},
+Advances in Neural Information Processing Systems (NeurIPS), 2020 (\href{https://arxiv.org/abs/2101.03501}{arXiv:2101.03501}).
+
+\bibitem{Kocaoglu2017}
+M.~Kocaoglu, A.~G.~Dimakis, S.~Vishwanath, and B.~Hassibi,
+\emph{Entropic Causal Inference},
+Proceedings of the AAAI Conference on Artificial Intelligence (AAAI), 2017 (\href{https://arxiv.org/abs/1611.04035}{arXiv:1611.04035}).
+
+\end{thebibliography}
+
+\end{document}
