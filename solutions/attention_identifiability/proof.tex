@@ -1,0 +1,297 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype,xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\rk}{rk}
+\DeclareMathOperator{\Map}{Map}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\calS}{\mathcal{S}}
+\newcommand{\calU}{\mathcal{U}}
+\newcommand{\calV}{\mathcal{V}}
+\newcommand{\bfW}{\mathbf{W}}
+\newcommand{\bfM}{\mathbf{M}}
+\newcommand{\bfQ}{\mathbf{Q}}
+\newcommand{\bfK}{\mathbf{K}}
+\newcommand{\bfV}{\mathbf{V}}
+\newcommand{\bfd}{\mathbf{d}}
+\newcommand{\bfa}{\mathbf{a}}
+
+\title{Virtual-Weight Identifiability and Dimension Formula for\\
+Deep Normalized Self-Attention}
+\author{}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\textbf{Target Conjecture:} & Nathan W.\ Henry, Giovanni Luca Marchetti, and Kathl\'en Kohn, \\
+& \emph{``Geometry of Lightning Self-Attention: Identifiability and Dimension,''} \\
+& \href{https://arxiv.org/abs/2408.17221}{arXiv:2408.17221} (v3, June 2026; ICLR 2025), Section~3.4, Conjecture~3.10 \\
+& (\texttt{conj:deepsmax}) and Dimension Formula (\texttt{eq:conjform}). \\
+\textbf{Domain:} & Machine Learning Theory / Algebraic \& Differential Geometry of Transformers. \\
+\textbf{Formalization:} & Machine-checked in Lean~4 + Mathlib (zero \texttt{sorry}): \\
+& \texttt{deep\_softmax\_identifiability} and \texttt{t2\_skew\_collapse}; \\
+& computational verification in \texttt{verify\_attention.py}.
+\end{tabular}
+\end{center}
+
+\begin{abstract}
+We prove Conjecture~3.10 (\texttt{conj:deepsmax}) of Henry, Marchetti, and Kohn (\texttt{arXiv:2408.17221}) for all $C^{1,1}$ positive normalizers $\calS$ with $\calS'(0) \neq 0$ (in particular softmax $\calS(x) = e^{x/\tau}$, $\tau > 0$), for all depths $l \ge 1$, all sequence lengths $t \ge 2$, and all positive architectures $\bfd, \bfa$. Specifically, the virtual weights $(\bfM, L)$ are uniquely identifiable on the explicit Zariski-open locus
+\[
+\calU = \bigl\{(\bfM, L) : L \neq 0,\; M_r + M_r^\top \neq 0 \text{ for all } 1 \le r \le l - 1\bigr\},
+\]
+which is both necessary and sufficient for singleton fibers when $t = 2$ with softmax. Combining Theorem~\ref{thm:main} with the real-analytic constant-rank theorem and Henry--Marchetti--Kohn's \texttt{matfact}/\texttt{M\_fibers} factorization yields the neuromanifold dimension formula (\texttt{eq:conjform}) for all $l \ge 2$ and arbitrary (possibly unequal) widths. Non-analytic injective normalizers with $\calS'(0) = 0$ (e.g., $\calS(x) = e^{x^3}$) or non-smooth normalizers remain outside the scope of Theorem~\ref{thm:main}.
+\end{abstract}
+
+\begin{remark}[Prior art and distinct contributions]
+P.\ V.\ Konda, \emph{``The Identifiability and Observability of Deep Normalized Attention''} (\href{https://arxiv.org/abs/2610.09620}{arXiv:2610.09620}, October~7, 2026, unrefereed v1), independently claims a proof of virtual-weight identifiability on the same locus $\calU$ for positive nonconstant real-analytic normalizers (including softmax), together with the $t = 2$ skew-collapse sharpness, an immersion theorem on $\calU$, and the equal-width local rank formula.
+
+The distinct contributions of the present work are:
+\begin{enumerate}[label=(\roman*),leftmargin=2.2em,itemsep=1pt]
+    \item a complete, zero-\texttt{sorry} Lean~4 + Mathlib machine-checked proof of virtual-weight deep softmax identifiability (\texttt{deep\_softmax\_identifiability}) for all $l \ge 1, t \ge 2$ and first-layer $t = 2$ skew collapse (\texttt{t2\_skew\_collapse});
+    \item a non-analytic $C^{1,1}$ normalizer proof requiring only $C^{1,1}$ regularity near $0$ and $\calS'(0) \neq 0$ (explicitly left open by Konda); and
+    \item the unequal-width derivation of \texttt{eq:conjform} via real-analytic generic rank combined with Henry--Marchetti--Kohn's \texttt{matfact}/\texttt{M\_fibers} factorization.
+\end{enumerate}
+\end{remark}
+
+\section{Setup and Virtual-Weight Reparametrization}
+
+Fix integers $l \ge 1$ (depth), $t \ge 2$ (sequence length), and $d_0, d_l \ge 1$. Let $\calS : \R \to \R_{>0}$ be $C^{1,1}$ on an open interval $(-\delta_0, \delta_0)$ (i.e., continuously differentiable with locally Lipschitz derivative near $0$; in particular this holds whenever $\calS$ is $C^2$ near $0$, including softmax $\calS(x) = e^{x/\tau}$) with $\calS'(0) \neq 0$. Set
+\[
+f(x) := \log \calS(x), \qquad \alpha := f'(0) = \frac{\calS'(0)}{\calS(0)} \neq 0.
+\]
+For virtual weights $\bfW = (\bfM, L) \in (\R^{d_0 \times d_0})^l \times \R^{d_l \times d_0}$ (arising from layer weights via $L = L_l = V_l \cdots V_1$, $L_r = V_r \cdots V_1$, $L_0 = I_{d_0}$, and $M_r = L_{r-1}^\top A_r L_{r-1}$) and an input matrix $X = (x_1, \dots, x_t) \in \R^{d_0 \times t}$, define $Z^{(0)}(X) := X$ and inductively for $r = 1, \dots, l$:
+\[
+Z^{(r)}(X)_i :=
+\frac{\sum_{j=1}^t \calS\!\left((Z^{(r-1)}_i)^\top M_r Z^{(r-1)}_j\right) Z^{(r-1)}_j}
+{\sum_{k=1}^t \calS\!\left((Z^{(r-1)}_i)^\top M_r Z^{(r-1)}_k\right)},
+\qquad 1 \le i \le t.
+\]
+By induction on $r$, the hidden states satisfy $X^{(r)} = L_r Z^{(r)}(X)$, and the full $l$-layer normalized self-attention map is given by
+\[
+\varphi_{(\bfM, L)}(X) = L\, Z^{(l)}(X).
+\]
+
+\section{Main Theorem: Global Identifiability on an Explicit Zariski-Open Locus}
+
+\begin{theorem}[Global virtual-weight identifiability]\label{thm:main}
+Let $l \ge 1$, $t \ge 2$, $d_0, d_l \ge 1$, and let $\calS : \R \to \R_{>0}$ be $C^{1,1}$ near $0$ with $\calS'(0) \neq 0$. Let $\bfW = (\bfM, L)$ and $\bfW' = (\bfM', L')$ belong to $(\R^{d_0 \times d_0})^l \times \R^{d_l \times d_0}$. Assume:
+\begin{enumerate}[leftmargin=2em,itemsep=1pt]
+    \item $L \neq 0$, and
+    \item $M_r + M_r^\top \neq 0$ (i.e., $M_r$ is not skew-symmetric) for every $1 \le r \le l - 1$.
+\end{enumerate}
+If $\varphi_{\bfW}(X) = \varphi_{\bfW'}(X)$ for all $X$ in some open neighborhood of $0 \in \R^{d_0 \times t}$, then $\bfW = \bfW'$ (that is, $L = L'$ and $M_r = M'_r$ for all $1 \le r \le l$).
+\end{theorem}
+
+\begin{proof}
+Define $\sigma(z) := \frac{1}{1 + (t - 1)e^{-z}} \in (0, 1)$, so that $\sigma(0) = \frac{1}{t}$, $\sigma'(0) = \frac{t - 1}{t^2} > 0$, and
+\[
+\frac{\calS(p)}{\calS(p) + (t - 1)\calS(q)} = \sigma\bigl(f(p) - f(q)\bigr) \qquad \forall p, q \in \R.
+\]
+We proceed in four steps.
+
+\paragraph{Step 1 (Recovery of $L$).}
+On constant-token inputs $X = (x, \dots, x)$, immediate induction on $r$ yields $Z^{(r)}(X)_i = x$ for all $r, i$. Hence $\varphi_{\bfW}(x, \dots, x)_1 = L x = L' x$ for all $x$ in a neighborhood of $0 \in \R^{d_0}$, which implies $L = L'$.
+
+\paragraph{Step 2 (Two-cluster reduction).}
+Fix $y, v \in \R^{d_0}$ and $\eta \in \R$. For $u > 0$, set $\mu := \sqrt{u}$ and define the two-cluster input
+\[
+X(u) := \bigl(\mu(\eta y + v),\; \mu\eta y,\; \dots,\; \mu\eta y\bigr) \in \R^{d_0 \times t}.
+\]
+Define scalar sequences $a_0(u) := 1$, $b_0(u) := 0$, $d_r(u) := a_r(u) - b_r(u)$, and inductively for $1 \le r \le l$:
+\begin{align*}
+p_{r,1}(u) &= u(\eta y + a_{r-1} v)^\top M_r (\eta y + a_{r-1} v),
+& q_{r,1}(u) &= u(\eta y + a_{r-1} v)^\top M_r (\eta y + b_{r-1} v), \\
+p_{r,2}(u) &= u(\eta y + b_{r-1} v)^\top M_r (\eta y + a_{r-1} v),
+& q_{r,2}(u) &= u(\eta y + b_{r-1} v)^\top M_r (\eta y + b_{r-1} v), \\
+w_{r,k}(u) &= \sigma\bigl(f(p_{r,k}(u)) - f(q_{r,k}(u))\bigr) \in (0, 1),
+& a_r &= b_{r-1} + d_{r-1} w_{r,1}, \quad b_r = b_{r-1} + d_{r-1} w_{r,2}.
+\end{align*}
+We define $a'_r(u), b'_r(u), d'_r(u)$ analogously for $\bfW'$.
+
+\begin{lemma}[Two-cluster invariance and contraction]\label{lem:twocluster}
+For all $u > 0$ and all $0 \le r \le l$:
+\begin{enumerate}[label=(\arabic*),leftmargin=2.2em,itemsep=1pt]
+    \item $Z^{(r)}(X(u))_1 = \mu(\eta y + a_r(u) v)$ and $Z^{(r)}(X(u))_i = \mu(\eta y + b_r(u) v)$ for all $2 \le i \le t$;
+    \item $a_r(u), b_r(u) \in [0, 1]$, and nested convex-hull contraction yields $|a_l(u) - b_r(u)| \le |d_r(u)|$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}[Proof of Lemma~\ref{lem:twocluster}]
+Both statements follow by induction on $r$. For $r = 0$, $Z^{(0)}(X(u))$ matches (1) by construction. Given (1) at $r - 1$, token~$1$ attends to token~$1$ with weight $w_{r,1}$ and to each of the $t - 1$ identical tokens $2, \dots, t$ with total weight $1 - w_{r,1}$, yielding
+\[
+Z^{(r)}(X(u))_1 = w_{r,1}\mu(\eta y + a_{r-1}v) + (1 - w_{r,1})\mu(\eta y + b_{r-1}v)
+= \mu\bigl(\eta y + (b_{r-1} + d_{r-1}w_{r,1})v\bigr),
+\]
+and similarly for $2 \le i \le t$ with $w_{r,2}$. Since $w_{r,k} \in (0, 1)$, both $a_r$ and $b_r$ are convex combinations of $a_{r-1}$ and $b_{r-1}$, giving the nested intervals
+\[
+[\min(a_l, b_l), \max(a_l, b_l)] \subseteq \dots \subseteq [\min(a_r, b_r), \max(a_r, b_r)] \subseteq [0, 1],
+\]
+which implies $a_r(u), b_r(u) \in [0, 1]$ and $|a_l(u) - b_r(u)| \le |a_r(u) - b_r(u)| = |d_r(u)|$.
+\end{proof}
+
+\paragraph{Step 3 (Exact small-$u$ asymptotics).}
+Set $\beta_r := v^\top M_r v$, $\gamma_r := y^\top M_r v$, and define the exponent sequence
+\[
+e_r := \frac{3^r - 1}{2}
+\]
+(so $e_0 = 0$, $e_r = 3e_{r-1} + 1$, and $2e_{r-1} + 1 = 3^{r-1}$). Define $c_0 := 1$,
+\[
+c_r := (\sigma'(0)\alpha)\beta_r c_{r-1}^3 = (\sigma'(0)\alpha)^{e_r} \prod_{j=1}^r \beta_j^{3^{r-j}},
+\]
+and $b_0(0) := 0$, $b_r(0) := \frac{1}{t}$ for $r \ge 1$.
+
+\begin{lemma}[Small-$u$ expansion]\label{lem:asymptotics}
+For every $r \in \{1, \dots, l\}$, as $u \to 0^+$:
+\begin{enumerate}[label=(\arabic*),leftmargin=2.2em,itemsep=1pt]
+    \item $a_r(u) = \frac{1}{t} + O(u)$ and $b_r(u) = \frac{1}{t} + O(u)$;
+    \item $d_r(u) = c_r\, u^{e_r} + O(u^{e_r + 1})$;
+    \item $\displaystyle b_r(u) - b_{r-1}(u) - \frac{1}{t} d_{r-1}(u) = \sigma'(0)\alpha\, c_{r-1}^2\bigl(\eta \gamma_r + b_{r-1}(0)\beta_r\bigr) u^{3^{r-1}}$ \\
+    \hspace*{\fill}$+\, O(u^{3^{r-1} + 1})$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}[Proof of Lemma~\ref{lem:asymptotics}]
+We argue by induction on $r \ge 1$. Since $a_{r-1}(u), b_{r-1}(u) \in [0, 1]$, there is a constant $C > 0$ such that $|p_{r,k}(u)|, |q_{r,k}(u)| \le Cu$ for $k \in \{1, 2\}$, so for all sufficiently small $u > 0$ both arguments lie in $[-\delta_0/2, \delta_0/2]$, where $f'$ is Lipschitz with some constant $K_f$. Note that for $r = 1$, $d_0(u) = 1 = c_0 u^{e_0}$ and $b_0(u) = 0 = b_0(0)$; for $r \ge 2$, the induction hypothesis gives $b_{r-1}(u) = b_{r-1}(0) + O(u)$ and $d_{r-1}(u) = c_{r-1}u^{e_{r-1}} + O(u^{e_{r-1}+1})$.
+
+Let $\Delta_k := p_{r,k} - q_{r,k}$ for $k \in \{1, 2\}$. Direct algebraic expansion gives
+\begin{align*}
+\Delta_2(u) &= u d_{r-1}(\eta \gamma_r + b_{r-1}\beta_r)
+= c_{r-1}\bigl(\eta\gamma_r + b_{r-1}(0)\beta_r\bigr) u^{e_{r-1}+1} + O(u^{e_{r-1}+2}), \\
+\Delta_1(u) - \Delta_2(u) &= u d_{r-1}^2 \beta_r
+= c_{r-1}^2 \beta_r u^{2e_{r-1}+1} + O(u^{2e_{r-1}+2}),
+\end{align*}
+and $q_{r,1}(u) - q_{r,2}(u) = u d_{r-1} v^\top M_r (\eta y + b_{r-1} v) = O(u^{e_{r-1}+1})$.
+
+Setting $g_k := f(p_{r,k}) - f(q_{r,k})$, the Mean Value Theorem and Lipschitz continuity of $f'$ at $0$ yield $g_k = (\alpha + O(u))\Delta_k = \alpha\Delta_k + O(u^{e_{r-1}+2})$ (noting $\Delta_1 = \Delta_2 + O(u^{2e_{r-1}+1}) = O(u^{e_{r-1}+1})$). Since $\sigma$ is smooth near $0$ with $\sigma(0) = \frac{1}{t}$, we obtain $w_{r,k} = \sigma(g_k) = \frac{1}{t} + O(u)$. Together with $a_{r-1}, b_{r-1} \in [0, 1]$,
+\[
+a_r = b_{r-1} + d_{r-1} w_{r,1} = \begin{cases}
+w_{1,1} = \frac{1}{t} + O(u), & r = 1, \\
+\frac{1}{t} + O(u) + O(u) = \frac{1}{t} + O(u), & r \ge 2,
+\end{cases}
+\]
+and identically for $b_r$, proving~(1). Moreover, because $g_2 = O(u^{e_{r-1}+1})$ and $e_{r-1} \ge 0$, we have $g_2^2 = O(u^{2e_{r-1}+2}) = O(u^{e_{r-1}+2})$, so
+\[
+\sigma(g_2) - \frac{1}{t}
+= \sigma'(0) g_2 + O(g_2^2)
+= \sigma'(0)\alpha\, c_{r-1}\bigl(\eta\gamma_r + b_{r-1}(0)\beta_r\bigr) u^{e_{r-1}+1} + O(u^{e_{r-1}+2}).
+\]
+Multiplying by $d_{r-1} = c_{r-1}u^{e_{r-1}} + O(u^{e_{r-1}+1})$ and noting $2e_{r-1} + 1 = 3^{r-1}$ gives~(3):
+\[
+b_r(u) - b_{r-1}(u) - \frac{1}{t} d_{r-1}(u)
+= d_{r-1}\Bigl(\sigma(g_2) - \frac{1}{t}\Bigr)
+= \sigma'(0)\alpha\, c_{r-1}^2\bigl(\eta\gamma_r + b_{r-1}(0)\beta_r\bigr) u^{3^{r-1}} + O(u^{3^{r-1}+1}).
+\]
+For~(2), define the $C^1$ function on $[0, 1]$ by
+\begin{align*}
+\psi(s) &:= f\bigl(q_{r,2} + s(q_{r,1} - q_{r,2}) + \Delta_2 + s(\Delta_1 - \Delta_2)\bigr) \\
+        &\qquad - f\bigl(q_{r,2} + s(q_{r,1} - q_{r,2})\bigr),
+\end{align*}
+so $\psi(1) = g_1$ and $\psi(0) = g_2$. By the Mean Value Theorem there exists $\theta \in (0, 1)$ such that, setting $q_\theta := q_{r,2} + \theta(q_{r,1} - q_{r,2})$ and $\Delta_\theta := \Delta_2 + \theta(\Delta_1 - \Delta_2)$,
+\begin{align*}
+g_1 - g_2 = \psi'(\theta)
+&= f'(q_\theta + \Delta_\theta)(\Delta_1 - \Delta_2) + \bigl(f'(q_\theta + \Delta_\theta) - f'(q_\theta)\bigr)(q_{r,1} - q_{r,2}) \\
+&= \alpha c_{r-1}^2 \beta_r u^{2e_{r-1}+1} + O(u^{2e_{r-1}+2}),
+\end{align*}
+where we used $|f'(q_\theta + \Delta_\theta) - \alpha| \le K_f(|q_\theta| + |\Delta_\theta|) = O(u)$ and
+\[
+\bigl|f'(q_\theta + \Delta_\theta) - f'(q_\theta)\bigr|\cdot |q_{r,1} - q_{r,2}|
+\le K_f |\Delta_\theta| \cdot |q_{r,1} - q_{r,2}|
+= O(u^{e_{r-1}+1})\cdot O(u^{e_{r-1}+1}) = O(u^{2e_{r-1}+2}).
+\]
+Applying the Mean Value Theorem to $\sigma$ gives $\sigma(g_1) - \sigma(g_2) = (\sigma'(0) + O(u))(g_1 - g_2)$, and multiplying by $d_{r-1} = c_{r-1}u^{e_{r-1}} + O(u^{e_{r-1}+1})$ yields
+\[
+d_r(u) = d_{r-1}\bigl(\sigma(g_1) - \sigma(g_2)\bigr)
+= (\sigma'(0)\alpha)\beta_r c_{r-1}^3 u^{3e_{r-1}+1} + O(u^{3e_{r-1}+2})
+= c_r u^{e_r} + O(u^{e_r+1}),
+\]
+completing the induction.
+\end{proof}
+
+\paragraph{Step 4 (Layer-by-layer recovery).}
+Whenever $L v \neq 0$, Step~1 ($L = L'$) and Lemma~\ref{lem:twocluster}(1) yield
+\[
+\mu\bigl(\eta L y + a_l(u) L v\bigr) = \varphi_{\bfW}(X(u))_1 = \varphi_{\bfW'}(X(u))_1 = \mu\bigl(\eta L y + a'_l(u) L v\bigr)
+\]
+for all sufficiently small $u > 0$, hence $a_l(u) = a'_l(u)$ for all small $u > 0$ and all $\eta \in \R$.
+
+\emph{Base case ($r = 1$).}
+For $l = 1$, $a_1(u) = w_{1,1}(u) = \sigma(f(p_{1,1}) - f(q_{1,1}))$ with $p_{1,1} - q_{1,1} = u(\eta y^\top M_1 v + v^\top M_1 v)$, so
+\[
+a_1(u) - \frac{1}{t} = \sigma'(0)\alpha\bigl(\eta y^\top M_1 v + v^\top M_1 v\bigr) u + O(u^2).
+\]
+For $l \ge 2$, Lemma~\ref{lem:twocluster}(2) and Lemma~\ref{lem:asymptotics}(2) give $|a_l(u) - b_2(u)| \le |d_2(u)| = O(u^4)$, while Lemma~\ref{lem:asymptotics}(3) at $r = 2$ gives $b_2(u) = b_1(u) + \frac{1}{t} d_1(u) + O(u^3)$. Since $b_1(u) = \frac{1}{t} + \sigma'(0)\alpha(\eta y^\top M_1 v) u + O(u^2)$ and $d_1(u) = \sigma'(0)\alpha(v^\top M_1 v) u + O(u^2)$, we obtain
+\[
+a_l(u) - \frac{1}{t} = \sigma'(0)\alpha\Bigl(\eta y^\top M_1 v + \frac{1}{t} v^\top M_1 v\Bigr) u + O(u^2).
+\]
+In either case, dividing $a_l(u) - \frac{1}{t} = a'_l(u) - \frac{1}{t}$ by $u$, letting $u \to 0^+$, and subtracting the result at $\eta = 0$ from that at $\eta = 1$ yields $y^\top M_1 v = y^\top M'_1 v$ (since $\sigma'(0)\alpha \neq 0$) for all $y \in \R^{d_0}$ and all $v \notin \ker(L)$. Because $L \neq 0$, $\R^{d_0} \setminus \ker(L)$ is dense in $\R^{d_0}$, hence $M_1 = M'_1$.
+
+\emph{Inductive step ($2 \le r \le l$).}
+Assume $M_j = M'_j$ for all $1 \le j \le r - 1$. Consider the set
+\[
+U_r := \bigl\{v \in \R^{d_0} : L v \neq 0 \text{ and } v^\top M_j v \neq 0 \text{ for all } 1 \le j \le r - 1\bigr\}.
+\]
+Because $L \neq 0$ and each quadratic form $v \mapsto v^\top M_j v = \frac{1}{2} v^\top (M_j + M_j^\top) v$ is nonzero ($1 \le j \le r - 1$), $U_r$ is a nonempty Zariski-open subset of $\R^{d_0}$, hence dense. Fix $v \in U_r$ and $y \in \R^{d_0}$. By the induction hypothesis, $b_{r-1}(u) = b'_{r-1}(u)$, $d_{r-1}(u) = d'_{r-1}(u)$, and $c_{r-1} = c'_{r-1} \neq 0$.
+
+Because $r \ge 2$, we have the strict exponent gap
+\[
+e_r = \frac{3^r - 1}{2} = 3^{r-1} + \frac{3^{r-1} - 1}{2} \ge 3^{r-1} + 1.
+\]
+Hence Lemma~\ref{lem:twocluster}(2) and Lemma~\ref{lem:asymptotics}(2) imply $|a_l(u) - b_r(u)| \le |d_r(u)| = O(u^{3^{r-1}+1})$. Substituting Lemma~\ref{lem:asymptotics}(3) yields
+\begin{align*}
+a_l(u) - b_{r-1}(u) - \frac{1}{t} d_{r-1}(u)
+&= \sigma'(0)\alpha\, c_{r-1}^2\Bigl(\eta (y^\top M_r v) + \frac{1}{t} (v^\top M_r v)\Bigr) u^{3^{r-1}} \\
+&\qquad + O(u^{3^{r-1}+1}),
+\end{align*}
+and the identical expansion holds for $\bfW'$ with $M'_r$. Since the left-hand sides agree for all small $u > 0$, dividing by $u^{3^{r-1}}$, letting $u \to 0^+$, and taking $\eta = 1$ minus $\eta = 0$ gives $y^\top M_r v = y^\top M'_r v$ (using $\sigma'(0)\alpha c_{r-1}^2 \neq 0$). Since this holds for all $y \in \R^{d_0}$ and all $v$ in the dense set $U_r$, we conclude $M_r = M'_r$. By induction, $\bfW = \bfW'$.
+\end{proof}
+
+\section{Sharpness ($t = 2$), Conjecture \texttt{conj:deepsmax}, and Dimension Formula}
+
+\begin{proposition}[Sharpness for $t = 2$ with softmax]\label{prop:sharp}
+Let $t = 2$ and $\calS(x) = e^{x/\tau}$ ($\tau > 0$). Then the fiber of $\bfW = (\bfM, L) \mapsto \varphi_{\bfW}$ through $\bfW$ is a singleton \emph{if and only if} $\bfW \in \calU$, i.e., $L \neq 0$ and $M_r + M_r^\top \neq 0$ for all $1 \le r \le l - 1$.
+\end{proposition}
+
+\begin{proof}
+Sufficiency is Theorem~\ref{thm:main}. For necessity, if $L = 0$ then $\varphi_{(\bfM, 0)} \equiv 0$ is independent of $\bfM$. If $M_r^\top = -M_r$ for some $1 \le r \le l - 1$, then for any input $X \in \R^{d_0 \times 2}$, writing $(z_1, z_2) := Z^{(r-1)}(X)$ and $c := z_1^\top M_r z_2$, skew-symmetry gives
+\[
+z_1^\top M_r z_1 = z_2^\top M_r z_2 = 0, \qquad z_2^\top M_r z_1 = -c.
+\]
+Hence the attention weights for token~$1$ and token~$2$ on $z_1$ are
+\[
+\frac{e^{0}}{e^{0} + e^{c/\tau}} = \frac{1}{1 + e^{c/\tau}} = \frac{e^{-c/\tau}}{e^{-c/\tau} + 1},
+\]
+which coincide identically. Thus $Z^{(r)}(X)_1 = Z^{(r)}(X)_2$ for every $X \in \R^{d_0 \times 2}$. All subsequent attention layers act as the identity on constant-token sequences, so $\varphi_{(\bfM, L)}$ is completely independent of $M_{r+1}, \dots, M_l$, and its fiber is infinite.
+\end{proof}
+
+\begin{corollary}[Generic identifiability of $(\bfQ, \bfK, \bfV)$ and dimension formula \texttt{eq:conjform}]\label{cor:dim}
+Let $\bfd = (d_0, d_1, \dots, d_l)$ and $\bfa = (a_1, \dots, a_l)$ be positive architecture dimensions, and let $\calV_{\bfd,\bfa} := \im\bigl((\bfQ, \bfK, \bfV) \mapsto (\bfM, L)\bigr) \subseteq (\R^{d_0 \times d_0})^l \times \R^{d_l \times d_0}$ be the realizable virtual-weight image.
+\begin{enumerate}[label=(\arabic*),leftmargin=2.2em,itemsep=2pt]
+    \item The Zariski-open locus $\calU = \{L \neq 0,\; M_r + M_r^\top \neq 0\ \forall r < l\}$ intersects $\calV_{\bfd,\bfa}$ nonemptily (witnessed by $V_r = Q_r = K_r = E_{1,1}$, for which $L = E_{1,1} \neq 0$ and $M_r = E_{1,1}$ is symmetric nonzero). Intersecting $\calU$ with the generic full-rank locus required by Henry--Marchetti--Kohn's Lemmas~\texttt{matfact} and~\texttt{M\_fibers} ($\rk(A_r) = \alpha_r$, $\rk(L) = \delta$, etc.) recovers the raw $(\bfQ, \bfK, \bfV)$ parameters up to the gauge symmetries of those lemmas, \emph{without} the $l$ scaling symmetries of unnormalized attention (since normalization fixes the scale of each $M_r$).
+    \item \emph{Dimension formula (\texttt{eq:conjform}) for real-analytic $\calS$ (e.g., softmax) and $l \ge 2$:} Let $\Psi : \calV_{\bfd,\bfa} \to \Map(\R^{d_0 \times t}, \R^{d_l \times t})$ denote the virtual-weight-to-function map $(\bfM, L) \mapsto \varphi_{(\bfM, L)}$. Because $\Psi$ is real-analytic and injective on the dense open subset $\calU \cap \calV_{\bfd,\bfa}$, its differential $d\Psi$ must have full generic rank equal to $\dim \calV_{\bfd,\bfa}$ (otherwise, by the constant-rank theorem, $\Psi$ would have positive-dimensional fibers on a nonempty open subset of $\calU \cap \calV_{\bfd,\bfa}$, contradicting Theorem~\ref{thm:main}). Evaluating $\dim \calV_{\bfd,\bfa}$ as in Corollary~\texttt{dimneur} of Henry--Marchetti--Kohn---with the $l$ unnormalized scaling redundancies removed---yields the conjectured neuromanifold dimension formula \texttt{eq:conjform} for all $l \ge 2$ and arbitrary (possibly unequal) widths.
+\end{enumerate}
+\end{corollary}
+
+\begin{remark}[Scope notes for Corollary~\ref{cor:dim}]
+For $l = 1$, the quantity $\delta$ appearing in \texttt{eq:conjform} is undefined in Henry--Marchetti--Kohn (\texttt{arXiv:2408.17221}). Moreover, while Corollary~\ref{cor:dim}(2) establishes the full generic rank of $d\Psi$ (which suffices for the neuromanifold dimension), a direct proof of the stronger claim that $\Psi$ is an immersion \emph{everywhere} on $\calU$ is not written out here; Konda (\texttt{arXiv:2610.09620}, Theorem~3 / Proposition~C.1) claims this stronger property for real-analytic normalizers.
+\end{remark}
+
+\end{document}

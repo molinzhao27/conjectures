@@ -1,0 +1,248 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype,xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\DeclareMathOperator{\arsinh}{arsinh}
+\DeclareMathOperator{\artanh}{artanh}
+\DeclareMathOperator{\arcosh}{arcosh}
+
+\title{Analytical Resolution and Refutation of Upper-Bound Conjectures in Wampler and Barato}
+\author{}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\textbf{Target Reference:} Taylor Wampler and Andr\'e C. Barato, \emph{Skewness and Kurtosis in Stochastic Thermodynamics},
+\emph{J. Phys. A: Math. Theor.} \textbf{55} (2022) 014002,
+\href{https://arxiv.org/abs/2110.14540}{arXiv:2110.14540}.\\[3pt]
+\textbf{Domain:} Biophysics / Stochastic Thermodynamics (Unicyclic Enzymatic and Molecular-Motor Markov Networks).\\[3pt]
+\textbf{Verification:} Algebraic core formalized in Lean~4 (\texttt{Conjectures/StochThermo.lean}); symbolic and numerical verification in \texttt{verify\_stoch\_thermo.py}.
+\end{center}
+
+\medskip
+
+\begin{abstract}
+We establish the complete exact analytical upper-bound theory for skewness $S$ and kurtosis $K$ in two-state unicyclic Markov networks ($\Omega = 2$), refute Table~1 and the ``kink'' claim of Wampler and Barato (\href{https://arxiv.org/abs/2110.14540}{arXiv:2110.14540}) analytically for $\Omega \in \{2, 3\}$ (and numerically through $\Omega = 8$), and derive the exact continuum bifurcation thresholds as $\Omega \to \infty$: $A_{\mathrm{bif}}^S(\infty) = 2\pi/\sqrt{3} \approx 3.62760$ and $A_{\mathrm{bif}}^K(\infty) = 2\pi/5^{1/4} \approx 4.20182$. We also record our independent derivation of the closed-form first-passage-time (FPT) scaled cumulant generating function (SCGF) via Gallavotti--Cohen symmetrization and universal lower-bound results, noting their relation to the concurrent preprint of Li and Yeroushalmi (November 22, 2026).
+\end{abstract}
+
+\begin{remark}[Novelty and Attribution]
+On November 22, 2026, B.~Li and E.~Yeroushalmi (\href{https://github.com/brandonlign/first-passage}{\texttt{github.com/\allowbreak brandonlign/\allowbreak first-passage}}) independently posted a preprint proving the \emph{lower-envelope} conjectures for every $\Omega \ge 1$ and containing an algebraically equivalent closed-form SCGF, while explicitly leaving the \emph{upper-bound} conjectures open. Accordingly, our primary novel contributions are:
+\begin{enumerate}[leftmargin=2em,itemsep=2pt]
+  \item the exact $\Omega = 2$ analytical upper bounds $S_{\max}(A,2)$ and $K_{\max}(A,2)$ for all $A > 0$;
+  \item the refutation of Wampler--Barato's Table~1 and ``kink'' claim for $\Omega = 2, 3$ (and numerically across Table~1 through $\Omega = 8$); and
+  \item the exact $\Omega \to \infty$ continuum bifurcation thresholds.
+\end{enumerate}
+Our closed-form FPT SCGF, complete $\Omega = 2$ lower bounds, and universal small-$A$ lower bounds (Section~\ref{sec:lower}) are independent partial results; the full lower-bound conjectures for all $\Omega \ge 1$ and $A > 0$ are now proved by Li and Yeroushalmi.
+\end{remark}
+
+\begin{table}[ht]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{Comparison of exact analytical bifurcation thresholds against Wampler--Barato Table~1, together with verified counterexamples.}
+\label{tab:thresholds}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Quantity & Exact threshold & Table~1 value & Verified counterexample \\
+\midrule
+$\Omega = 2$, Skewness $S$ & $2\ln(2+\sqrt{3}) \approx 2.63392$ & $2.84$ & $A = 2.75$: $S \approx 4.01883 > 4.01522$ \\
+$\Omega = 2$, Kurtosis $K$ & $4\artanh(\sqrt{\sqrt{2}-1}) \approx 3.05714$ & $3.27$ & $A = 3.15$: $K \approx 26.6752 > 26.6466$ \\
+$\Omega = 3$, Skewness $S$ & $6\arcosh(v_*/2) \approx 3.03745$ & $3.15$ & $A = 3.10$: $S > S_{\mathrm{ARW}}(3.10, 3)$ \\
+$\Omega = 3$, Kurtosis $K$ & $3\arcosh(u_*/2) \approx 3.52807$ & $3.64$ & $A = 3.58$: $K > K_{\mathrm{ARW}}(3.58, 3)$ \\
+$\Omega \to \infty$, Skewness $S$ & $2\pi/\sqrt{3} \approx 3.62760$ & --- & $O(1/\Omega^2)$ convergence ($\Omega=4,\dots,16$) \\
+$\Omega \to \infty$, Kurtosis $K$ & $2\pi/5^{1/4} \approx 4.20182$ & --- & $O(1/\Omega^2)$ convergence ($\Omega=4,\dots,16$) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Exact Closed-Form FPT SCGF via Gallavotti--Cohen Symmetrization}
+
+Consider an $\Omega$-state unicyclic Markov jump process with forward rates $k_i > 0$, backward rates $\bar{k}_i > 0$, cycle products $\Pi_+ = \prod_{i=1}^\Omega k_i$ and $\Pi_- = \prod_{i=1}^\Omega \bar{k}_i$, and affinity $A = \ln(\Pi_+/\Pi_-) > 0$.
+
+\begin{proposition}[Closed-Form FPT SCGF and Cumulant Ratios]\label{prop:scgf}
+Let $\mathbf{L}(z)$ be the tilted generator, with characteristic polynomial
+\begin{align*}
+  \Xi(s, z) &:= \det\bigl(s\mathbb{I} - \mathbf{L}(z)\bigr) = P(s) - \Pi_+(e^{-Az} - 1) - \Pi_-(e^{Az} - 1), \\
+  P(s) &:= \det\bigl(s\mathbb{I} - \mathbf{L}(0)\bigr) = \sum_{k=1}^\Omega b_k s^k.
+\end{align*}
+Then $H := -\mathbf{L}(1/2)$ is real symmetric and strictly positive definite with eigenvalues $\nu_1, \dots, \nu_\Omega > 0$. Setting $\tau_i := 1/\nu_i > 0$, the FPT SCGF $\rho(s)$ solving $\Xi(s, \rho(s)) = 0$ is given in closed form for every unicyclic network by
+\begin{equation}\label{eq:scgf}
+  \rho(s) = \frac{1}{2} - \frac{2}{A}\arsinh\!\left(\sinh\!\left(\frac{A}{4}\right)\prod_{i=1}^\Omega \sqrt{1 + \tau_i s}\right).
+\end{equation}
+Moreover, setting $J_{\mathrm{diff}} = \Pi_+ - \Pi_-$, $c = \coth(A/2)$, $\eta = \coth(A/4)$, normalized weights $w_i = \tau_i / \sum_{j=1}^\Omega \tau_j > 0$, elementary symmetric polynomials $e_k(w_1,\dots,w_\Omega)$, and
+\[
+  \gamma_k := \frac{b_k J_{\mathrm{diff}}^{k-1}}{b_1^k} = \eta^{k-1} e_k(w_1, \dots, w_\Omega) > 0,
+  \qquad y_2 := c - 2\gamma_2 > 0,
+\]
+the Fano factor (scaled variance) $R$, skewness $S$, and kurtosis $K$ satisfy
+\begin{align}
+  R &= A y_2, \label{eq:R} \\
+  S &= \sqrt{A}\,\frac{3c y_2 - 1 + 6\gamma_3}{y_2^{3/2}}, \label{eq:S} \\
+  K &= A\,\frac{3c y_2^2 + (12c^2 - 6)y_2 - 3c + 24(c\gamma_3 - \gamma_4)}{y_2^2}. \label{eq:K}
+\end{align}
+\end{proposition}
+
+\begin{proof}
+At $z = 1/2$, the off-diagonal entries $L_{i+1,i}(1/2) = L_{i,i+1}(1/2) = \sqrt{k_i \bar{k}_i}$ are already symmetric. Hence $H = -\mathbf{L}(1/2)$ is real symmetric, and for $A > 0$ it is strictly positive definite because its quadratic form is
+\[
+  x^\top H x = \sum_{i=1}^\Omega \bigl(\sqrt{k_i}\,x_i - \sqrt{\bar{k}_i}\,x_{i+1}\bigr)^2 > 0 \qquad (x \neq 0).
+\]
+Evaluating $\Xi(s, 1/2)$ gives
+\[
+  P(s) + \bigl(\sqrt{\Pi_+} - \sqrt{\Pi_-}\bigr)^2 = \det(s\mathbb{I} + H) = \bigl(\sqrt{\Pi_+} - \sqrt{\Pi_-}\bigr)^2 \prod_{i=1}^\Omega (1 + \tau_i s).
+\]
+Substituting this identity into $\Xi(s, \rho(s)) = 0$ and solving for $\rho(s)$ yields~\eqref{eq:scgf}. Expanding $\rho(s)$ through fourth order in $s$ yields~\eqref{eq:R}--\eqref{eq:K}.
+\end{proof}
+
+\section{Complete Exact Solution for \texorpdfstring{$\Omega = 2$}{Omega = 2} and Refutation of Table 1}
+
+For $\Omega = 2$, we have $\gamma_3 = \gamma_4 = 0$. By the AM--GM inequality applied to $b_1 = (k_1 + k_2) + (\bar{k}_1 + \bar{k}_2) \ge 2(e^{A/2} + 1)\sqrt{\Pi_-}$, the exact achievable range of $y_2$ is
+\[
+  y_2 \in [y_{\min}, c) = \left[\frac{1}{2}\coth\!\left(\frac{A}{4}\right),\; \coth\!\left(\frac{A}{2}\right)\right).
+\]
+
+\begin{theorem}[Complete $\Omega = 2$ Lower and Upper Bounds; Refutation of Table 1 and the Kink Claim]\label{thm:omega2}
+For every two-state unicyclic network ($\Omega = 2$) with affinity $A > 0$:
+\begin{enumerate}[leftmargin=2em,itemsep=4pt]
+  \item \emph{Lower bounds:} Both skewness and kurtosis are minimized at the endpoints of $[y_{\min}, c)$, yielding
+  \[
+    S \ge \min\bigl(S_{\mathrm{ARW}}(A,1),\, S_{\mathrm{ARW}}(A,2)\bigr) \ge S_{\min},
+    \qquad
+    K \ge \min\bigl(K_{\mathrm{ARW}}(A,1),\, K_{\mathrm{ARW}}(A,2)\bigr) \ge K_{\min}.
+  \]
+
+  \item \emph{Exact closed-form upper bound for skewness:} The onset of violation of $S \le S_{\mathrm{ARW}}(A,2)$ occurs at
+  \[
+    A_*^S(2) = 4\artanh\!\left(\frac{1}{\sqrt{3}}\right) = 2\ln(2+\sqrt{3}) \approx 2.63391579 < 2.84 \quad (\text{Table~1}),
+  \]
+  and the exact global maximum over all $\Omega = 2$ networks is
+  \[
+    S_{\max}(A,2) = \begin{cases}
+      S_{\mathrm{ARW}}(A,2), & 0 < A \le A_*^S(2), \\[4pt]
+      2\sqrt{A}\,\bigl(\coth\frac{A}{2}\bigr)^{3/2}, & A \ge A_*^S(2).
+    \end{cases}
+  \]
+
+  \item \emph{Exact closed-form upper bound for kurtosis:} The onset of violation of $K \le K_{\mathrm{ARW}}(A,2)$ occurs at
+  \[
+    A_*^K(2) = 4\artanh\!\bigl(\sqrt{\sqrt{2}-1}\bigr) \approx 3.05714184 < 3.27 \quad (\text{Table~1}),
+  \]
+  and the exact global maximum over all $\Omega = 2$ networks is
+  \[
+    K_{\max}(A,2) = \begin{cases}
+      K_{\mathrm{ARW}}(A,2), & 0 < A \le A_*^K(2), \\[6pt]
+      \dfrac{3A\bigl(4\coth^4(A/2) - 3\coth^2(A/2) + 1\bigr)}{\coth(A/2)}, & A \ge A_*^K(2).
+    \end{cases}
+  \]
+
+  \item \emph{$C^1$-smoothness (no kink) and explicit counterexamples:} Both transitions at $A_*^S(2)$ and $A_*^K(2)$ are $C^1$-smooth (no kink), with quadratic excess $O((A - A_*)^2)$ above threshold. Explicit verified counterexamples to Table~1 occur at $A = 2.75 < 2.84$ ($S \approx 4.01883 > 4.01522 = S_{\mathrm{ARW}}(2.75, 2)$) and $A = 3.15 < 3.27$ ($K \approx 26.6752 > 26.6466 = K_{\mathrm{ARW}}(3.15, 2)$).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For $\Omega = 2$, $S(y_2) = \sqrt{A}(3c y_2 - 1)y_2^{-3/2}$ has derivative
+\[
+  S'(y_2) = \frac{3\sqrt{A}}{2 y_2^{5/2}}(1 - c y_2),
+\]
+which changes sign once from $+$ to $-$ at $y_*^S = 1/c = \tanh(A/2)$. Thus $S$ is strictly quasiconcave on $[y_{\min}, c)$, so its minimum is attained at an endpoint $y_{\min}$ (giving $S_{\mathrm{ARW}}(A,2)$) or $c^-$ (giving $S_{\mathrm{ARW}}(A,1)$). Similarly, in $u := 1/y_2 \in (1/c, 2\tanh(A/4)]$,
+\[
+  K(u) = A\bigl(3c + (12c^2 - 6)u - 3c u^2\bigr)
+\]
+is a strictly concave quadratic in $u$, hence also minimized at an endpoint.
+
+For the maxima:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+  \item $y_*^S = \tanh(A/2)$ enters $[y_{\min}, c) = [\frac{1}{2}\coth(A/4), \coth(A/2))$ if and only if $\tanh(A/2) \ge \frac{1}{2}\coth(A/4)$, which simplifies to $\tanh(A/4) \ge 1/\sqrt{3}$, i.e.\ $A \ge 4\artanh(1/\sqrt{3}) = 2\ln(2+\sqrt{3})$. Evaluating $S(1/c)$ gives $2\sqrt{A}\,c^{3/2}$.
+  \item The unique maximizer $u_*^K = (2c^2 - 1)/c$ of $K(u)$ enters $(1/c, 2\tanh(A/4)]$ if and only if $(2c^2-1)/c \le 2\tanh(A/4)$, which reduces to $\tanh(A/4) \ge \sqrt{\sqrt{2}-1}$, i.e.\ $A \ge 4\artanh(\sqrt{\sqrt{2}-1})$. Evaluating $K(u_*^K)$ gives $3A(4c^4 - 3c^2 + 1)/c$.
+\end{itemize}
+Because the interior maximizer enters continuously through the boundary point $y_{\min}$ with vanishing first derivative at threshold, the envelope theorem guarantees that both $S_{\max}(A,2)$ and $K_{\max}(A,2)$ are $C^1$-smooth across $A_*^S(2)$ and $A_*^K(2)$, with quadratic excess $O((A - A_*)^2)$.
+\end{proof}
+
+\section{Exact Bifurcation Theory for \texorpdfstring{$\Omega = 3$}{Omega = 3} and Continuum Limit \texorpdfstring{$\Omega \to \infty$}{Omega -> infty}}
+
+\begin{proposition}[Exact $\Omega = 3$ Hessian Bifurcations]\label{prop:omega3}
+Evaluating the exact second-order Hessian at the uniform asymmetric random walk (ARW) for $\Omega = 3$ in terms of $v = 2\cosh(A/6)$ and $u = 2\cosh(A/3)$ shows that the uniform ARW loses local maximality at:
+\begin{enumerate}[leftmargin=2em,itemsep=3pt]
+  \item \emph{Skewness:} the unique root $v_* \approx 2.26180$ of
+  \[
+    v^6 + 3v^5 - 3v^4 - 15v^3 - 12v^2 + 2 = 0,
+  \]
+  giving
+  \[
+    A_{\mathrm{bif}}^S(3) = 6\arcosh(v_*/2) \approx 3.03745 < 3.15 \quad (\text{Table~1});
+  \]
+  \item \emph{Kurtosis:} the root $u_* \approx 3.5496$ of
+  \[
+    (u^4 + 4u^3 - 19u^2 - 40u + 18) + \frac{\sqrt{u+2}}{2}(7u^3 - 8u^2 - 61u + 26) = 0,
+  \]
+  giving
+  \[
+    A_{\mathrm{bif}}^K(3) = 3\arcosh(u_*/2) \approx 3.52807 < 3.64 \quad (\text{Table~1}).
+  \]
+\end{enumerate}
+Explicit perturbations strictly exceed $S_{\mathrm{ARW}}(A,3)$ at $A = 3.10 < 3.15$ and $K_{\mathrm{ARW}}(A,3)$ at $A = 3.58 < 3.64$. Independent numerical Hessian checks confirm that every row $\Omega = 4, \dots, 8$ of Wampler--Barato Table~1 likewise overestimates the true bifurcation threshold.
+\end{proposition}
+
+\begin{proposition}[Continuum Limit $\Omega \to \infty$]\label{prop:continuum}
+Second-order resolvent perturbation of the uniform $\Omega$-state cycle in Fourier modes yields the exact asymptotic bifurcation thresholds as $\Omega \to \infty$:
+\[
+  A_{\mathrm{bif}}^S(\infty) = \frac{2\pi}{\sqrt{3}} \approx 3.62759873,
+  \qquad
+  A_{\mathrm{bif}}^K(\infty) = \frac{2\pi}{5^{1/4}} \approx 4.20181930,
+\]
+consistent with numerical Hessian thresholds for $\Omega = 4, \dots, 16$ with $O(1/\Omega^2)$ convergence.
+\end{proposition}
+
+\section{Universal Lower Bounds for All \texorpdfstring{$\Omega \ge 1$}{Omega >= 1}}\label{sec:lower}
+
+\begin{proposition}[Universal Reduction to $\Omega = 2$ and Small-$A$ Lower Bounds]
+For every $\Omega \ge 1$ and every $A > 0$,
+\[
+  \gamma_3 \ge 0,
+  \qquad
+  c\gamma_3 - \gamma_4 = \eta^2\bigl(c e_3(w) - \eta e_4(w)\bigr) \ge \eta(\eta^2 + 2)e_4(w) \ge 0.
+\]
+Consequently, $S \ge S_{\Omega=2}(y_2)$ and $K \ge K_{\Omega=2}(y_2)$ universally, which implies:
+\begin{enumerate}[leftmargin=2em,itemsep=3pt]
+  \item Whenever $R \ge R_{\mathrm{ARW}}(A, 2)$,
+  \[
+    S \ge \min\bigl(S_{\mathrm{ARW}}(A,1),\, S_{\mathrm{ARW}}(A,2)\bigr) \ge S_{\min},
+    \qquad
+    K \ge \min\bigl(K_{\mathrm{ARW}}(A,1),\, K_{\mathrm{ARW}}(A,2)\bigr) \ge K_{\min}.
+  \]
+  \item Combining with the universal thermodynamic uncertainty relation $y_2 = R/A \ge 2/A$, for all $\Omega \ge 1$:
+  \begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+    \item $S \ge S_{\mathrm{ARW}}(A,1) = \min_{N\le\Omega} S_{\mathrm{ARW}}(A,N)$ for all $0 < A \le A_0^S \approx 2.399357$ (the unique positive root of $\frac{A}{2}\tanh\frac{A}{2} = 1$);
+    \item $K \ge K_{\mathrm{ARW}}(A,1) = \min_{N\le\Omega} K_{\mathrm{ARW}}(A,N)$ for all $0 < A \le A_0^K \approx 2.77038$ (the unique positive root of $A = 4\coth\frac{A}{2} - 2\tanh\frac{A}{2}$).
+  \end{itemize}
+  \item In the irreversible limit $A \to \infty$, $S^* \in [2/\sqrt{\Omega}, 2]$ and $K^* \in [6/\Omega, 6]$ by the H\"older and Cauchy--Schwarz inequalities.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Since $w_i > 0$ with $e_1(w) = 1$, clearly $\gamma_3 = \eta^2 e_3(w) \ge 0$. For $\Omega \le 3$, $e_4(w) = 0$ so $c\gamma_3 - \gamma_4 \ge 0$ holds trivially. For $\Omega \ge 4$, Maclaurin's inequality gives
+\[
+  \frac{e_1(w)e_3(w)}{e_4(w)} \ge \frac{4\Omega}{\Omega - 3} > 4.
+\]
+Using $c = \frac{1}{2}(\eta + \eta^{-1})$, it follows that
+\[
+  c\gamma_3 - \gamma_4 = \eta^2\bigl(c e_3(w) - \eta e_4(w)\bigr) \ge \eta^2(4c - \eta)e_4(w) = \eta(\eta^2 + 2)e_4(w) \ge 0.
+\]
+Comparing~\eqref{eq:S}--\eqref{eq:K} with the $\Omega = 2$ expressions ($\gamma_3 = \gamma_4 = 0$) immediately yields $S \ge S_{\Omega=2}(y_2)$ and $K \ge K_{\Omega=2}(y_2)$. Parts~(1)--(3) follow directly from Theorem~\ref{thm:omega2}, the bound $y_2 \ge 2/A$, and the standard moment inequalities in the $A \to \infty$ limit.
+\end{proof}
+
+\end{document}

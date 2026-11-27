@@ -6,14 +6,20 @@ import Conjectures.AttentionIdentifiability
 import Conjectures.TransformerHeads
 import Conjectures.HopfieldMixedMemories
 
+#print axioms BeshkovReluTopology.continuous_P_net
 #print axioms BeshkovReluTopology.beshkov_part_A
+#print axioms BeshkovReluTopology.boundarySimplex_homeomorph_sphere
 #print axioms BeshkovReluTopology.convex_omegaBar
 #print axioms BeshkovReluTopology.isCompact_omegaBar
 #print axioms BeshkovReluTopology.bottleneck_in_hyperplane
 #print axioms BeshkovReluTopology.bottleneck_relu_in_relu_hyperplane
 #print axioms BeshkovReluTopology.straight_ray_escape
+#print axioms BeshkovReluTopology.bottleneck_not_superset_sphere
+#print axioms BeshkovReluTopology.bottleneck_not_superset_boundarySimplex
 
 #print axioms NeuralCodesBMF.refutation_clean_3x4
+#print axioms NeuralCodesBMF.exponential_gap_family
+#print axioms NeuralCodesBMF.brank_append_allOnes
 #print axioms NeuralCodesBMF.refutation_all1_reverse
 #print axioms NeuralCodesBMF.refutation_dup_reverse
 #print axioms NeuralCodesBMF.brank_intersection_complete
@@ -47,6 +53,15 @@ import Conjectures.HopfieldMixedMemories
 #print axioms TransformerHeadCount.theoremB_matrices_bounded
 #print axioms TransformerHeadCount.nopeEmbed_unit_norm
 #print axioms TransformerHeadCount.theoremB_L2_h1_D3
+#print axioms TransformerHeadCount.pwlSquare_weights_bounded
+#print axioms TransformerHeadCount.pwlSquare_error
+#print axioms TransformerHeadCount.pwlSquare_mem_Icc
+#print axioms TransformerHeadCount.relu_rescale_splitting
+#print axioms TransformerHeadCount.readoutB_eq_three_sum
+#print axioms TransformerHeadCount.theoremB_end_to_end_L2_h1_D3
+#print axioms TransformerHeadCount.card_slotA
+#print axioms TransformerHeadCount.theoremA_matrices_bounded
+#print axioms TransformerHeadCount.theoremA_L2_h1_arbitrary_D
 
 #print axioms HopfieldMixedMemories.m5_tie_free
 #print axioms HopfieldMixedMemories.m5_chow_fixed

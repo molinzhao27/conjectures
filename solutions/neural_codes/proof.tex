@@ -1,0 +1,404 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem*{conjecture*}{Conjecture (Section 7.3 of arXiv:2603.10837)}
+\newtheorem*{question*}{Question 2 (Section 7.2 of arXiv:2603.10837)}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{counterexample}[theorem]{Counterexample}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\DeclareMathOperator{\brank}{brank}
+\DeclareMathOperator{\Tk}{Tk}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\colspan}{colspan}
+
+\title{\bfseries Refutation of the Boolean Rank Redundancy Conjecture and Resolution of Question~2 in \emph{Adjoints of Morphisms of Neural Codes}}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: Juliann Geraci, Alexander B.\ Kunin, and Alexandra Seceleanu,\\
+\emph{Adjoints of Morphisms of Neural Codes}, \href{https://arxiv.org/abs/2603.10837}{arXiv:2603.10837} (March 10, 2026)\\[0.35em]
+Lean~4 companion formalization: \texttt{lean\_proofs/Conjectures/NeuralCodes.lean}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We settle two open problems posed in Geraci, Kunin, and Seceleanu (\href{https://arxiv.org/abs/2603.10837}{arXiv:2603.10837}): the Boolean rank redundancy conjecture in Section~7.3 (lines 1118--1120) and Question~2 in Section~7.2 (lines 1105--1108).
+First, we show that the Section~7.3 conjecture, $\brank(\mathbf{C}) = \brank(\rho(\mathbf{C})) + \ell$, is false in both directions.
+In the primary direction $\brank(\mathbf{C}) < \brank(\rho(\mathbf{C})) + \ell$, we give the provably smallest clean counterexample ($3 \times 4$, or $4 \times 4$ containing $\varnothing$), a $5 \times 4$ counterexample with $m_{\mathrm{nz}} = n = 4 > 3 = \brank(\mathbf{C})$ together with Cartesian products having exponentially more rows than columns, and two infinite clean families exhibiting exponential gaps (one with zero rank increase and one with strict intermediate rank $\Theta(\log n) < n \ll 2^n - n + O(\log n)$).
+In the reverse direction $\brank(\mathbf{C}) > \brank(\rho(\mathbf{C})) + \ell$, we prove an exact formula showing that appending an all-$1$s column increases $\brank$ by $1$ if and only if $\mathbf{0}$ is a row (refuting line~1112 unconditionally whenever $\varnothing \in \mathcal{C}$), and also exhibit a duplicated-column failure under the literal simultaneous redundancy count.
+Second, we define the deduplicated effective redundancy count $\ell_{\mathrm{eff}}(\mathbf{C})$ to restore the sharp two-sided bound $\brank(\rho(\mathbf{C})) \le \brank(\mathbf{C}) \le \brank(\rho(\mathbf{C})) + \ell_{\mathrm{eff}}(\mathbf{C})$, characterize when a single non-simply redundant column leaves $\brank$ unchanged, and prove that exact equality $\brank(\mathbf{C}) = u(\mathbf{C}) = \brank(\rho(\mathbf{C})) + \ell_{\mathrm{eff}}(\mathbf{C})$ holds for every intersection-complete code (validating the authors' conjecture on intersection-complete codes without trivial or simply redundant neurons and sharpening Theorem~\texttt{thm:intcompletefullrank}).
+Third, we completely resolve Question~2 by proving that the upper bound $\lambda(\mathcal{C}^{(i)}) \le 2\lambda(\mathcal{C}) - 2$ is attained for every integer $n = \lambda(\mathcal{C}) \ge 1$, so $\max_{\lambda(\mathcal{C})=n} (\lambda(\mathcal{C}^{(i)}) - \lambda(\mathcal{C})) = n - 2$ and the global supremum is $+\infty$.
+\end{abstract}
+
+\section{Exact Definitions from arXiv:2603.10837}
+
+We record the exact definitions from \texttt{BMFandNeuralRings.tex} (\href{https://arxiv.org/abs/2603.10837}{arXiv:2603.10837}) to eliminate any ambiguity:
+\begin{itemize}[leftmargin=2em]
+\item \textbf{Combinatorial code and matrix representation} (Section~2, lines 189--200): A combinatorial code is a collection $\mathcal{C} \subseteq 2^{[n]}$ of subsets (codewords) of $[n] := \{1, \dots, n\}$ (neurons). Writing each codeword $\sigma_i \in \mathcal{C}$ as a row gives a binary matrix $\mathbf{C} = [c_{ij}] \in \{0,1\}^{m \times n}$ with $c_{ij} = 1 \iff j \in \sigma_i$.
+\item \textbf{Trunks and roots} (Section~2.2, lines 251--255; Section~3.1, Definition~\texttt{def:root}, lines 414--420): For $\tau \subseteq [n]$, the \emph{trunk} is $\Tk_{\mathcal{C}}(\tau) = \{\sigma \in \mathcal{C} : \sigma \supseteq \tau\}$ (with $\Tk_{\mathcal{C}}(\varnothing) = \mathcal{C}$). For a nonempty trunk $T$, its \emph{root} is $\sqrt{T} = \bigcap_{\sigma \in T} \sigma$, and $\sqrt[\mathcal{C}]{\tau} := \sqrt{\Tk_{\mathcal{C}}(\tau)}$.
+\item \textbf{Trivial, redundant, and reduced codes} (Section~2.3, lines 280--306; Section~6, Lemma~\texttt{lem:\allowbreak redundancylemma}, lines 1015--1018):
+  \begin{itemize}[leftmargin=1.5em]
+  \item Neuron $i \in [n]$ is \emph{trivial} if $\Tk_{\mathcal{C}}(i) = \varnothing$ (column $i$ of $\mathbf{C}$ is all $0$s).
+  \item Neuron $i \in [n]$ is \emph{redundant to $\sigma$} if $\sigma \subseteq [n] \setminus \{i\}$ and $\Tk_{\mathcal{C}}(i) = \Tk_{\mathcal{C}}(\sigma)$ (equivalently, column $i$ is the entrywise product $\bigwedge_{j \in \sigma} \mathbf{c}_j$, with the empty product for $\sigma = \varnothing$ equal to the all-$1$s vector $\mathbf{1}$). Neuron $i$ is \emph{redundant} if such a $\sigma$ exists. By the Redundancy Lemma (\texttt{lem:redundancylemma}), a non-trivial neuron $i$ is redundant if and only if $\Tk_{\mathcal{C}}(i) = \Tk_{\mathcal{C}}(\sqrt[\mathcal{C}]{i} \setminus \{i\})$.
+  \item A code $\mathcal{C}$ is \emph{reduced} if it has no trivial or redundant neurons. Deleting all trivial neurons and then deleting redundant neurons one at a time yields a reduced representative $\rho(\mathcal{C})$ (represented by $\rho(\mathbf{C})$), unique up to column permutation (Remark~\texttt{rmk:reductionmorphism}).
+  \item The \emph{minimum neuron number} $\lambda(\mathcal{C})$ (Section~7.2, line~1102) is the smallest $n$ such that $\mathcal{C}$ is isomorphic to a code in $2^{[n]}$; by Remark~\texttt{rmk:reductionmorphism}, $\lambda(\mathcal{C})$ equals the number of columns of $\rho(\mathbf{C})$.
+  \end{itemize}
+\item \textbf{Boolean rank} (Section~6, lines 981--982): For $\mathbf{C} \in \mathbb{B}^{m \times n}$ over the Boolean semiring $\mathbb{B} = (\{0,1\}, \vee, \wedge)$, $\brank(\mathbf{C})$ is the minimum $r \ge 0$ for which there exist $\mathbf{V} \in \mathbb{B}^{m \times r}$ and $\mathbf{H} \in \mathbb{B}^{r \times n}$ with $\mathbf{C} = \mathbf{V}\mathbf{H}$. Equivalently, $\brank(\mathbf{C})$ is the minimum number of all-$1$ submatrices (rectangles $R_t \times C_t$) whose union is $\{(i,j) : C_{ij} = 1\}$. Lemma~\texttt{lem:reducedminimumrank} (line~1002) gives $\brank(\rho(\mathbf{C})) \le \brank(\mathbf{C})$, and Lemma~\texttt{lem:redundancybound} (line~1028) shows that if $\mathbf{C}$ has $k$ redundant neurons (and no trivial neurons), then $\brank(\mathbf{C}) \le \brank(\rho(\mathbf{C})) + k$.
+\item \textbf{Simple vs.\ non-simple redundancy} (Section~7.3, lines 1114--1120): A neuron $i$ is \emph{simply redundant} if it is redundant to a singleton set $\{j\}$ ($j \neq i$) or the empty set $\varnothing$ (i.e., column $i$ duplicates another column or is all $1$s). A neuron $i$ is \emph{not simply redundant} (a \emph{non-simple redundancy}) if it is redundant and not simply redundant.
+\end{itemize}
+
+\begin{conjecture*}
+Let $\mathbf{C}$ be a binary matrix with $k$ redundant neurons of which $\ell \le k$ are not simply redundant. Then $\brank(\mathbf{C}) = \brank(\rho(\mathbf{C})) + \ell$.
+\end{conjecture*}
+
+\section{Refutation of the Conjecture in Section 7.3}
+
+We call a binary matrix $\mathbf{C}$ \emph{clean} if it has no trivial (all-$0$) columns, no duplicate columns, no all-$1$s columns, and no duplicate rows. For every clean matrix, there are no simply redundant neurons, so $k = \ell$ unambiguously counts the redundant neurons.
+
+\subsection{Provably Smallest Clean Counterexamples ($\brank(\mathbf{C}) < \brank(\rho(\mathbf{C})) + \ell$)}
+
+\begin{theorem}[Minimal Clean Counterexample]\label{thm:minclean}
+The $3 \times 4$ clean binary matrix
+\[
+\mathbf{C} = \begin{bmatrix} 1 & 1 & 0 & 1 \\ 1 & 0 & 1 & 0 \\ 0 & 1 & 1 & 0 \end{bmatrix} \qquad (\mathcal{C} = \{124, 13, 23\} \subseteq 2^{[4]})
+\]
+has $k = \ell = 1$ non-simply redundant neuron, reduced matrix $\rho(\mathbf{C}) = J_3 - I_3$, and satisfies
+\[
+\brank(\mathbf{C}) = 3 = \brank(\rho(\mathbf{C})) < 4 = \brank(\rho(\mathbf{C})) + \ell.
+\]
+Moreover, $\mathbf{C}$ is minimal in both dimensions: every clean counterexample has at least $3$ rows and at least $4$ columns. Appending the empty codeword $(0,0,0,0)$ yields a $4 \times 4$ clean counterexample $\mathbf{C}_0$ with $\varnothing \in \mathcal{C}_0$, which is minimal among clean counterexamples containing $\varnothing$.
+\end{theorem}
+
+\begin{proof}
+\textbf{1. Redundancy structure.}
+The columns of $\mathbf{C}$ are $\mathbf{c}_1 = (1,1,0)^\top$, $\mathbf{c}_2 = (1,0,1)^\top$, $\mathbf{c}_3 = (0,1,1)^\top$, $\mathbf{c}_4 = (1,0,0)^\top$, which are pairwise distinct, nonzero, and non-all-$1$s. Thus $\mathbf{C}$ is clean (no trivial or simply redundant neurons). Computing roots:
+\begin{itemize}[leftmargin=2em]
+\item $\Tk_{\mathcal{C}}(1) = \{124, 13\}$, $\sqrt[\mathcal{C}]{1} = \{1\}$, $\Tk_{\mathcal{C}}(\varnothing) = \mathcal{C} \neq \Tk_{\mathcal{C}}(1)$;
+\item $\Tk_{\mathcal{C}}(2) = \{124, 23\}$, $\sqrt[\mathcal{C}]{2} = \{2\}$, $\Tk_{\mathcal{C}}(\varnothing) = \mathcal{C} \neq \Tk_{\mathcal{C}}(2)$;
+\item $\Tk_{\mathcal{C}}(3) = \{13, 23\}$, $\sqrt[\mathcal{C}]{3} = \{3\}$, $\Tk_{\mathcal{C}}(\varnothing) = \mathcal{C} \neq \Tk_{\mathcal{C}}(3)$;
+\item $\Tk_{\mathcal{C}}(4) = \{124\}$, $\sqrt[\mathcal{C}]{4} = \{1,2,4\}$, $\Tk_{\mathcal{C}}(12) = \{124\} = \Tk_{\mathcal{C}}(4)$.
+\end{itemize}
+By the Redundancy Lemma (\texttt{lem:redundancylemma}), neuron $4$ is the unique redundant neuron, and it is not simply redundant. Hence $k = \ell = 1$ and $\rho(\mathbf{C}) = [\mathbf{c}_1\ \mathbf{c}_2\ \mathbf{c}_3] = J_3 - I_3$.
+
+\medskip
+\noindent\textbf{2. Exact value $\brank(\rho(\mathbf{C})) = 3$.}
+Since $\rho(\mathbf{C})$ has $3$ columns, $\brank(\rho(\mathbf{C})) \le 3$. Suppose for contradiction that $\rho(\mathbf{C}) = \mathbf{V}\mathbf{H}$ with $\mathbf{H} \in \mathbb{B}^{2 \times 3}$ having rows $\mathbf{h}_1, \mathbf{h}_2$. Then every row of $\rho(\mathbf{C})$ lies in $\{\mathbf{0}, \mathbf{h}_1, \mathbf{h}_2, \mathbf{h}_1 \vee \mathbf{h}_2\}$. In this set, $\mathbf{0}$ is $\le$ every element and $\mathbf{h}_1 \vee \mathbf{h}_2$ is $\ge$ every element, so any antichain has size at most $2$ (at most $\{\mathbf{h}_1, \mathbf{h}_2\}$). Yet the three rows $(1,1,0), (1,0,1), (0,1,1)$ of $\rho(\mathbf{C})$ form an antichain of size $3$, a contradiction. Thus $\brank(\rho(\mathbf{C})) = 3$.
+
+\medskip
+\noindent\textbf{3. Exact value $\brank(\mathbf{C}) = 3$.}
+By Lemma~\texttt{lem:reducedminimumrank}, $\brank(\mathbf{C}) \ge \brank(\rho(\mathbf{C})) = 3$. Conversely, $\mathbf{C}$ has only $3$ rows, so $\mathbf{C} = I_3 \mathbf{C}$ is a rank-$3$ Boolean factorization. Hence $\brank(\mathbf{C}) = 3 < 3 + 1 = \brank(\rho(\mathbf{C})) + \ell$.
+
+\medskip
+\noindent\textbf{4. Empty-codeword extension $\mathbf{C}_0$.}
+Appending row $(0,0,0,0)$ does not alter the trunks of $1,2,3,4$, keeps all columns clean, leaves $k = \ell = 1$, and preserves $\brank(\rho(\mathbf{C}_0)) = \brank(\mathbf{C}_0) = 3$.
+
+\medskip
+\noindent\textbf{5. Minimality.}
+Let $\mathbf{D} \in \mathbb{B}^{m \times n}$ be any clean counterexample, with $\rho(\mathbf{D}) \in \mathbb{B}^{m \times n_0}$ and $\ell = n - n_0 \ge 1$.
+\begin{itemize}[leftmargin=2em]
+\item Clearly $n_0 \ge 2$ (a non-simply redundant column is a product of at least $2$ columns of $\rho(\mathbf{D})$).
+\item Suppose $n_0 = 2$, with columns $\mathbf{b}_1, \mathbf{b}_2$ of $\rho(\mathbf{D})$. The only possible non-simply redundant column is $\mathbf{b}_3 = \mathbf{b}_1 \wedge \mathbf{b}_2$, so $\ell = 1$ and $n = 3$. Since $\mathbf{b}_3 \neq \mathbf{0}$ and $\mathbf{b}_3 \notin \{\mathbf{b}_1, \mathbf{b}_2\}$, there must exist rows $r_{10}, r_{01}, r_{11}$ of $\mathbf{D}$ equal to $(1,0,0)$, $(0,1,0)$, $(1,1,1)$, respectively. This $3 \times 3$ submatrix is lower-triangular with $1$s on the diagonal, which has Boolean rank $3$ (see Lemma~\ref{lem:lowertri} below), while $\brank(\rho(\mathbf{D})) = 2$. Hence $\brank(\mathbf{D}) = 3 = \brank(\rho(\mathbf{D})) + 1$, so no clean counterexample exists with $n_0 = 2$.
+\item Thus $n_0 \ge 3$ and $n = n_0 + \ell \ge 4$.
+\item Since there are only $2^m - 2$ distinct nonzero, non-all-$1$ vectors in $\{0,1\}^m$, having $n \ge 4$ requires $2^m - 2 \ge 4$, i.e., $m \ge 3$. If $\varnothing \in \mathcal{C}$, one row is all-$0$, so the remaining $m - 1$ rows must support $n \ge 4$ distinct nonzero columns (an all-$1$s pattern on the remaining $m-1$ rows is now permitted since the $\varnothing$ row is $0$), requiring $2^{m-1} - 1 \ge 4$, i.e., $m \ge 4$. \qedhere
+\end{itemize}
+\end{proof}
+
+\begin{remark}[Counterexamples with $m_{\mathrm{nz}} \ge n$, not caused by row scarcity]\label{rmk:manyrows}
+Appending both $(0,0,0,0)$ and $(1,1,1,1)$ to $\mathbf{C}$ yields the $5 \times 4$ clean matrix
+\[
+\mathbf{C}_1 = \begin{bmatrix} 0 & 0 & 0 & 0 \\ 1 & 1 & 0 & 1 \\ 1 & 0 & 1 & 0 \\ 0 & 1 & 1 & 0 \\ 1 & 1 & 1 & 1 \end{bmatrix}
+= \begin{bmatrix} 0 & 0 & 0 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \\ 1 & 1 & 1 \end{bmatrix}
+\begin{bmatrix} 1 & 1 & 0 & 1 \\ 1 & 0 & 1 & 0 \\ 0 & 1 & 1 & 0 \end{bmatrix},
+\]
+which has $m_{\mathrm{nz}} = 4$ nonzero rows and $n = 4$ columns, $k = \ell = 1$, $\brank(\rho(\mathbf{C}_1)) = 3$, and $\brank(\mathbf{C}_1) = 3 < \min(m_{\mathrm{nz}}, n) = 4$.
+Taking the $t$-fold Cartesian product code $\mathcal{C}_1^t \subseteq 2^{[4t]}$ produces clean matrices with $5^t$ distinct codewords (exponentially more rows than columns), $4t$ columns, $k = \ell = t$, and $\brank(\mathcal{C}_1^t) = \brank(\rho(\mathcal{C}_1^t)) = 3t$: the block-diagonal factor $\mathbf{H} = \diag(\mathbf{H}_1, \dots, \mathbf{H}_1)$ gives rank at most $3t$, while the submatrix on codewords active in a single block is $\diag(J_3 - I_3, \dots, J_3 - I_3)$, and any all-$1$ rectangle in a block-diagonal matrix can meet at most one diagonal block, so $\brank$ is additive over diagonal blocks and equals $3t$.
+\end{remark}
+
+\subsection{Exponential-Gap Infinite Families}
+
+The discrepancy between $\brank(\mathbf{C})$ and $\brank(\rho(\mathbf{C})) + \ell$ can grow exponentially in $\brank(\rho(\mathbf{C}))$ and $\lambda(\mathcal{C})$, even when $\brank(\mathbf{C}) = \brank(\rho(\mathbf{C}))$.
+
+\begin{theorem}[Exponential Gap with Zero Rank Increase]\label{thm:expgap}
+For every integer $m \ge 2$, there exists a clean $(m+1) \times (2^m + m - 1)$ binary matrix $\mathbf{C}_m$ (and a clean $(m+2) \times (2^m + m - 1)$ matrix containing $\varnothing$) such that:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $\rho(\mathbf{C}_m)$ has $2m$ columns and $\brank(\rho(\mathbf{C}_m)) = m + 1$;
+\item $\mathbf{C}_m$ has $k = \ell = 2^m - m - 1$ non-simply redundant neurons (and no trivial or simply redundant neurons);
+\item $\brank(\mathbf{C}_m) = m + 1 = \brank(\rho(\mathbf{C}_m))$, whereas the Conjecture predicts $\brank(\rho(\mathbf{C}_m)) + \ell = 2^m$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Define the $(m+1) \times 2m$ binary matrix
+\[
+\mathbf{B}_m := \begin{bmatrix} I_m & J_m - I_m \\ \mathbf{0}_{1 \times m} & \mathbf{1}_{1 \times m} \end{bmatrix},
+\]
+with rows indexed by $[m+1]$ and columns $\mathbf{b}_1, \dots, \mathbf{b}_{2m}$. Their column supports are $\supp(\mathbf{b}_a) = \{a\}$ for $a \in [m]$ and $\supp(\mathbf{b}_{m+b}) = ([m] \setminus \{b\}) \cup \{m+1\}$ for $b \in [m]$.
+
+Define $\mathbf{C}_m$ by appending to $\mathbf{B}_m$, for every subset $S \subseteq [m]$ with $|S| \ge 2$, the column
+\[
+\mathbf{c}_S := \bigwedge_{b \in S} \mathbf{b}_{m+b}, \qquad \supp(\mathbf{c}_S) = ([m] \setminus S) \cup \{m+1\}.
+\]
+There are $\sum_{j=2}^m \binom{m}{j} = 2^m - m - 1$ appended columns.
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{Cleanliness.} Every $\mathbf{c}_S$ contains $m+1$ in its support (hence is nonzero and distinct from every $\mathbf{b}_a$, $a \in [m]$) and omits $|S| \ge 2$ elements of $[m]$ (hence is not $\mathbf{1}$ and is distinct from every $\mathbf{b}_{m+b}$, which omits only $1$ element of $[m]$). Distinct subsets $S_1 \neq S_2$ yield distinct supports $([m] \setminus S_1) \cup \{m+1\} \neq ([m] \setminus S_2) \cup \{m+1\}$. Hence all $2^m + m - 1$ columns of $\mathbf{C}_m$ are pairwise distinct, nonzero, and non-all-$1$s.
+
+\item \textbf{Exact redundancy classification.} Each appended column $\mathbf{c}_S$ is redundant to $\{m+b : b \in S\}$ and (by cleanliness) is non-simply redundant. Conversely, no column of $\mathbf{B}_m$ is redundant in $\mathbf{C}_m$:
+  \begin{itemize}[leftmargin=1.5em]
+  \item For $a \in [m]$, any intersection of columns in $\mathbf{C}_m \setminus \{\mathbf{b}_a\}$ that includes some $\mathbf{b}_{a'}$ ($a' \in [m] \setminus \{a\}$) omits $a$; any intersection using only columns from $\{\mathbf{b}_{m+1}, \dots, \mathbf{b}_{2m}\} \cup \{\mathbf{c}_S\}$ (or the empty intersection) contains $m+1 \notin \{a\}$.
+  \item For $b \in [m]$, any intersection involving some $\mathbf{b}_a$ ($a \in [m]$) omits $m+1 \in \supp(\mathbf{b}_{m+b})$; any intersection involving some $\mathbf{c}_S$ omits at least $|S| \ge 2$ elements of $[m]$ whereas $\mathbf{b}_{m+b}$ omits only $b$; and any intersection of a subset of $\{\mathbf{b}_{m+b'} : b' \neq b\}$ (including the empty intersection) contains $b \notin \supp(\mathbf{b}_{m+b})$.
+  \end{itemize}
+Therefore $\rho(\mathbf{C}_m) = \mathbf{B}_m$ and $k = \ell = 2^m - m - 1$.
+
+\item \textbf{Exact Boolean ranks.} Clearly $\brank(\mathbf{B}_m) \le \brank(\mathbf{C}_m) \le m + 1$ (since $\mathbf{C}_m$ has $m + 1$ rows). For the lower bound $\brank(\mathbf{B}_m) \ge m + 1$, let $\mathbf{B}_m = \mathbf{V}\mathbf{H}$ be any rank-$r$ factorization, corresponding to all-$1$ rectangles $R_1 \times C_1, \dots, R_r \times C_r$. For each $a \in [m]$, the entry $(a, a) = 1$ must lie in some rectangle $R_{t_a} \times C_{t_a}$. Since column $a$ of $\mathbf{B}_m$ has its sole $1$ in row $a$, we must have $R_{t_a} = \{a\}$. Thus $t_1, \dots, t_m$ are $m$ distinct indices, and none covers any $1$-entry in row $m+1$. Since row $m+1$ is nonzero, at least one further rectangle is required, so $r \ge m + 1$. Thus $\brank(\mathbf{B}_m) = \brank(\mathbf{C}_m) = m + 1$.
+\end{itemize}
+Appending the all-$0$ row preserves cleanliness, redundancy, and Boolean rank.
+\end{proof}
+
+\begin{proposition}[Strict Intermediate Rank with Exponential Gap]\label{prop:intermediate}
+For $n \ge 3$, let $\mathbf{B} = J_n - I_n \in \mathbb{B}^{n \times n}$ and let $\mathbf{C} \in \mathbb{B}^{n \times (2^n - 2)}$ be formed by appending all $\sum_{j=2}^{n-1} \binom{n}{j} = 2^n - n - 2$ proper intersections $\mathbf{c}_S = \bigwedge_{i \in S} \mathbf{b}_i$ ($2 \le |S| \le n-1$). Then $\mathbf{C}$ is clean, $\rho(\mathbf{C}) = J_n - I_n$, $k = \ell = 2^n - n - 2$, and
+\[
+\brank(\rho(\mathbf{C})) = \sigma(n) := \min\biggl\{r : \binom{r}{\lfloor r/2 \rfloor} \ge n\biggr\} = \Theta(\log n), \qquad \brank(\mathbf{C}) = n.
+\]
+In particular, for $n \ge 5$ (e.g., $n = 5$: $4 < 5 < 4 + 25 = 29$), we have the strict double inequality $\brank(\rho(\mathbf{C})) < \brank(\mathbf{C}) < \brank(\rho(\mathbf{C})) + \ell$.
+\end{proposition}
+
+\begin{proof}
+Cleanliness and $\rho(\mathbf{C}) = J_n - I_n$ follow exactly as in Theorem~\ref{thm:expgap}: column $i$ of $J_n - I_n$ omits only $i$, while every $\mathbf{c}_S$ omits $|S| \in [2, n-1]$ entries. Since the columns with $|S| = n - 1$ form the $n \times n$ identity matrix $I_n$, we have $n = \brank(I_n) \le \brank(\mathbf{C}) \le n$.
+Finally, $\brank(J_n - I_n) = \sigma(n)$ is a classical consequence of Sperner's theorem: in any rank-$r$ factorization $J_n - I_n = \mathbf{V}\mathbf{H}$ with row supports $S_i = \supp(\mathbf{V}_{i,\cdot})$ and column supports $T_j = \supp(\mathbf{H}_{\cdot,j})$ in $[r]$, we have $S_i \cap T_i = \varnothing$ and $S_i \cap T_j \neq \varnothing$ for $i \neq j$, forcing $S_i \not\subseteq S_j$ for all $i \neq j$; hence $\{S_1, \dots, S_n\}$ is an antichain in $2^{[r]}$, so $n \le \binom{r}{\lfloor r/2 \rfloor}$ and $r \ge \sigma(n)$. Conversely, taking $n$ subsets $S_1, \dots, S_n \subseteq [\sigma(n)]$ of size $\lfloor \sigma(n)/2 \rfloor$ and $T_j = [\sigma(n)] \setminus S_j$ realizes $J_n - I_n = \mathbf{V}\mathbf{H}$ of rank $\sigma(n)$.
+\end{proof}
+
+\subsection{Failure in the Reverse Direction ($\brank(\mathbf{C}) > \brank(\rho(\mathbf{C})) + \ell$)}
+
+Under the exact definitions in Section~7.3 (lines 1112--1120), even the conjectured upper bound $\brank(\mathbf{C}) \le \brank(\rho(\mathbf{C})) + \ell$ fails in two distinct ways.
+
+\subsubsection*{Failure Mode A: All-$1$s columns (and refutation of line 1112)}
+
+Section~7.3 (line~1112) states: ``Adding a repeated column or a column of all $1$s likewise does not change the Boolean rank, but it does introduce a redundant neuron to the code.'' This statement is false for a column of all $1$s whenever the matrix has an all-zero row.
+
+\begin{proposition}[Exact Effect of an All-$1$s Column]\label{prop:all1}
+For any binary matrix $\mathbf{M} \in \mathbb{B}^{m \times n}$,
+\[
+\brank([\mathbf{M} \mid \mathbf{1}]) = \brank(\mathbf{M}) + \mathbf{1}[\mathbf{0} \text{ is a row of } \mathbf{M}].
+\]
+\end{proposition}
+
+\begin{proof}
+If $\mathbf{M}$ has no all-zero row, let $\mathbf{M} = \mathbf{V}\mathbf{H}$ with $r = \brank(\mathbf{M})$. Every row of $\mathbf{V}$ must have at least one $1$ (otherwise the corresponding row of $\mathbf{M}$ would be $\mathbf{0}$). Thus $\mathbf{V}[\mathbf{H} \mid \mathbf{1}_{r \times 1}] = [\mathbf{M} \mid \mathbf{1}]$, so $\brank([\mathbf{M} \mid \mathbf{1}]) \le r$, and equality holds since $\mathbf{M}$ is a submatrix.
+
+If $\mathbf{M}$ has an all-zero row $i_0$, then row $i_0$ of $[\mathbf{M} \mid \mathbf{1}]$ is $\mathbf{e}_{n+1}^\top = (0, \dots, 0, 1)$. In any rank-$r'$ factorization $[\mathbf{M} \mid \mathbf{1}] = \mathbf{V}'\mathbf{H}'$, some row $\mathbf{h}'_t$ of $\mathbf{H}'$ with $V'_{i_0, t} = 1$ must be nonzero and satisfy $\mathbf{h}'_t \le \mathbf{e}_{n+1}^\top$, forcing $\mathbf{h}'_t = \mathbf{e}_{n+1}^\top$. Removing factor $t$ and column $n+1$ gives a rank-$(r'-1)$ factorization of $\mathbf{M}$, so $r' \ge \brank(\mathbf{M}) + 1$. Conversely, appending factor $\mathbf{1}_{m \times 1} \mathbf{e}_{n+1}^\top$ gives $r' \le \brank(\mathbf{M}) + 1$.
+\end{proof}
+
+\begin{counterexample}\label{cex:all1}
+Take
+\[
+\mathbf{C}_{\mathrm{all1}} = \begin{bmatrix} 0 & 1 \\ 1 & 1 \end{bmatrix}, \qquad \rho(\mathbf{C}_{\mathrm{all1}}) = \begin{bmatrix} 0 \\ 1 \end{bmatrix}.
+\]
+Neuron~$2$ is redundant to $\varnothing$, hence simply redundant, so $k = 1$ and $\ell = 0$. Yet $\brank(\rho(\mathbf{C}_{\mathrm{all1}})) = 1$ while $\brank(\mathbf{C}_{\mathrm{all1}}) = 2 > 1 + 0$.
+\end{counterexample}
+
+\subsubsection*{Failure Mode B: Duplicated non-simply redundant columns (no all-$1$s column, $\varnothing \in \mathcal{C}$)}
+
+\begin{counterexample}\label{cex:dup}
+Duplicate column~$3$ of $\mathbf{C}'$ in Example~\texttt{ex:isomorphicnotbrank}:
+\[
+\mathbf{C} = \begin{bmatrix} 0 & 0 & 0 & 0 \\ 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 1 & 1 & 1 & 1 \end{bmatrix}, \qquad \rho(\mathbf{C}) = \begin{bmatrix} 0 & 0 \\ 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{bmatrix}.
+\]
+In $\mathbf{C}$, there are no trivial columns and no all-$1$s columns, and $\varnothing \in \mathcal{C}$. Columns~$3$ and~$4$ are identical: $\Tk_{\mathcal{C}}(3) = \Tk_{\mathcal{C}}(4) = \{1234\}$. Under the literal simultaneous definition of line~1114, neuron~$3$ is redundant to the singleton $\{4\}$ and neuron~$4$ is redundant to the singleton $\{3\}$, so \emph{both} are simply redundant. Hence $k = 2$ and $\ell = 0$. Yet deleting a duplicate column preserves Boolean rank, so
+\[
+\brank(\mathbf{C}) = \brank(\mathbf{C}') = 3 > 2 = \brank(\rho(\mathbf{C})) + 0 = \brank(\rho(\mathbf{C})) + \ell.
+\]
+Moreover, taking the $t$-fold block-diagonal sum $\mathbf{C}^{\oplus t} = \diag(\mathbf{C}, \dots, \mathbf{C})$ gives a matrix with no trivial or all-$1$s columns, $\varnothing \in \mathcal{C}$, $k = 2t$, $\ell = 0$, and $\brank(\mathbf{C}^{\oplus t}) - (\brank(\rho(\mathbf{C}^{\oplus t})) + \ell) = 3t - 2t = t \to \infty$.
+
+\emph{Note on sequential counting.} Under sequential deduplication-first counting, one duplicate copy is removed first and the remaining copy counts as $\ell = 1$, restoring equality in Counterexample~\ref{cex:dup}; thus the unconditional reverse-direction refutation rests on $\mathbf{C}_{\mathrm{all1}}$ in Counterexample~\ref{cex:all1}.
+\end{counterexample}
+
+\section{Corrected Sharp Bounds, Exact Criterion, and Positive Theorem}
+
+\subsection{Corrected Redundancy Upper Bound}
+
+Let $\mathbf{C} \in \mathbb{B}^{m \times n}$ be any binary matrix. Let $s(\mathbf{C})$ be the number of \emph{distinct} nonzero, non-all-$1$ columns of $\mathbf{C}$ that do not appear as columns of $\rho(\mathbf{C})$, and define the \emph{effective redundancy count}
+\[
+\ell_{\mathrm{eff}}(\mathbf{C}) := s(\mathbf{C}) + \mathbf{1}\bigl[\mathbf{1} \text{ is a column of } \mathbf{C} \text{ and } \mathbf{0} \text{ is a row of } \rho(\mathbf{C})\bigr].
+\]
+
+\begin{theorem}[Corrected Redundancy Bound]\label{thm:corrected}
+For every binary matrix $\mathbf{C}$,
+\[
+\brank(\rho(\mathbf{C})) \le \brank(\mathbf{C}) \le \brank(\rho(\mathbf{C})) + \ell_{\mathrm{eff}}(\mathbf{C}).
+\]
+\end{theorem}
+
+\begin{proof}
+Deleting all-$0$ columns and deduplicating repeated columns yields a matrix $\tilde{\mathbf{C}}$ with $\brank(\tilde{\mathbf{C}}) = \brank(\mathbf{C})$ and $\rho(\tilde{\mathbf{C}}) = \rho(\mathbf{C})$. Let $\tilde{\mathbf{C}}_{\neq \mathbf{1}}$ be $\tilde{\mathbf{C}}$ with any all-$1$s column removed. Notice that every column of $\tilde{\mathbf{C}}_{\neq \mathbf{1}}$ not in $\rho(\mathbf{C})$ is a nonempty entrywise product of columns of $\rho(\mathbf{C})$, so it has $0$ in every row where $\rho(\mathbf{C})$ is all-$0$. Hence $\mathbf{0}$ is a row of $\tilde{\mathbf{C}}_{\neq \mathbf{1}}$ if and only if $\mathbf{0}$ is a row of $\rho(\mathbf{C})$. By Proposition~\ref{prop:all1}, if $\mathbf{1}$ is a column of $\mathbf{C}$, then
+\[
+\brank(\mathbf{C}) = \brank(\tilde{\mathbf{C}}_{\neq \mathbf{1}}) + \mathbf{1}[\mathbf{0} \text{ is a row of } \rho(\mathbf{C})].
+\]
+Finally, $\tilde{\mathbf{C}}_{\neq \mathbf{1}}$ consists of $\rho(\mathbf{C})$ together with $s(\mathbf{C})$ extra columns; by the block construction of Lemma~\texttt{lem:redundancybound}, $\brank(\tilde{\mathbf{C}}_{\neq \mathbf{1}}) \le \brank(\rho(\mathbf{C})) + s(\mathbf{C})$. Combining gives the upper bound. The lower bound is Lemma~\texttt{lem:reducedminimumrank}.
+\end{proof}
+
+\subsection{Exact Criterion for Adding One Non-Simply Redundant Column}
+
+\begin{proposition}\label{prop:criterion}
+Let $\mathbf{C}_0 \in \mathbb{B}^{m \times n_0}$ and let $\mathbf{c} \in \mathbb{B}^{m \times 1}$ be a non-simply redundant column (an entrywise product of at least $2$ columns of $\mathbf{C}_0$). Then $\brank([\mathbf{C}_0 \mid \mathbf{c}]) \in \{\brank(\mathbf{C}_0),\, \brank(\mathbf{C}_0) + 1\}$, and
+\begin{align*}
+\brank([\mathbf{C}_0 \mid \mathbf{c}]) = \brank(\mathbf{C}_0)
+\iff{}& \text{there exists an optimal factorization } \mathbf{C}_0 = \mathbf{V}\mathbf{H} \\
+&\text{of rank } \brank(\mathbf{C}_0) \text{ with } \mathbf{c} \in \colspan_{\mathbb{B}}(\mathbf{V}),
+\end{align*}
+where $\colspan_{\mathbb{B}}(\mathbf{V}) = \{\mathbf{V}\mathbf{h} : \mathbf{h} \in \mathbb{B}^{r \times 1}\}$ is the Boolean union-span of the columns of $\mathbf{V}$.
+\end{proposition}
+
+\begin{proof}
+Immediate: $[\mathbf{C}_0 \mid \mathbf{c}] = \mathbf{V}[\mathbf{H} \mid \mathbf{h}]$ holds if and only if $\mathbf{C}_0 = \mathbf{V}\mathbf{H}$ and $\mathbf{c} = \mathbf{V}\mathbf{h}$.
+\end{proof}
+
+\subsection{Positive Theorem: The Conjecture Holds for All Intersection-Complete Codes}
+
+The exact equality sought by the authors does hold across the entire class of intersection-complete codes. We first record a short lemma.
+
+\begin{lemma}\label{lem:lowertri}
+Every $u \times u$ lower-triangular binary matrix $\mathbf{M} \in \mathbb{B}^{u \times u}$ with $M_{ii} = 1$ for all $i \in [u]$ and $M_{ij} = 0$ for all $j > i$ satisfies $\brank(\mathbf{M}) = u$.
+\end{lemma}
+
+\begin{proof}
+Clearly $\brank(\mathbf{M}) \le u$. Let $\mathbf{M} = \mathbf{V}\mathbf{H}$ be any rank-$r$ Boolean factorization with rows $\mathbf{h}_1, \dots, \mathbf{h}_r \in \mathbb{B}^u$ of $\mathbf{H}$. For each $i \in [u]$, since $M_{ii} = 1$, there exists $f(i) \in [r]$ with $V_{i, f(i)} = 1$ and $(\mathbf{h}_{f(i)})_i = 1$. Since $V_{i, f(i)} = 1$ and $\mathbf{V}\mathbf{H} = \mathbf{M}$, we have $\mathbf{h}_{f(i)} \le \mathbf{M}_{i,\cdot}$, so $(\mathbf{h}_{f(i)})_j = 0$ for all $j > i$. Thus $\max \supp(\mathbf{h}_{f(i)}) = i$, showing that $f : [u] \to [r]$ is injective and hence $r \ge u$.
+\end{proof}
+
+\begin{theorem}[Exact Boolean Rank of Intersection-Complete Codes]\label{thm:intcomplete}
+Let $\mathbf{C} \in \mathbb{B}^{m \times n}$ represent an intersection-complete code $\mathcal{C} \subseteq 2^{[n]}$, and let $u(\mathbf{C})$ be the number of distinct nonzero columns of $\mathbf{C}$. Then
+\[
+\brank(\mathbf{C}) = u(\mathbf{C}) = \brank(\rho(\mathbf{C})) + \ell_{\mathrm{eff}}(\mathbf{C}).
+\]
+In particular, if $\mathbf{C}$ represents an intersection-complete code with no trivial or simply redundant neurons, then $\brank(\mathbf{C}) = \brank(\rho(\mathbf{C})) + \ell$.
+\end{theorem}
+
+\begin{proof}
+Let $\tilde{\mathbf{C}} \in \mathbb{B}^{m \times u}$ ($u = u(\mathbf{C})$) be obtained from $\mathbf{C}$ by removing all-$0$ columns and deduplicating identical columns, representing $\tilde{\mathcal{C}} \subseteq 2^{[u]}$. Then $\brank(\tilde{\mathbf{C}}) = \brank(\mathbf{C}) \le u$, and $\tilde{\mathcal{C}}$ remains intersection-complete (since coordinate projection commutes with bitwise AND).
+
+For each $j \in [u]$, $\Tk_{\tilde{\mathcal{C}}}(j) \neq \varnothing$ because column $j$ is nonzero. Since $\tilde{\mathcal{C}}$ is finite and intersection-complete, the root
+\[
+\sigma_j := \sqrt[\tilde{\mathcal{C}}]{j} = \bigcap_{\tau \in \Tk_{\tilde{\mathcal{C}}}(j)} \tau
+\]
+is a codeword in $\tilde{\mathcal{C}}$. Moreover, $\sigma_1, \dots, \sigma_u$ are pairwise distinct: if $\sigma_i = \sigma_j$, then by Lemma~\texttt{lem:\allowbreak misctrunks}(2), $\Tk_{\tilde{\mathcal{C}}}(i) = \Tk_{\tilde{\mathcal{C}}}(\sigma_i) = \Tk_{\tilde{\mathcal{C}}}(\sigma_j) = \Tk_{\tilde{\mathcal{C}}}(j)$, contradicting that the columns of $\tilde{\mathbf{C}}$ are distinct.
+
+Reindex $1, \dots, u$ so that $|\sigma_1| \le |\sigma_2| \le \dots \le |\sigma_u|$, and let $\mathbf{M} \in \mathbb{B}^{u \times u}$ be the submatrix of $\tilde{\mathbf{C}}$ on rows $\sigma_1, \dots, \sigma_u$ and columns $1, \dots, u$. Then:
+\begin{itemize}[leftmargin=2em]
+\item $M_{ii} = 1$ for all $i \in [u]$, as $i \in \sqrt[\tilde{\mathcal{C}}]{i} = \sigma_i$;
+\item $M_{ij} = 0$ for all $1 \le i < j \le u$: if $M_{ij} = 1$, then $j \in \sigma_i$, so $\sigma_i \in \Tk_{\tilde{\mathcal{C}}}(j)$, forcing $\sigma_j = \sqrt[\tilde{\mathcal{C}}]{j} \subseteq \sigma_i$; together with $|\sigma_j| \ge |\sigma_i|$ this yields $\sigma_j = \sigma_i$, a contradiction.
+\end{itemize}
+By Lemma~\ref{lem:lowertri}, $\brank(\mathbf{C}) = \brank(\tilde{\mathbf{C}}) \ge \brank(\mathbf{M}) = u$, so $\brank(\mathbf{C}) = u(\mathbf{C})$.
+
+Finally, $\rho(\mathcal{C})$ is also intersection-complete and reduced (all $n_0 = \lambda(\mathcal{C})$ columns are distinct and nonzero), so $\brank(\rho(\mathbf{C})) = n_0$. Furthermore, the global intersection $\sigma_{\min} = \bigcap_{\sigma \in \mathcal{C}} \sigma \in \mathcal{C}$ consists precisely of the all-$1$s neurons of $\mathcal{C}$, all of which are deleted in $\rho(\mathcal{C})$, so $\varnothing \in \rho(\mathcal{C})$ always (i.e., $\mathbf{0}$ is always a row of $\rho(\mathbf{C})$). Hence $\ell_{\mathrm{eff}}(\mathbf{C}) = u(\mathbf{C}) - n_0$, giving $\brank(\mathbf{C}) = \brank(\rho(\mathbf{C})) + \ell_{\mathrm{eff}}(\mathbf{C})$.
+
+If $\mathbf{C}$ has no trivial or simply redundant neurons, then all columns are distinct, nonzero, and non-all-$1$s, so $\rho$ deletes precisely the $\ell$ redundant columns: each column not in $\rho(\mathbf{C})$ is non-simply redundant, and no column of $\rho(\mathbf{C})$ is redundant in $\mathbf{C}$ since a column of $\rho(\mathbf{C})$ cannot be an intersection of other columns of $\mathbf{C}$ (each of which is itself an intersection of columns of $\rho(\mathbf{C})$). Hence $\ell_{\mathrm{eff}}(\mathbf{C}) = \ell$, proving the last claim.
+\end{proof}
+
+\begin{remark}[Refinement of Theorem~\texttt{thm:intcompletefullrank}]\label{rmk:intcomplete}
+Theorem~\texttt{thm:\allowbreak intcomplete\allowbreak fullrank} (line~1046) states that if $\mathcal{C} = \{\sigma_1, \dots, \sigma_m\} \subseteq 2^{[n]}$ is intersection-complete, then $\brank(\mathcal{C}) = \min(m, n)$. Without excluding trivial or duplicate columns, this can fail (e.g., $\mathcal{C} = \{\varnothing, 12\} \subseteq 2^{[2]}$ has $m = n = 2$ but $\brank(\mathcal{C}) = 1$). Theorem~\ref{thm:intcomplete} gives the exact unrestricted formula $\brank(\mathcal{C}) = u(\mathbf{C})$ and shows that $m \ge u(\mathbf{C})$ always (via the $u$ distinct roots $\sigma_1, \dots, \sigma_u \in \mathcal{C}$), so $\brank(\mathcal{C}) = n$ holds precisely when $\mathcal{C}$ has no trivial or duplicate columns (which in particular implies $n = u(\mathbf{C}) \le m$, so $\brank(\mathcal{C}) = \min(m, n)$).
+\end{remark}
+
+\section{Complete Resolution of Question 2 (Section 7.2)}
+
+Section~7.2 (lines 1105--1108) poses the following problem:
+\begin{question*}
+What is $\max_{\mathcal{C} \in \mathbf{Code}} \{\lambda(\mathcal{C}^{(i)}) - \lambda(\mathcal{C})\}$? From Definition~\texttt{def:excessivecovering} we see that $\lambda(\mathcal{C}^{(i)}) \le 2\lambda(\mathcal{C}) - 2$. Does any code achieve this bound?
+\end{question*}
+
+While the paper's empirical figure (lines 1104--1108) already observed attainment at $\lambda = 3$ ($\lambda(\mathcal{C}^{(i)}) = 4$), we prove that the upper bound $\lambda(\mathcal{C}^{(i)}) \le 2\lambda(\mathcal{C}) - 2$ is sharp for every integer $n = \lambda(\mathcal{C}) \ge 1$, and consequently $\lambda(\mathcal{C}^{(i)}) - \lambda(\mathcal{C})$ is unbounded above.
+
+\begin{theorem}[Sharpness of $\lambda(\mathcal{C}^{(i)}) \le 2\lambda(\mathcal{C}) - 2$]\label{thm:question2}
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For every integer $n \ge 3$, the code
+\[
+\mathcal{C}_n := \{\varnothing\} \cup \bigl\{\{j\} : 2 \le j \le n\bigr\} \cup \bigl\{\{1, j\} : 2 \le j \le n\bigr\} \subseteq 2^{[n]}
+\]
+is reduced ($\lambda(\mathcal{C}_n) = n$), neuron~$1$ is free (so the covering map $f_1 : \mathcal{C}_n \to \mathcal{C}_n^{(1)}$ is a BMF by Theorem~\texttt{thm:coveringBMF}), and
+\[
+\lambda(\mathcal{C}_n^{(1)}) = 2n - 2 = 2\lambda(\mathcal{C}_n) - 2.
+\]
+\item For every integer $n \ge 1$, the intersection-complete code
+\[
+\widehat{\mathcal{C}}_n := \{\varnothing, \{1\}\} \cup \bigl\{\{j\} : 2 \le j \le n\bigr\} \cup \bigl\{\{1, j\} : 2 \le j \le n\bigr\} \subseteq 2^{[n]}
+\]
+is reduced ($\lambda(\widehat{\mathcal{C}}_n) = n$) and satisfies $\lambda(\widehat{\mathcal{C}}_n^{(1)}) = 2n - 2 = 2\lambda(\widehat{\mathcal{C}}_n) - 2$.
+\item Therefore, assuming the paper's upper bound $\lambda(\mathcal{C}^{(i)}) \le 2\lambda(\mathcal{C}) - 2$, for every fixed $\lambda(\mathcal{C}) = n \ge 1$,
+\[
+\max_{\substack{\mathcal{C} \in \mathbf{Code},\, \lambda(\mathcal{C}) = n \\ i \in [n]}} \bigl(\lambda(\mathcal{C}^{(i)}) - \lambda(\mathcal{C})\bigr) = n - 2,
+\]
+and globally $\sup_{\mathcal{C} \in \mathbf{Code},\, i} \{\lambda(\mathcal{C}^{(i)}) - \lambda(\mathcal{C})\} = +\infty$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\textbf{Case $n = 1$.} $\widehat{\mathcal{C}}_1 = \{\varnothing, \{1\}\}$ is reduced ($\lambda = 1$). By Definition~\texttt{def:excessivecovering}, $T_1 = T_2 = \varnothing$, so $\widehat{\mathcal{C}}_1^{(1)} = \{\varnothing\}$ has $\lambda = 0 = 2(1) - 2$.
+
+\medskip
+\noindent\textbf{Case $n = 2$.} $\widehat{\mathcal{C}}_2 = \{\varnothing, \{1\}, \{2\}, \{1,2\}\}$ is reduced ($\lambda = 2$). For $i = 1$, $T_1 = T_3 = \varnothing$, $T_2 = \Tk(2) = \{\{2\}, \{1,2\}\}$, and $T_4 = \Tk(2) \cap \Tk(1) = \{\{1,2\}\} \neq \Tk(1)$. Thus $f_1(\varnothing) = f_1(\{1\}) = \varnothing$, $f_1(\{2\}) = \{2\}$, $f_1(\{1,2\}) = \{2,4\}$. Dropping trivial neurons $1,3$ gives $\{\varnothing, \{2\}, \{2,4\}\}$, which is reduced on $2 = 2(2) - 2$ neurons.
+
+\medskip
+\noindent\textbf{General case $n \ge 3$ for $\mathcal{C}_n$ (and $\widehat{\mathcal{C}}_n$).}
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item \emph{$\mathcal{C}_n$ is reduced (hence $\lambda(\mathcal{C}_n) = n$):}
+The simple trunks are $\Tk_{\mathcal{C}_n}(1) = \{\{1,j\} : 2 \le j \le n\}$ (size $n - 1 \ge 2$) and $\Tk_{\mathcal{C}_n}(j) = \{\{j\}, \{1,j\}\}$ (size~$2$) for $2 \le j \le n$. None is empty. Since $n \ge 3$, $\{1,2\}, \{1,3\} \in \Tk_{\mathcal{C}_n}(1)$, so $\sqrt[\mathcal{C}_n]{1} = \{1\}$ (in particular $\sqrt[\mathcal{C}_n]{1} \notin \mathcal{C}_n$, so neuron~$1$ is free). For $2 \le j \le n$, $\sqrt[\mathcal{C}_n]{j} = \{j\} \cap \{1,j\} = \{j\}$. For every $a \in [n]$, $\sqrt[\mathcal{C}_n]{a} \setminus \{a\} = \varnothing$, and $\Tk_{\mathcal{C}_n}(\varnothing) = \mathcal{C}_n$ has size $2n - 1 > \max(n-1, 2)$, so $\Tk_{\mathcal{C}_n}(a) \neq \Tk_{\mathcal{C}_n}(\sqrt[\mathcal{C}_n]{a} \setminus \{a\})$. By Lemma~\texttt{lem:redundancylemma}, $\mathcal{C}_n$ is reduced. In $\widehat{\mathcal{C}}_n$, the exact same roots $\{1\}$ and $\{j\}$ hold, and $|\widehat{\mathcal{C}}_n| = 2n > \max(n, 2)$, so $\widehat{\mathcal{C}}_n$ is also reduced.
+
+\item \emph{Trunks of $f_1$ (Definition~\texttt{def:excessivecovering}):}
+We have $T_1 = \varnothing$ and $T_{n+1} = \varnothing$. For $j \in \{2, \dots, n\}$, $\{j\} \in \Tk(j) \setminus \Tk(1)$, so $T_j = \Tk(j) = \{\{j\}, \{1,j\}\}$. Moreover, $\Tk(j) \cap \Tk(1) = \{\{1,j\}\} \neq \Tk(1)$ (since $|\Tk(1)| \ge n - 1 \ge 2 > 1$), so $T_{n+j} = \{\{1,j\}\}$. Evaluating $f_1(\sigma) = \{a \in [2n] : \sigma \in T_a\}$ gives $f_1(\varnothing) = \varnothing$ (and $f_1(\{1\}) = \varnothing$ in $\widehat{\mathcal{C}}_n$), $f_1(\{j\}) = \{j\}$, and $f_1(\{1,j\}) = \{j, n+j\}$ for $2 \le j \le n$.
+
+\item \emph{$\mathcal{C}_n^{(1)}$ reduces to $2n - 2$ neurons:}
+Deleting the two trivial neurons $1$ and $n+1$ yields the code $\mathcal{D}_n \subseteq 2^N$ on the $(2n - 2)$-element neuron set $N := \{2, \dots, n\} \cup \{n+2, \dots, 2n\}$:
+\[
+\mathcal{D}_n = \{\varnothing\} \cup \bigl\{\{j\} : 2 \le j \le n\bigr\} \cup \bigl\{\{j, n+j\} : 2 \le j \le n\bigr\}.
+\]
+We verify that $\mathcal{D}_n$ is reduced via Lemma~\texttt{lem:redundancylemma}:
+\begin{itemize}[leftmargin=1.5em]
+\item For $j \in \{2, \dots, n\}$: $\Tk_{\mathcal{D}_n}(j) = \{\{j\}, \{j, n+j\}\}$ (nonempty), $\sqrt[\mathcal{D}_n]{j} = \{j\}$, and $\Tk_{\mathcal{D}_n}(\varnothing) = \mathcal{D}_n$ has size $2n - 1 > 2$, so $j$ is not redundant.
+\item For $n + j$ ($2 \le j \le n$): $\Tk_{\mathcal{D}_n}(n+j) = \{\{j, n+j\}\}$ (nonempty), $\sqrt[\mathcal{D}_n]{n+j} = \{j, n+j\}$, and
+\[
+\Tk_{\mathcal{D}_n}\bigl(\sqrt[\mathcal{D}_n]{n+j} \setminus \{n+j\}\bigr) = \Tk_{\mathcal{D}_n}(j) = \{\{j\}, \{j, n+j\}\} \neq \Tk_{\mathcal{D}_n}(n+j),
+\]
+so $n + j$ is not redundant.
+\end{itemize}
+Hence $\mathcal{D}_n = \rho(\mathcal{C}_n^{(1)}) = \rho(\widehat{\mathcal{C}}_n^{(1)})$, giving $\lambda(\mathcal{C}_n^{(1)}) = \lambda(\widehat{\mathcal{C}}_n^{(1)}) = |N| = 2n - 2$. \qedhere
+\end{enumerate}
+\end{proof}
+
+\section{Verification, Formalization, and Novelty Status}
+
+\paragraph{Lean~4 formalization.}
+The file \texttt{lean\_proofs/Conjectures/NeuralCodes.lean} (Lean~\texttt{v4.24.0} with Mathlib, zero \texttt{sorry}s, standard axioms only) machine-checks:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Exact definitions of combinatorial codes / binary matrices, Boolean matrix multiplication, Boolean rank (\texttt{brank}), trunks, redundancy, simple vs.\ non-simple redundancy, and intersection-completeness.
+\item The minimal $3 \times 4$ clean counterexample (\texttt{refutation\_clean\_3x4}), the exponential-gap infinite family of Theorem~\ref{thm:expgap} for all $m \ge 2$ (\texttt{exponential\_gap\_family}), the general all-$1$s column theorem of Proposition~\ref{prop:all1} for every $m \times n$ binary matrix (\texttt{brank\_append\_allOnes}), the all-$1$s reverse counterexample (\texttt{refutation\_all1\_reverse}), and the $4 \times 4$ duplicated-column reverse counterexample under simultaneous counting (\texttt{refutation\_dup\_reverse}).
+\item Lemma~\ref{lem:lowertri} (\texttt{brank\_lower\_triangular}) and the full unrestricted positive theorem $\brank(\mathbf{C}) = u(\mathbf{C})$ for every intersection-complete binary matrix (\texttt{brank\_intersection\_complete}).
+\item Reducedness of $\mathcal{C}_n$ and $\mathcal{D}_n$ for every $n \ge 3$ in Theorem~\ref{thm:question2} (\texttt{question2\_sharpness}).
+\end{enumerate}
+The general reduction operator $\rho$, Proposition~\ref{prop:intermediate}, Theorem~\ref{thm:corrected}, dimension minimality of the $3 \times 4$ counterexample, and the formal derivation of $\mathcal{D}_n$ from Definition~\texttt{def:excessivecovering} are proved in prose above.
+
+\paragraph{Python verification.}
+A self-contained Python verification script implementing exact Boolean rank (via both maximal all-$1$ rectangle MILP set cover and independent brute-force Luce--Plemmons residual search $(\mathbf{C}:\mathbf{H})\mathbf{H} = \mathbf{C}$), exact redundancy classification, exhaustive search for minimal clean counterexamples, verification of the infinite families in Theorem~\ref{thm:expgap} and Proposition~\ref{prop:intermediate}, verification of Theorem~\ref{thm:intcomplete} across all intersection-complete codes on $n \le 3$ neurons and random samples on $n \le 6$, and verification of Theorem~\ref{thm:question2} for $n = 3, \dots, 8$ is provided at \texttt{solutions/neural\_codes/verify\_conjecture.py}.
+
+\paragraph{Novelty status note.}
+As of November~26, 2026, \href{https://arxiv.org/abs/2603.10837}{arXiv:2603.10837} remains v1 with no published resolution found on arXiv or Semantic Scholar. Note, however, that Juliann Geraci's UNL PhD dissertation (\emph{Boolean Rank via Monomial Ideals and Neural Ideals}, April 2026, \url{https://digitalcommons.unl.edu/dissunl/474/}) could not be fetched automatically (HTTP~403) and should be checked manually before asserting final publication priority.
+
+\end{document}

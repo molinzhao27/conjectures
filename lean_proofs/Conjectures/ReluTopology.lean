@@ -3,28 +3,32 @@ import Mathlib
 /-!
 # Formalization of Beshkov's Tight Topological Expressivity Conjecture (arXiv:2610.13931)
 
-We formalize in Lean 4 + Mathlib:
-1. **Theorem 1 (Part A)**: For every `d ≥ 1`, the `(d, d+1, d+1)` ReLU neural network
-   `P_net : (Fin d → ℝ) → (Fin (d + 1) → ℝ)` has:
-   - Exact image `Set.range P_net = boundarySimplex d`, where
-     `boundarySimplex d = {z | (∀ j, 0 ≤ z j) ∧ ∑ j, z j ≤ 1 ∧ ((∃ j, z j = 0) ∨ ∑ j, z j = 1)}`.
-   - Compact convex support `omegaBar d = {x | S_sum x ≤ 2} ⊆ Set.Icc (-1) 2`
-     (`isCompact_omegaBar`, `convex_omegaBar`, `omegaBar_subset_box`),
-     with `P_net x = 0` wherever `2 ≤ S_sum x` (`P_net_eq_zero_of_S_ge_two`), and
-     `P_net '' omegaBar d = boundarySimplex d` (`beshkov_part_A`).
-2. **Theorem 2 (Part B — Core Geometric Engine)**:
+We formalize in Lean 4 + Mathlib (zero `sorry`):
+1. **Theorem 1 (Part A — Complete End-to-End Formalization)**:
+   For every `d ≥ 1`, the `(d, d+1, d+1)` ReLU neural network `P_net : (Fin d → ℝ) → (Fin (d + 1) → ℝ)`
+   is continuous (`continuous_P_net`) and satisfies:
+   - Exact image `Set.range P_net = boundarySimplex d` and `P_net '' omegaBar d = boundarySimplex d`
+     (`beshkov_part_A`), with compact convex support `omegaBar d ⊆ [-1, 2]^d`
+     (`isCompact_omegaBar`, `convex_omegaBar`, `omegaBar_subset_box`) and `P_net x = 0` for `2 ≤ S_sum x`
+     (`P_net_eq_zero_of_S_ge_two`).
+   - **Explicit Homeomorphism (`boundarySimplex_homeomorph_sphere`)**:
+     `boundarySimplex d ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin (d + 1))) 1` via radial projection
+     from the barycenter `c = (1/(d+2), ..., 1/(d+2))`.
+2. **Theorem 2 (Part B — Geometric Engine & Impossibility for Spheres / Simplex Boundary)**:
    For any `d ≥ 1`, any `W₂ : Matrix (Fin (d + 1)) (Fin d) ℝ`, and any `b₂ : Fin (d + 1) → ℝ`:
-   - There exists a nonzero `n : Fin (d + 1) → ℝ` with `W₂ᵀ n = 0`, so every `W₂.mulVec h + b₂`
-     lies in `hyperplane n (∑ i, n i * b₂ i)` (`bottleneck_in_hyperplane`), and therefore
-     `reluVec (W₂.mulVec h + b₂) ∈ reluVec '' hyperplane n (∑ i, n i * b₂ i)`
-     (`bottleneck_relu_in_relu_hyperplane`).
+   - Every output `reluVec (W₂.mulVec h + b₂)` lies in `reluVec '' hyperplane n α` for a nonzero `n`
+     (`bottleneck_in_hyperplane`, `bottleneck_relu_in_relu_hyperplane`).
    - **Straight-Ray Escape Lemma (`straight_ray_escape`)**: For every `n ≠ 0`, `α : ℝ`, and
      `p ∉ reluVec '' hyperplane n α`, there exists a nonzero direction `v` such that the entire ray
-     `{p + t • v | t ≥ 0}` is disjoint from `reluVec '' hyperplane n α`.
+     `{p + t • v | t ≥ 0}` avoids `reluVec '' hyperplane n α`.
+   - **Geometric Impossibility Corollaries**: No `(d, d, d+1)` ReLU network can contain ANY
+     Euclidean sphere `{z | ∑ j, (z j - c j)^2 = r^2}` (`r > 0`) in its image
+     (`bottleneck_not_superset_sphere`), nor can it contain `boundarySimplex d`
+     (`bottleneck_not_superset_boundarySimplex`).
 
-Note: The topological consequences (`boundarySimplex d ≅ S^d`, empty interior of `reluVec '' H`,
-non-separation of compact subsets, and Alexander duality / UCT) are proved in prose in
-`solutions/relu_topology/solution.md`.
+Note: Extending Part B from geometric spheres / simplex boundaries to *arbitrary wild topological
+embeddings* of `S^d` inside `reluVec '' H` uses Alexander duality / Čech cohomology (not yet in
+Mathlib) and is proved in prose in `solutions/relu_topology/solution.md`.
 -/
 
 open Finset BigOperators
@@ -617,5 +621,557 @@ theorem straight_ray_escape {d : ℕ} {n : Fin (d + 1) → ℝ} (hn : n ≠ 0) (
       have huEq : ∑ i : Fin (d + 1), m i * u i = β := huH
       rw [hu_eq_q, hsum_q] at huEq
       nlinarith
+
+/-! ### Part A Completion: Continuity of `P_net` and Explicit Homeomorphism `∂Δ₀^{d+1} ≃ₜ S^d` -/
+
+lemma continuous_h_layer (d : ℕ) : Continuous (@h_layer d) := by
+  refine continuous_pi fun j => ?_
+  refine Fin.lastCases ?_ ?_ j
+  · simp only [h_layer, Fin.snoc_last, relu]
+    exact continuous_const.max (continuous_const.sub (continuous_finset_sum _ fun i _ => continuous_apply i))
+  · intro i
+    simp only [h_layer, Fin.snoc_castSucc, relu]
+    exact continuous_const.max (continuous_apply i)
+
+lemma continuous_g_layer (d : ℕ) : Continuous (@g_layer d) := by
+  refine continuous_pi fun i => ?_
+  simp only [g_layer, relu]
+  exact continuous_const.max
+    ((continuous_apply i).add
+      (continuous_const.mul (continuous_const.sub (continuous_finset_sum _ fun j _ => continuous_apply j))))
+
+/-- `P_net` is continuous on `ℝ^d`. -/
+theorem continuous_P_net (d : ℕ) : Continuous (@P_net d) :=
+  (continuous_g_layer d).comp (continuous_h_layer d)
+
+/-- Interior barycenter `c = (1/(d+2), …, 1/(d+2))` of the standard `(d+1)`-simplex `Δ₀^{d+1}`. -/
+noncomputable def barycenter (d : ℕ) : Fin (d + 1) → ℝ :=
+  fun _ => 1 / ((d : ℝ) + 2)
+
+/-- Minkowski gauge functional of `Δ₀^{d+1} - barycenter d` (scaled by `1/(d+2)`):
+`simplexGauge u = max (∑ j, u j) (max_j (-u j))`. -/
+def simplexGauge {d : ℕ} (u : Fin (d + 1) → ℝ) : ℝ :=
+  max (∑ j : Fin (d + 1), u j)
+    (Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -(u j)))
+
+lemma simplexGauge_pos {d : ℕ} {u : Fin (d + 1) → ℝ} (hu : u ≠ 0) :
+    0 < simplexGauge u := by
+  by_contra hle
+  push_neg at hle
+  have hsum : ∑ j : Fin (d + 1), u j ≤ 0 := le_trans (le_max_left _ _) hle
+  have hsup : Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -(u j)) ≤ 0 :=
+    le_trans (le_max_right _ _) hle
+  have hnn : ∀ j : Fin (d + 1), 0 ≤ u j := by
+    intro j
+    have hj : -(u j) ≤ Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -(u j)) :=
+      Finset.le_sup' (fun j : Fin (d + 1) => -(u j)) (Finset.mem_univ j)
+    linarith
+  have hsum0 : ∑ j : Fin (d + 1), u j = 0 :=
+    le_antisymm hsum (Finset.sum_nonneg fun j _ => hnn j)
+  have hall0 : ∀ j : Fin (d + 1), u j = 0 := fun j =>
+    (Finset.sum_eq_zero_iff_of_nonneg (fun i _ => hnn i)).mp hsum0 j (Finset.mem_univ j)
+  exact hu (funext hall0)
+
+lemma simplexGauge_smul {d : ℕ} {c : ℝ} (hc : 0 < c) (u : Fin (d + 1) → ℝ) :
+    simplexGauge (c • u) = c * simplexGauge u := by
+  unfold simplexGauge
+  have h1 : ∑ j : Fin (d + 1), (c • u) j = c * ∑ j : Fin (d + 1), u j := by
+    simp only [Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
+  have h2 : Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -((c • u) j)) =
+      c * Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -(u j)) := by
+    apply le_antisymm
+    · refine Finset.sup'_le _ _ fun j _ => ?_
+      have hj := Finset.le_sup' (fun j : Fin (d + 1) => -(u j)) (Finset.mem_univ j)
+      have hneg : -((c • u) j) = c * -(u j) := by simp [smul_eq_mul]
+      rw [hneg]
+      exact mul_le_mul_of_nonneg_left hj (le_of_lt hc)
+    · obtain ⟨j₀, _, hj₀⟩ := Finset.exists_mem_eq_sup' ⟨0, Finset.mem_univ (0 : Fin (d + 1))⟩
+        (fun j : Fin (d + 1) => -(u j))
+      rw [hj₀]
+      have hle := Finset.le_sup' (fun j : Fin (d + 1) => -((c • u) j)) (Finset.mem_univ j₀)
+      have hneg : -((c • u) j₀) = c * -(u j₀) := by simp [smul_eq_mul]
+      linarith
+  rw [h1, h2, mul_max_of_nonneg _ _ (le_of_lt hc)]
+
+lemma continuous_simplexGauge (d : ℕ) : Continuous (@simplexGauge d) := by
+  unfold simplexGauge
+  refine Continuous.max (continuous_finset_sum _ fun j _ => continuous_apply j) ?_
+  -- `Finset.sup'` over a finite set of continuous functions is continuous
+  suffices h : ∀ (s : Finset (Fin (d + 1))) (hs : s.Nonempty),
+      Continuous (fun u : Fin (d + 1) → ℝ => s.sup' hs (fun j => -(u j))) from
+    h Finset.univ ⟨0, Finset.mem_univ 0⟩
+  intro s hs
+  refine Finset.Nonempty.cons_induction (s := s) (hs := hs) ?_ ?_
+  · intro a
+    simpa using (continuous_apply a).neg
+  · intro a t hat ht ih
+    have heq : (fun u : Fin (d + 1) → ℝ => (Finset.cons a t hat).sup' (Finset.cons_nonempty hat) (fun j => -(u j))) =
+        fun u => max (-(u a)) (t.sup' ht (fun j => -(u j))) := by
+      funext u; exact Finset.sup'_cons ht (fun j => -(u j))
+    rw [heq]
+    exact (continuous_apply a).neg.max ih
+
+lemma simplexGauge_sub_barycenter_of_mem {d : ℕ} {z : Fin (d + 1) → ℝ}
+    (hz : z ∈ boundarySimplex d) :
+    simplexGauge (z - barycenter d) = 1 / ((d : ℝ) + 2) := by
+  rcases hz with ⟨hnn, hsum_le, hbdry⟩
+  have hsum_b : ∑ j : Fin (d + 1), barycenter d j = ((d : ℝ) + 1) / ((d : ℝ) + 2) := by
+    simp [barycenter, Finset.sum_const, nsmul_eq_mul, div_eq_mul_inv]
+  have hsum_diff : ∑ j : Fin (d + 1), (z - barycenter d) j =
+      (∑ j : Fin (d + 1), z j) - ((d : ℝ) + 1) / ((d : ℝ) + 2) := by
+    simp only [Pi.sub_apply, Finset.sum_sub_distrib, hsum_b]
+  have hd2_pos : (0 : ℝ) < (d : ℝ) + 2 := by positivity
+  have h1_le : ∑ j : Fin (d + 1), (z - barycenter d) j ≤ 1 / ((d : ℝ) + 2) := by
+    rw [hsum_diff]
+    have : 1 - ((d : ℝ) + 1) / ((d : ℝ) + 2) = 1 / ((d : ℝ) + 2) := by
+      field_simp [ne_of_gt hd2_pos]; ring
+    linarith
+  have h2_le : Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -((z - barycenter d) j)) ≤
+      1 / ((d : ℝ) + 2) := by
+    refine Finset.sup'_le _ _ fun j _ => ?_
+    simp only [Pi.sub_apply, barycenter]
+    linarith [hnn j]
+  apply le_antisymm
+  · exact max_le h1_le h2_le
+  · rcases hbdry with ⟨j₀, hj₀⟩ | hsum1
+    · refine le_trans ?_ (le_max_right _ _)
+      have hle := Finset.le_sup' (fun j : Fin (d + 1) => -((z - barycenter d) j)) (Finset.mem_univ j₀)
+      have heq : -((z - barycenter d) j₀) = 1 / ((d : ℝ) + 2) := by
+        simp [Pi.sub_apply, barycenter, hj₀]
+      linarith
+    · refine le_trans ?_ (le_max_left _ _)
+      rw [hsum_diff, hsum1]
+      have : 1 - ((d : ℝ) + 1) / ((d : ℝ) + 2) = 1 / ((d : ℝ) + 2) := by
+        field_simp [ne_of_gt hd2_pos]; ring
+      linarith
+
+lemma sub_barycenter_ne_zero {d : ℕ} {z : Fin (d + 1) → ℝ} (hz : z ∈ boundarySimplex d) :
+    z - barycenter d ≠ 0 := by
+  intro h0
+  have hsg := simplexGauge_sub_barycenter_of_mem hz
+  rw [h0] at hsg
+  have hzero : simplexGauge (0 : Fin (d + 1) → ℝ) = 0 := by
+    unfold simplexGauge
+    have hsup : Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun _ : Fin (d + 1) => -(0 : ℝ)) = 0 := by
+      apply le_antisymm
+      · refine Finset.sup'_le _ _ fun _ _ => by norm_num
+      · exact le_trans (by norm_num)
+          (Finset.le_sup' (fun _ : Fin (d + 1) => -(0 : ℝ)) (Finset.mem_univ 0))
+    simp
+  rw [hzero] at hsg
+  have hd2_pos : (0 : ℝ) < (d : ℝ) + 2 := by positivity
+  have : (0 : ℝ) < 1 / ((d : ℝ) + 2) := div_pos one_pos hd2_pos
+  linarith
+
+/-- **Explicit Homeomorphism (`boundarySimplex d ≃ₜ S^d`)**:
+For every `d : ℕ`, the boundary `boundarySimplex d = ∂Δ₀^{d+1}` is homeomorphic to the
+Euclidean unit sphere `Metric.sphere (0 : EuclideanSpace ℝ (Fin (d + 1))) 1` via radial
+projection from the simplex barycenter `c = (1/(d+2), …, 1/(d+2))`. -/
+noncomputable def boundarySimplex_homeomorph_sphere (d : ℕ) :
+    boundarySimplex d ≃ₜ Metric.sphere (0 : EuclideanSpace ℝ (Fin (d + 1))) 1 := by
+  let toE_lin : (Fin (d + 1) → ℝ) ≃L[ℝ] EuclideanSpace ℝ (Fin (d + 1)) :=
+    (EuclideanSpace.equiv (Fin (d + 1)) ℝ).symm
+  let toE : (Fin (d + 1) → ℝ) ≃ₜ EuclideanSpace ℝ (Fin (d + 1)) := toE_lin.toHomeomorph
+  have htoE_norm_pos : ∀ z : boundarySimplex d, 0 < ‖toE (z.1 - barycenter d)‖ := by
+    intro z
+    rw [norm_pos_iff]
+    intro h0
+    apply sub_barycenter_ne_zero z.2
+    have := congrArg toE.symm h0
+    simpa [toE, toE_lin] using this
+  have hfrom_ne : ∀ u : Metric.sphere (0 : EuclideanSpace ℝ (Fin (d + 1))) 1,
+      (toE.symm u.1 : Fin (d + 1) → ℝ) ≠ 0 := by
+    intro u h0
+    have hu1 : ‖u.1‖ = 1 := by rw [← dist_zero_right]; exact Metric.mem_sphere.mp u.2
+    have hu0 : u.1 = 0 := by
+      have := congrArg toE h0
+      simpa [toE, toE_lin] using this
+    rw [hu0, norm_zero] at hu1
+    norm_num at hu1
+  have htoE_smul : ∀ (a : ℝ) (v : Fin (d + 1) → ℝ), toE (a • v) = a • toE v :=
+    fun a v => toE_lin.map_smul a v
+  have hfrom_mem : ∀ u : Metric.sphere (0 : EuclideanSpace ℝ (Fin (d + 1))) 1,
+      barycenter d + ((((d : ℝ) + 2) * simplexGauge (toE.symm u.1))⁻¹) • (toE.symm u.1) ∈
+        boundarySimplex d := by
+    intro u
+    set v : Fin (d + 1) → ℝ := toE.symm u.1
+    have hsg_pos : 0 < simplexGauge v := simplexGauge_pos (hfrom_ne u)
+    have hd2_pos : (0 : ℝ) < (d : ℝ) + 2 := by positivity
+    set s : ℝ := (((d : ℝ) + 2) * simplexGauge v)⁻¹
+    have hs_pos : 0 < s := inv_pos.mpr (mul_pos hd2_pos hsg_pos)
+    have hs_sg : s * simplexGauge v = 1 / ((d : ℝ) + 2) := by
+      dsimp [s]; field_simp [ne_of_gt hd2_pos, ne_of_gt hsg_pos]
+    refine ⟨?_, ?_, ?_⟩
+    · intro j
+      have hj : -(v j) ≤ simplexGauge v :=
+        le_trans (Finset.le_sup' (fun j => -(v j)) (Finset.mem_univ j)) (le_max_right _ _)
+      have hmul : s * (-(v j)) ≤ 1 / ((d : ℝ) + 2) := by
+        calc s * (-(v j)) ≤ s * simplexGauge v := mul_le_mul_of_nonneg_left hj (le_of_lt hs_pos)
+          _ = 1 / ((d : ℝ) + 2) := hs_sg
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, barycenter]
+      linarith
+    · have hsum_v : ∑ j : Fin (d + 1), v j ≤ simplexGauge v := le_max_left _ _
+      have hsum_b : ∑ j : Fin (d + 1), barycenter d j = ((d : ℝ) + 1) / ((d : ℝ) + 2) := by
+        simp [barycenter, Finset.sum_const, nsmul_eq_mul, div_eq_mul_inv]
+      have hmul : s * ∑ j : Fin (d + 1), v j ≤ 1 / ((d : ℝ) + 2) := by
+        calc s * ∑ j : Fin (d + 1), v j ≤ s * simplexGauge v :=
+              mul_le_mul_of_nonneg_left hsum_v (le_of_lt hs_pos)
+          _ = 1 / ((d : ℝ) + 2) := hs_sg
+      have htot : ∑ j : Fin (d + 1), (barycenter d + s • v) j =
+          ((d : ℝ) + 1) / ((d : ℝ) + 2) + s * ∑ j : Fin (d + 1), v j := by
+        simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Finset.sum_add_distrib, hsum_b,
+          ← Finset.mul_sum]
+      rw [htot]
+      have h1 : ((d : ℝ) + 1) / ((d : ℝ) + 2) + 1 / ((d : ℝ) + 2) = 1 := by
+        field_simp [ne_of_gt hd2_pos]; ring
+      linarith
+    · -- Either simplexGauge v = ∑ v j (giving sum = 1) or = sup' (-v j) (giving some coord = 0)
+      rcases max_choice (∑ j : Fin (d + 1), v j)
+          (Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -(v j))) with hmax | hmax
+      · right
+        have hsum_eq : ∑ j : Fin (d + 1), v j = simplexGauge v := hmax.symm
+        have hsum_b : ∑ j : Fin (d + 1), barycenter d j = ((d : ℝ) + 1) / ((d : ℝ) + 2) := by
+          simp [barycenter, Finset.sum_const, nsmul_eq_mul, div_eq_mul_inv]
+        have htot : ∑ j : Fin (d + 1), (barycenter d + s • v) j =
+            ((d : ℝ) + 1) / ((d : ℝ) + 2) + s * ∑ j : Fin (d + 1), v j := by
+          simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Finset.sum_add_distrib, hsum_b,
+            ← Finset.mul_sum]
+        rw [htot, hsum_eq, hs_sg]
+        field_simp [ne_of_gt hd2_pos]; ring
+      · left
+        obtain ⟨j₀, _, hj₀⟩ := Finset.exists_mem_eq_sup' ⟨0, Finset.mem_univ (0 : Fin (d + 1))⟩
+          (fun j : Fin (d + 1) => -(v j))
+        refine ⟨j₀, ?_⟩
+        have hneg_eq : -(v j₀) = simplexGauge v := hj₀.symm.trans hmax.symm
+        simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, barycenter]
+        have hprod : s * v j₀ = -(1 / ((d : ℝ) + 2)) := by
+          have : s * (-(v j₀)) = 1 / ((d : ℝ) + 2) := by rw [hneg_eq, hs_sg]
+          linarith
+        linarith
+  refine
+    { toFun := fun z =>
+        ⟨‖toE (z.1 - barycenter d)‖⁻¹ • toE (z.1 - barycenter d), by
+          rw [Metric.mem_sphere, dist_zero_right, norm_smul, Real.norm_eq_abs,
+            abs_of_pos (inv_pos.mpr (htoE_norm_pos z)),
+            inv_mul_cancel₀ (ne_of_gt (htoE_norm_pos z))]⟩
+      invFun := fun u =>
+        ⟨barycenter d + ((((d : ℝ) + 2) * simplexGauge (toE.symm u.1))⁻¹) • (toE.symm u.1),
+          hfrom_mem u⟩
+      left_inv := fun z => by
+        apply Subtype.ext
+        set v : Fin (d + 1) → ℝ := z.1 - barycenter d
+        set r : ℝ := ‖toE v‖
+        have hr_pos : 0 < r := htoE_norm_pos z
+        have hd2_pos : (0 : ℝ) < (d : ℝ) + 2 := by positivity
+        have hsymm : toE.symm (r⁻¹ • toE v) = r⁻¹ • v := by
+          rw [← htoE_smul, toE.symm_apply_apply]
+        dsimp only
+        rw [hsymm, simplexGauge_smul (inv_pos.mpr hr_pos) v, simplexGauge_sub_barycenter_of_mem z.2]
+        have hcoef : (((d : ℝ) + 2) * (r⁻¹ * (1 / ((d : ℝ) + 2))))⁻¹ = r := by
+          field_simp [ne_of_gt hd2_pos, ne_of_gt hr_pos]
+        rw [hcoef, smul_smul, mul_inv_cancel₀ (ne_of_gt hr_pos), one_smul]
+        ext j; simp [v]
+      right_inv := fun u => by
+        apply Subtype.ext
+        set v : Fin (d + 1) → ℝ := toE.symm u.1
+        have hsg_pos : 0 < simplexGauge v := simplexGauge_pos (hfrom_ne u)
+        have hd2_pos : (0 : ℝ) < (d : ℝ) + 2 := by positivity
+        set s : ℝ := (((d : ℝ) + 2) * simplexGauge v)⁻¹
+        have hs_pos : 0 < s := inv_pos.mpr (mul_pos hd2_pos hsg_pos)
+        have hsub : barycenter d + s • v - barycenter d = s • v := by
+          ext j; simp
+        have htoE_v : toE v = u.1 := toE.apply_symm_apply u.1
+        have hu1 : ‖u.1‖ = 1 := by rw [← dist_zero_right]; exact Metric.mem_sphere.mp u.2
+        dsimp only
+        rw [hsub, htoE_smul, htoE_v, norm_smul, Real.norm_eq_abs, abs_of_pos hs_pos, hu1, mul_one,
+          smul_smul, inv_mul_cancel₀ (ne_of_gt hs_pos), one_smul]
+      continuous_toFun := by
+        refine Continuous.subtype_mk ?_ _
+        have h1 : Continuous (fun z : boundarySimplex d => toE (z.1 - barycenter d)) :=
+          toE.continuous.comp (continuous_subtype_val.sub continuous_const)
+        refine Continuous.smul ?_ h1
+        exact Continuous.inv₀ (continuous_norm.comp h1) fun z => ne_of_gt (htoE_norm_pos z)
+      continuous_invFun := by
+        refine Continuous.subtype_mk ?_ _
+        have h1 : Continuous (fun u : Metric.sphere (0 : EuclideanSpace ℝ (Fin (d + 1))) 1 =>
+            toE.symm u.1) := toE.symm.continuous.comp continuous_subtype_val
+        have h2 : Continuous (fun u : Metric.sphere (0 : EuclideanSpace ℝ (Fin (d + 1))) 1 =>
+            (((d : ℝ) + 2) * simplexGauge (toE.symm u.1))⁻¹) := by
+          refine Continuous.inv₀ (continuous_const.mul ((continuous_simplexGauge d).comp h1)) ?_
+          intro u
+          have hd2_pos : (0 : ℝ) < (d : ℝ) + 2 := by positivity
+          exact ne_of_gt (mul_pos hd2_pos (simplexGauge_pos (hfrom_ne u)))
+        exact continuous_const.add (h2.smul h1) }
+
+/-! ### Part B Completion: Geometric Impossibility for All Euclidean Spheres and `∂Δ₀^{d+1}` -/
+
+/-- Helper: if `n ≠ 0`, every Euclidean open ball `{x | ∑ j, (x j - c j)^2 < r^2}` (`r > 0`)
+contains a point `p ∉ reluVec '' hyperplane n α`. -/
+lemma exists_ball_not_mem_relu_hyperplane {d : ℕ} {n : Fin (d + 1) → ℝ} (hn : n ≠ 0) (α : ℝ)
+    (c : Fin (d + 1) → ℝ) {r : ℝ} (hr : 0 < r) :
+    ∃ p : Fin (d + 1) → ℝ,
+      (∑ j : Fin (d + 1), (p j - c j) ^ 2 < r ^ 2) ∧ p ∉ reluVec '' hyperplane n α := by
+  by_cases hneg : ∃ k : Fin (d + 1), c k ≤ 0
+  · obtain ⟨k, hck⟩ := hneg
+    let p : Fin (d + 1) → ℝ := c + (r / 2) • (-stdBasis k)
+    refine ⟨p, ?_, ?_⟩
+    · have hsum : ∑ j : Fin (d + 1), (p j - c j) ^ 2 = (r / 2) ^ 2 := by
+        have hterm : ∀ j : Fin (d + 1), (p j - c j) ^ 2 = if j = k then (r / 2) ^ 2 else 0 := by
+          intro j; dsimp [p, stdBasis]; split_ifs <;> ring
+        simp [hterm]
+      rw [hsum]; nlinarith
+    · rintro ⟨u, _, hup⟩
+      have hnn : 0 ≤ reluVec u k := le_max_left 0 (u k)
+      have hpk : p k = c k - r / 2 := by simp [p, stdBasis]; ring
+      rw [hup, hpk] at hnn
+      linarith
+  · push_neg at hneg
+    -- All c j > 0! Pick k with n k ≠ 0 and tiny δ > 0.
+    have hk_ex : ∃ k : Fin (d + 1), n k ≠ 0 := by
+      by_contra hall; push_neg at hall; exact hn (funext hall)
+    obtain ⟨k, hnk⟩ := hk_ex
+    by_cases hc_mem : c ∈ reluVec '' hyperplane n α
+    · -- Since c j > 0 for all j, c ∈ reluVec '' H forces ∑ n_i c_i = α.
+      -- Shift c by +(r / 2) • e_k: still all coords > 0, in ball, and ∑ n_i p_i = α + (r/2) n_k ≠ α!
+      let p : Fin (d + 1) → ℝ := c + (r / 2) • stdBasis k
+      have hnc : ∑ i : Fin (d + 1), n i * c i = α := by
+        rcases hc_mem with ⟨u, huH, huc⟩
+        have hu_eq : u = c := by
+          funext j
+          have hru : relu (u j) = c j := congrFun huc j
+          have hcj : 0 < c j := hneg j
+          by_contra hne
+          have hle : u j ≤ 0 := by
+            by_contra hgt; push_neg at hgt
+            rw [relu, max_eq_right (le_of_lt hgt)] at hru
+            exact hne hru
+          rw [relu, max_eq_left hle] at hru
+          linarith
+        rwa [← hu_eq]
+      refine ⟨p, ?_, ?_⟩
+      · have hsum : ∑ j : Fin (d + 1), (p j - c j) ^ 2 = (r / 2) ^ 2 := by
+          have hterm : ∀ j : Fin (d + 1), (p j - c j) ^ 2 = if j = k then (r / 2) ^ 2 else 0 := by
+            intro j; dsimp [p, stdBasis]; split_ifs <;> ring
+          simp [hterm]
+        rw [hsum]; nlinarith
+      · rintro ⟨u, huH, hup⟩
+        have hu_eq : u = p := by
+          funext j
+          have hpj : 0 < p j := by dsimp [p, stdBasis]; split_ifs <;> linarith [hneg j]
+          have hru : relu (u j) = p j := congrFun hup j
+          by_contra hne
+          have hle : u j ≤ 0 := by
+            by_contra hgt; push_neg at hgt
+            rw [relu, max_eq_right (le_of_lt hgt)] at hru
+            exact hne hru
+          rw [relu, max_eq_left hle] at hru
+          linarith
+        have hsum_p : ∑ i : Fin (d + 1), n i * p i = (∑ i, n i * c i) + (r / 2) * n k := by
+          have h1 : ∑ i : Fin (d + 1), n i * (c i + (r / 2) * stdBasis k i) =
+              (∑ i, n i * c i) + (r / 2) * (∑ i, n i * stdBasis k i) := by
+            rw [Finset.mul_sum, ← Finset.sum_add_distrib]
+            refine Finset.sum_congr rfl fun i _ => by ring
+          simpa [p, Pi.add_apply, Pi.smul_apply, smul_eq_mul, sum_mul_stdBasis] using h1
+        have huEq : ∑ i : Fin (d + 1), n i * u i = α := huH
+        rw [hu_eq, hsum_p, hnc] at huEq
+        have hprod0 : (r / 2) * n k = 0 := by linarith
+        rcases mul_eq_zero.mp hprod0 with h | h
+        · linarith
+        · exact hnk h
+    · exact ⟨c, by simp [hr], hc_mem⟩
+
+/-- **Part B Corollary 1 (No `(d, d, d+1)` ReLU Network Can Cover Any Euclidean Sphere)**:
+For EVERY `d : ℕ`, EVERY bottleneck layer `(W₂, b₂)` (`(·, d, d+1)`), EVERY center `c`, and
+EVERY radius `r > 0`, the Euclidean sphere `{z | ∑ j, (z j - c j)^2 = r^2}` is NOT contained in
+the range of `h ↦ reluVec (W₂.mulVec h + b₂)`! -/
+theorem bottleneck_not_superset_sphere {d : ℕ} (W₂ : Matrix (Fin (d + 1)) (Fin d) ℝ)
+    (b₂ : Fin (d + 1) → ℝ) (c : Fin (d + 1) → ℝ) {r : ℝ} (hr : 0 < r) :
+    ¬ ({z : Fin (d + 1) → ℝ | ∑ j : Fin (d + 1), (z j - c j) ^ 2 = r ^ 2} ⊆
+        Set.range (fun h : Fin d → ℝ => reluVec (W₂.mulVec h + b₂))) := by
+  intro hsub
+  obtain ⟨n, hn, hmem⟩ := bottleneck_relu_in_relu_hyperplane W₂ b₂
+  set α : ℝ := ∑ i : Fin (d + 1), n i * b₂ i
+  obtain ⟨p, hp_ball, hp_not⟩ := exists_ball_not_mem_relu_hyperplane hn α c hr
+  obtain ⟨v, hv_ne, hray⟩ := straight_ray_escape hn α hp_not
+  -- Along the ray q(t) = p + t • v, Q(t) = ∑ (q(t)_j - c_j)^2 starts < r^2 at t = 0 and → +∞!
+  let Q : ℝ → ℝ := fun t => ∑ j : Fin (d + 1), (p j + t * v j - c j) ^ 2
+  have hQ_cont : Continuous Q :=
+    continuous_finset_sum _ fun j _ =>
+      ((continuous_const.add (continuous_id.mul continuous_const)).sub continuous_const).pow 2
+  have hQ0 : Q 0 < r ^ 2 := by simpa [Q] using hp_ball
+  -- Pick k with v k ≠ 0, so Q(T) ≥ (p k + T * v k - c k)^2 ≥ r^2 for large T > 0
+  have hk_ex : ∃ k : Fin (d + 1), v k ≠ 0 := by
+    by_contra hall; push_neg at hall; exact hv_ne (funext hall)
+  obtain ⟨k, hvk⟩ := hk_ex
+  let T : ℝ := (|p k - c k| + r) / |v k| + 1
+  have hT_pos : 0 < T := by positivity
+  have hQT : r ^ 2 ≤ Q T := by
+    have hsingle : (p k + T * v k - c k) ^ 2 ≤ Q T :=
+      Finset.single_le_sum (f := fun j => (p j + T * v j - c j) ^ 2)
+        (fun j _ => sq_nonneg _) (Finset.mem_univ k)
+    have hTvk : |p k - c k| + r ≤ |T * v k| := by
+      rw [abs_mul, abs_of_pos hT_pos]
+      have h1 : (|p k - c k| + r) / |v k| * |v k| = |p k - c k| + r :=
+        div_mul_cancel₀ _ (abs_ne_zero.mpr hvk)
+      dsimp [T]
+      nlinarith [abs_pos.mpr hvk]
+    have habs : r ≤ |p k + T * v k - c k| := by
+      have htri : |T * v k| ≤ |T * v k + (p k - c k)| + |p k - c k| := by
+        have h1 := abs_add_le (T * v k + (p k - c k)) (-(p k - c k))
+        have h2 : T * v k + (p k - c k) + -(p k - c k) = T * v k := by ring
+        rw [h2, abs_neg] at h1
+        exact h1
+      have heq : T * v k + (p k - c k) = p k + T * v k - c k := by ring
+      rw [heq] at htri
+      linarith
+    have hsq : r ^ 2 ≤ (p k + T * v k - c k) ^ 2 := by
+      rw [← sq_abs (p k + T * v k - c k)]
+      nlinarith [abs_nonneg (p k + T * v k - c k)]
+    exact le_trans hsq hsingle
+  -- By IVT on [0, T], ∃ t ∈ [0, T] with Q t = r^2!
+  have hr2_mem : r ^ 2 ∈ Set.Icc (Q 0) (Q T) := ⟨le_of_lt hQ0, hQT⟩
+  obtain ⟨t, ht_mem, hQt⟩ := intermediate_value_Icc (le_of_lt hT_pos) hQ_cont.continuousOn hr2_mem
+  have hqt_sphere : p + t • v ∈ {z : Fin (d + 1) → ℝ | ∑ j : Fin (d + 1), (z j - c j) ^ 2 = r ^ 2} := by
+    simpa [Q] using hQt
+  obtain ⟨h, hh⟩ := hsub hqt_sphere
+  exact hray t ht_mem.1 (hh ▸ hmem h)
+
+/-- **Part B Corollary 2 (Direct Contrast with Part A: No `(d, d, d+1)` ReLU Network Can Cover `∂Δ₀^{d+1}`)**:
+For EVERY `d : ℕ` and EVERY bottleneck layer `(W₂, b₂)` (`(·, d, d+1)`), `boundarySimplex d` is
+NOT contained in the range of `h ↦ reluVec (W₂.mulVec h + b₂)`! -/
+theorem bottleneck_not_superset_boundarySimplex {d : ℕ} (W₂ : Matrix (Fin (d + 1)) (Fin d) ℝ)
+    (b₂ : Fin (d + 1) → ℝ) :
+    ¬ (boundarySimplex d ⊆ Set.range (fun h : Fin d → ℝ => reluVec (W₂.mulVec h + b₂))) := by
+  intro hsub
+  obtain ⟨n, hn, hmem⟩ := bottleneck_relu_in_relu_hyperplane W₂ b₂
+  set α : ℝ := ∑ i : Fin (d + 1), n i * b₂ i
+  have hd2_pos : (0 : ℝ) < (d : ℝ) + 2 := by positivity
+  -- Choose radius r = 1 / (2 * (d + 2)^2) so the entire open ball around barycenter d lies strictly inside Δ₀^{d+1}!
+  set r : ℝ := 1 / (2 * ((d : ℝ) + 2) ^ 2)
+  have hr_pos : 0 < r := by positivity
+  obtain ⟨p, hp_ball, hp_not⟩ := exists_ball_not_mem_relu_hyperplane hn α (barycenter d) hr_pos
+  have hp_coord_diff : ∀ j : Fin (d + 1), |p j - barycenter d j| < r := by
+    intro j
+    have hsq : (p j - barycenter d j) ^ 2 < r ^ 2 :=
+      lt_of_le_of_lt
+        (Finset.single_le_sum (f := fun i => (p i - barycenter d i) ^ 2)
+          (fun i _ => sq_nonneg _) (Finset.mem_univ j))
+        hp_ball
+    exact abs_lt_of_sq_lt_sq hsq (le_of_lt hr_pos)
+  have hp_pos : ∀ j : Fin (d + 1), 0 < p j := by
+    intro j
+    have h1 := (abs_lt.mp (hp_coord_diff j)).1
+    have hr_lt : r < 1 / ((d : ℝ) + 2) := by
+      dsimp [r]
+      rw [div_lt_div_iff₀ (by positivity) hd2_pos]
+      nlinarith
+    simp only [barycenter] at h1
+    linarith
+  have hp_sum_lt : ∑ j : Fin (d + 1), p j < 1 := by
+    have hsum_b : ∑ j : Fin (d + 1), barycenter d j = ((d : ℝ) + 1) / ((d : ℝ) + 2) := by
+      simp [barycenter, Finset.sum_const, nsmul_eq_mul, div_eq_mul_inv]
+    have hdiff_sum : ∑ j : Fin (d + 1), (p j - barycenter d j) < ((d : ℝ) + 1) * r := by
+      calc ∑ j : Fin (d + 1), (p j - barycenter d j)
+          < ∑ _j : Fin (d + 1), r :=
+            Finset.sum_lt_sum_of_nonempty ⟨0, Finset.mem_univ 0⟩ fun j _ => (abs_lt.mp (hp_coord_diff j)).2
+        _ = ((d : ℝ) + 1) * r := by simp [Finset.sum_const, nsmul_eq_mul]
+    rw [Finset.sum_sub_distrib, hsum_b] at hdiff_sum
+    have hr_sum_lt : ((d : ℝ) + 1) * r < 1 / ((d : ℝ) + 2) := by
+      dsimp [r]
+      have hmul : ((d : ℝ) + 1) * (1 / (2 * ((d : ℝ) + 2) ^ 2)) =
+          ((d : ℝ) + 1) / (2 * ((d : ℝ) + 2) ^ 2) := by ring
+      rw [hmul, div_lt_div_iff₀ (by positivity) hd2_pos]
+      nlinarith
+    have h1 : ((d : ℝ) + 1) / ((d : ℝ) + 2) + 1 / ((d : ℝ) + 2) = 1 := by
+      field_simp [ne_of_gt hd2_pos]; ring
+    linarith
+  -- Apply Straight-Ray Escape from p!
+  obtain ⟨v, hv_ne, hray⟩ := straight_ray_escape hn α hp_not
+  -- Define signed distance to ∂Δ₀^{d+1}: f(t) = min (1 - ∑ (p + t•v)) (inf_j (p + t•v)_j)
+  let f : ℝ → ℝ := fun t =>
+    min (1 - ∑ j : Fin (d + 1), (p j + t * v j))
+      (Finset.univ.inf' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => p j + t * v j))
+  have hf_cont : Continuous f := by
+    refine Continuous.min ?_ ?_
+    · exact continuous_const.sub
+        (continuous_finset_sum _ fun j _ => continuous_const.add (continuous_id.mul continuous_const))
+    · suffices h : ∀ (s : Finset (Fin (d + 1))) (hs : s.Nonempty),
+          Continuous (fun t : ℝ => s.inf' hs (fun j => p j + t * v j)) from
+        h Finset.univ ⟨0, Finset.mem_univ 0⟩
+      intro s hs
+      refine Finset.Nonempty.cons_induction (s := s) (hs := hs) ?_ ?_
+      · intro a; exact continuous_const.add (continuous_id.mul continuous_const)
+      · intro a s' has' hs' ih
+        have heq : (fun t : ℝ => (Finset.cons a s' has').inf' (Finset.cons_nonempty has')
+            (fun j => p j + t * v j)) = fun t => min (p a + t * v a) (s'.inf' hs' (fun j => p j + t * v j)) := by
+          funext t; exact Finset.inf'_cons hs' (fun j => p j + t * v j)
+        rw [heq]
+        exact (continuous_const.add (continuous_id.mul continuous_const)).min ih
+  have hf0 : 0 < f 0 := by
+    dsimp [f]
+    refine lt_min (by simpa using sub_pos.mpr hp_sum_lt) ?_
+    rw [Finset.lt_inf'_iff]
+    intro j _
+    simpa using hp_pos j
+  -- Since simplexGauge v > 0, for large T > 0 we have f T < 0!
+  have hsg_pos : 0 < simplexGauge v := simplexGauge_pos hv_ne
+  let T : ℝ := 2 / simplexGauge v
+  have hT_pos : 0 < T := div_pos (by norm_num) hsg_pos
+  have hT_sg : T * simplexGauge v = 2 := div_mul_cancel₀ 2 (ne_of_gt hsg_pos)
+  have hfT : f T ≤ 0 := by
+    rcases max_choice (∑ j : Fin (d + 1), v j)
+        (Finset.univ.sup' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => -(v j))) with hmax | hmax
+    · refine le_trans (min_le_left _ _) ?_
+      have hsum_v : ∑ j : Fin (d + 1), v j = simplexGauge v := hmax.symm
+      have hsum_pT : ∑ j : Fin (d + 1), (p j + T * v j) =
+          (∑ j, p j) + T * ∑ j, v j := by
+        rw [Finset.sum_add_distrib, ← Finset.mul_sum]
+      rw [hsum_pT, hsum_v, hT_sg]
+      have hsum_nn : 0 ≤ ∑ j : Fin (d + 1), p j := Finset.sum_nonneg fun j _ => le_of_lt (hp_pos j)
+      linarith
+    · refine le_trans (min_le_right _ _) ?_
+      obtain ⟨j₀, _, hj₀⟩ := Finset.exists_mem_eq_sup' ⟨0, Finset.mem_univ (0 : Fin (d + 1))⟩
+        (fun j : Fin (d + 1) => -(v j))
+      have hneg_eq : -(v j₀) = simplexGauge v := hj₀.symm.trans hmax.symm
+      have hle := Finset.inf'_le (fun j : Fin (d + 1) => p j + T * v j) (Finset.mem_univ j₀)
+      have hpj_le1 : p j₀ ≤ 1 := by
+        have h1 : p j₀ ≤ ∑ j : Fin (d + 1), p j :=
+          Finset.single_le_sum (fun j _ => le_of_lt (hp_pos j)) (Finset.mem_univ j₀)
+        linarith
+      have hTv : T * v j₀ = -2 := by
+        have : T * (-(v j₀)) = 2 := by rw [hneg_eq, hT_sg]
+        linarith
+      linarith
+  -- By IVT on [0, T], ∃ t ∈ [0, T] with f t = 0, i.e., p + t • v ∈ boundarySimplex d!
+  have h0_mem : (0 : ℝ) ∈ Set.Icc (f T) (f 0) := ⟨hfT, le_of_lt hf0⟩
+  obtain ⟨t, ht_mem, hft⟩ := intermediate_value_Icc' (le_of_lt hT_pos) hf_cont.continuousOn h0_mem
+  have hqt_bdry : p + t • v ∈ boundarySimplex d := by
+    have hmin_ge : 0 ≤ f t := le_of_eq hft.symm
+    have hsum_le1 : ∑ j : Fin (d + 1), (p + t • v) j ≤ 1 := by
+      have h1 := le_trans hmin_ge (min_le_left _ _)
+      have heq : ∑ j : Fin (d + 1), (p + t • v) j = ∑ j, (p j + t * v j) := rfl
+      linarith
+    have hcoord_nn : ∀ j : Fin (d + 1), 0 ≤ (p + t • v) j := by
+      intro j
+      have h1 := le_trans hmin_ge (min_le_right _ _)
+      have h2 := Finset.inf'_le (fun j : Fin (d + 1) => p j + t * v j) (Finset.mem_univ j)
+      exact le_trans h1 h2
+    refine ⟨hcoord_nn, hsum_le1, ?_⟩
+    rcases min_choice (1 - ∑ j : Fin (d + 1), (p j + t * v j))
+        (Finset.univ.inf' ⟨0, Finset.mem_univ 0⟩ (fun j : Fin (d + 1) => p j + t * v j)) with hmin | hmin
+    · right
+      have h0 : 1 - ∑ j : Fin (d + 1), (p j + t * v j) = 0 := hmin.symm.trans hft
+      have heq : ∑ j : Fin (d + 1), (p + t • v) j = ∑ j, (p j + t * v j) := rfl
+      linarith
+    · left
+      obtain ⟨j₀, _, hj₀⟩ := Finset.exists_mem_eq_sup' ⟨0, Finset.mem_univ (0 : Fin (d + 1))⟩
+        (fun j : Fin (d + 1) => -(p j + t * v j))
+      -- Simpler: use Finset.exists_mem_eq_inf'!
+      obtain ⟨j₁, _, hj₁⟩ := Finset.exists_mem_eq_inf' ⟨0, Finset.mem_univ (0 : Fin (d + 1))⟩
+        (fun j : Fin (d + 1) => p j + t * v j)
+      refine ⟨j₁, ?_⟩
+      exact hj₁.symm.trans (hmin.symm.trans hft)
+  obtain ⟨h, hh⟩ := hsub hqt_bdry
+  exact hray t ht_mem.1 (hh ▸ hmem h)
 
 end BeshkovReluTopology

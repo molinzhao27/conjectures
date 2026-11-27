@@ -11,26 +11,35 @@ We formalize in Lean 4 + Mathlib (zero `sorry`):
 2. **Minimal Clean Counterexample (`refutation_clean_3x4`)**: Explicit `3 × 4` clean matrix `C_min`
    with explicit reduced submatrix `rho_min = J₃ - I₃`, columns 0–2 non-redundant, column 3 redundant
    and not simply redundant, and `brank(rho_min) = brank(C_min) = 3` (whereas `3 + 1 = 4`).
-3. **All-1s Column Counterexample (`refutation_all1_reverse`)**:
+3. **Exponential-Gap Infinite Family (`exponential_gap_family`, Theorem 2.3)**: For EVERY `m ≥ 2`,
+   explicit `(m + 1) × (2 * m)` base matrix `B_exp m` and `(m + 1) × (2^m + m - 1)` extension
+   `C_exp m` with no trivial columns, all `2 * m` base columns non-redundant, all `2^m - m - 1`
+   appended columns non-simply redundant, and `brank(B_exp m) = brank(C_exp m) = m + 1` (while
+   `brank(B_exp m) + ℓ = (m + 1) + (2^m - m - 1) = 2^m`).
+4. **General All-1s Column Theorem (`brank_append_allOnes`, Proposition 2.5)**: For EVERY `m × n`
+   binary matrix `M`, appending an all-1s column increases `brank` by `1` if `M` has an all-zero
+   row and leaves `brank` unchanged if `M` has no all-zero row — refuting Section 7.3 line 1112
+   in full generality.
+5. **All-1s Column Counterexample (`refutation_all1_reverse`)**:
    For `C_all1 = [[0,1],[1,1]]` and its reduced submatrix `rho_all1 = [[0],[1]]`, column 1 is simply
    redundant, yet `brank(C_all1) = 2 > 1 = brank(rho_all1)`.
-4. **Duplicated Non-Simple Redundancy (`refutation_dup_reverse`)**:
+6. **Duplicated Non-Simple Redundancy (`refutation_dup_reverse`)**:
    Explicit `4 × 4` matrix `C_dup` and submatrix `rho_dup`, where columns 2 and 3 are each simply
    redundant to the other, with `brank(C_dup) = 3 > 2 = brank(rho_dup)`. (Note: as flagged in review,
    this violates the conjecture under the simultaneous definition of `ℓ`, not under sequential
    deduplication-first counting.)
-5. **Lower-Triangular Boolean Rank (`brank_lower_triangular`)**: Every `u × u` lower-triangular
+7. **Lower-Triangular Boolean Rank (`brank_lower_triangular`)**: Every `u × u` lower-triangular
    Boolean matrix with `1`s on the diagonal has `brank = u`.
-6. **Positive Theorem for ALL Intersection-Complete Codes (`brank_intersection_complete`)**:
+8. **Positive Theorem for ALL Intersection-Complete Codes (`brank_intersection_complete`)**:
    For EVERY intersection-complete binary matrix `C : Matrix (Fin m) (Fin n) Bool`,
    `brank(C)` equals the number of distinct nonzero columns of `C`!
-7. **Reducedness Verification for Question 2 (`question2_sharpness`)**:
+9. **Reducedness Verification for Question 2 (`question2_sharpness`)**:
    For EVERY `n ≥ 3`, the explicit `n`-neuron code `C_q2 n` and the explicit `(2n - 2)`-neuron code
    `D_q2 n` (representing the covering code after deleting the two trivial neurons) are both reduced.
 
-Note: The exponential-gap family `C_exp`, general reduction operator `ρ`, Proposition 2.4–2.5,
-Theorem 3.1, minimality of `3 × 4`, and the formal link from `def:excessivecovering` to `D_q2 n`
-are proved in prose in `solutions/neural_codes/solution.md`.
+Note: The general reduction operator `ρ`, Proposition 2.4, Theorem 3.1, minimality of `3 × 4`,
+and the formal link from `def:excessivecovering` to `D_q2 n` are proved in prose in
+`solutions/neural_codes/solution.md`.
 -/
 
 open Finset
@@ -84,6 +93,12 @@ lemma le_brank {m n : ℕ} {C : Matrix (Fin m) (Fin n) Bool} {r : ℕ}
 lemma brank_eq {m n : ℕ} {C : Matrix (Fin m) (Fin n) Bool} {r : ℕ}
     (h1 : HasBoolRank C r) (h2 : ∀ k, HasBoolRank C k → r ≤ k) : brank C = r :=
   le_antisymm (brank_le h1) (le_brank h2)
+
+lemma hasBoolRank_brank {m n : ℕ} (C : Matrix (Fin m) (Fin n) Bool) :
+    HasBoolRank C (brank C) := by
+  classical
+  unfold brank
+  exact Nat.find_spec ⟨m, hasBoolRank_rows C⟩
 
 /-- Deleting/reindexing columns cannot increase Boolean rank. -/
 lemma hasBoolRank_reindex_cols {m n₁ n₂ r : ℕ} {C : Matrix (Fin m) (Fin n₁) Bool}
@@ -201,23 +216,19 @@ lemma brank_rho_min : brank rho_min = 3 := by
   have hnotle : ∀ i₁ i₂ : Fin 3, i₁ ≠ i₂ → ∃ t : Fin r, V i₁ t = true ∧ V i₂ t = false := by
     intro i₁ i₂ hne
     -- rho_min i₁ i₂ = true, rho_min i₂ i₂ = false
-    have h1 := congrFun (congrFun hVH i₁) i₂
-    have h2 := congrFun (congrFun hVH i₂) i₂
-    simp only [rho_min, decide_eq_true_eq, decide_eq_false_iff_not, ne_eq, not_true_eq_false,
-      boolMul] at h1 h2
-    have h1' : ∃ t : Fin r, V i₁ t = true ∧ H t i₂ = true := by
-      have : decide (i₁ ≠ i₂) = true := decide_eq_true hne
-      rw [this] at h1
-      exact of_decide_eq_true h1
-    rcases h1' with ⟨t, ht1, htH⟩
+    have h1 : boolMul V H i₁ i₂ = true := by
+      rw [hVH]; simp [rho_min, hne]
+    have h2 : boolMul V H i₂ i₂ = false := by
+      rw [hVH]; simp [rho_min]
+    unfold boolMul at h1 h2
+    rw [decide_eq_true_eq] at h1
+    rcases h1 with ⟨t, ht1, htH⟩
     refine ⟨t, ht1, ?_⟩
     cases hvt2 : V i₂ t
     · rfl
     · exfalso
-      have hfalse : decide (∃ t : Fin r, V i₂ t = true ∧ H t i₂ = true) = true :=
-        decide_eq_true ⟨t, hvt2, htH⟩
-      rw [hfalse] at h2
-      cases h2
+      rw [decide_eq_false_iff_not] at h2
+      exact h2 ⟨t, hvt2, htH⟩
   -- Now r ≤ 2 implies the subsets S_i = {t | V i t = true} of Fin r form an antichain of size 3!
   let S : Fin 3 → Finset (Fin r) := fun i => Finset.univ.filter (fun t => V i t = true)
   have hanti : ∀ i₁ i₂ : Fin 3, i₁ ≠ i₂ → ¬ (S i₁ ⊆ S i₂) := by
@@ -287,7 +298,593 @@ theorem refutation_clean_3x4 :
     rw [brank_rho_min] at this
     exact this
 
+/-! ### Theorem 2.3: Exponential-Gap Infinite Family (`brank(B_exp m) = brank(C_exp m) = m + 1`) -/
+
+/-- Subsets of `Fin m` of cardinality at least `2`. -/
+def BigSubsets (m : ℕ) : Finset (Finset (Fin m)) :=
+  Finset.univ.filter (fun S : Finset (Fin m) => 2 ≤ S.card)
+
+lemma card_bigSubsets_add (m : ℕ) : (BigSubsets m).card + m + 1 = 2 ^ m := by
+  let A₀ : Finset (Finset (Fin m)) := {∅}
+  let A₁ : Finset (Finset (Fin m)) := Finset.univ.image (fun a : Fin m => ({a} : Finset (Fin m)))
+  let A₂ : Finset (Finset (Fin m)) := BigSubsets m
+  have hdisj01 : Disjoint A₀ A₁ := by
+    rw [Finset.disjoint_left]
+    intro S hS0 hS1
+    rw [Finset.mem_singleton] at hS0
+    rcases Finset.mem_image.mp hS1 with ⟨a, _, ha⟩
+    rw [hS0] at ha
+    exact Finset.notMem_empty a (ha ▸ Finset.mem_singleton_self a)
+  have hdisj012 : Disjoint (A₀ ∪ A₁) A₂ := by
+    rw [Finset.disjoint_left]
+    intro S hS01 hS2
+    have h2 : 2 ≤ S.card := (Finset.mem_filter.mp hS2).2
+    rcases Finset.mem_union.mp hS01 with hS0 | hS1
+    · rw [Finset.mem_singleton] at hS0
+      subst hS0
+      simp at h2
+    · rcases Finset.mem_image.mp hS1 with ⟨a, _, rfl⟩
+      simp at h2
+  have hunion : A₀ ∪ A₁ ∪ A₂ = Finset.univ := by
+    ext S
+    simp only [Finset.mem_univ, iff_true, Finset.mem_union]
+    by_cases h0 : S.card = 0
+    · left; left
+      exact Finset.mem_singleton.mpr (Finset.card_eq_zero.mp h0)
+    · by_cases h1 : S.card = 1
+      · left; right
+        obtain ⟨a, ha⟩ := Finset.card_eq_one.mp h1
+        exact Finset.mem_image.mpr ⟨a, Finset.mem_univ a, ha.symm⟩
+      · right
+        exact Finset.mem_filter.mpr ⟨Finset.mem_univ S, by omega⟩
+  have hA0 : A₀.card = 1 := Finset.card_singleton ∅
+  have hA1 : A₁.card = m := by
+    rw [Finset.card_image_of_injective _ Finset.singleton_injective, Finset.card_univ, Fintype.card_fin]
+  have huniv : (Finset.univ : Finset (Finset (Fin m))).card = 2 ^ m := by
+    rw [Finset.card_univ, Fintype.card_finset, Fintype.card_fin]
+  have htot : (A₀ ∪ A₁ ∪ A₂).card = A₀.card + A₁.card + A₂.card := by
+    rw [Finset.card_union_of_disjoint hdisj012, Finset.card_union_of_disjoint hdisj01]
+  rw [hunion, huniv, hA0, hA1] at htot
+  dsimp only [A₂] at htot
+  omega
+
+lemma card_bigSubsets (m : ℕ) : (BigSubsets m).card = 2 ^ m - m - 1 := by
+  have h := card_bigSubsets_add m
+  omega
+
+/-- Base `(m + 1) × (2 * m)` matrix `B_exp m = [[I_m, J_m - I_m], [0, 1]]` for Theorem 2.3. -/
+def B_exp (m : ℕ) : Matrix (Fin (m + 1)) (Fin (2 * m)) Bool :=
+  fun i j =>
+    if j.val < m then
+      Fin.lastCases false (fun r => decide (r.val = j.val)) i
+    else
+      Fin.lastCases true (fun r => decide (r.val ≠ j.val - m)) i
+
+/-- Equivalence indexing the `2^m - m - 1` subsets of `Fin m` of size at least `2`. -/
+noncomputable def bigSubsetsEquiv (m : ℕ) : Fin (BigSubsets m).card ≃ BigSubsets m :=
+  (Fintype.equivFinOfCardEq (Fintype.card_coe (BigSubsets m))).symm
+
+/-- Full `(m + 1) × (2 * m + |BigSubsets m|)` matrix `C_exp m` for Theorem 2.3:
+columns `0 .. 2*m - 1` are `B_exp m`, and the remaining `2^m - m - 1` columns are
+`c_S = ⋀_{b ∈ S} b_{m+b}` for each `S ⊆ Fin m` with `2 ≤ S.card`. -/
+noncomputable def C_exp (m : ℕ) :
+    Matrix (Fin (m + 1)) (Fin (2 * m + (BigSubsets m).card)) Bool :=
+  fun i j =>
+    if h : j.val < 2 * m then
+      B_exp m i ⟨j.val, h⟩
+    else
+      Fin.lastCases true
+        (fun r => decide (r ∉ (bigSubsetsEquiv m ⟨j.val - 2 * m, by omega⟩).1)) i
+
+lemma C_exp_castAdd {m : ℕ} (i : Fin (m + 1)) (j : Fin (2 * m)) :
+    C_exp m i (Fin.castAdd (BigSubsets m).card j) = B_exp m i j := by
+  unfold C_exp
+  rw [dif_pos (show (Fin.castAdd (BigSubsets m).card j).val < 2 * m from j.isLt)]
+  rfl
+
+lemma C_exp_natAdd_castSucc {m : ℕ} (r : Fin m) (t : Fin (BigSubsets m).card) :
+    C_exp m r.castSucc (Fin.natAdd (2 * m) t) = decide (r ∉ (bigSubsetsEquiv m t).1) := by
+  have hnot : ¬ (Fin.natAdd (2 * m) t).val < 2 * m := by simp
+  have ht : (⟨(Fin.natAdd (2 * m) t).val - 2 * m, by simp⟩ : Fin (BigSubsets m).card) = t := by
+    ext; simp
+  unfold C_exp
+  rw [dif_neg hnot, Fin.lastCases_castSucc, ht]
+
+lemma C_exp_natAdd_last {m : ℕ} (t : Fin (BigSubsets m).card) :
+    C_exp m (Fin.last m) (Fin.natAdd (2 * m) t) = true := by
+  have hnot : ¬ (Fin.natAdd (2 * m) t).val < 2 * m := by simp
+  unfold C_exp
+  rw [dif_neg hnot, Fin.lastCases_last]
+
+lemma C_exp_last_false_imp {m : ℕ} {k : Fin (2 * m + (BigSubsets m).card)}
+    (hk : C_exp m (Fin.last m) k = false) : k.val < m := by
+  by_contra hge
+  unfold C_exp at hk
+  split_ifs at hk with h2m
+  · simp [B_exp, hge] at hk
+  · rw [Fin.lastCases_last] at hk; cases hk
+
+lemma C_exp_castSucc_of_lt {m : ℕ} (r : Fin m) {k : Fin (2 * m + (BigSubsets m).card)}
+    (hk : k.val < m) : C_exp m r.castSucc k = decide (r.val = k.val) := by
+  have h2m : k.val < 2 * m := by omega
+  unfold C_exp
+  rw [dif_pos h2m]
+  simp [B_exp, hk]
+
+lemma C_exp_last_of_lt {m : ℕ} {k : Fin (2 * m + (BigSubsets m).card)}
+    (hk : k.val < m) : C_exp m (Fin.last m) k = false := by
+  have h2m : k.val < 2 * m := by omega
+  unfold C_exp
+  rw [dif_pos h2m]
+  simp [B_exp, hk]
+
+lemma C_exp_castSucc_of_mid {m : ℕ} (r : Fin m) {k : Fin (2 * m + (BigSubsets m).card)}
+    (hk1 : ¬ k.val < m) (hk2 : k.val < 2 * m) :
+    C_exp m r.castSucc k = decide (r.val ≠ k.val - m) := by
+  unfold C_exp
+  rw [dif_pos hk2]
+  simp [B_exp, hk1]
+
+lemma C_exp_last_of_ge {m : ℕ} {k : Fin (2 * m + (BigSubsets m).card)}
+    (hk1 : ¬ k.val < m) : C_exp m (Fin.last m) k = true := by
+  unfold C_exp
+  split_ifs with h2m
+  · simp [B_exp, hk1]
+  · rw [Fin.lastCases_last]
+
+lemma C_exp_castSucc_of_ge2m {m : ℕ} (r : Fin m) {k : Fin (2 * m + (BigSubsets m).card)}
+    (hk2 : ¬ k.val < 2 * m) :
+    C_exp m r.castSucc k =
+      decide (r ∉ (bigSubsetsEquiv m ⟨k.val - 2 * m, by omega⟩).1) := by
+  unfold C_exp
+  rw [dif_neg hk2, Fin.lastCases_castSucc]
+
+lemma exists_mem_ne_of_two_le_card {α : Type*} [DecidableEq α] {S : Finset α}
+    (hS : 2 ≤ S.card) (b : α) : ∃ r ∈ S, r ≠ b := by
+  by_contra h
+  push_neg at h
+  have hsub : S ⊆ {b} := fun r hr => Finset.mem_singleton.mpr (h r hr)
+  have hcard := Finset.card_le_card hsub
+  simp at hcard
+  omega
+
+lemma brank_B_exp (m : ℕ) (hm : 1 ≤ m) : brank (B_exp m) = m + 1 := by
+  refine brank_eq (hasBoolRank_rows (B_exp m)) ?_
+  intro r ⟨V, H, hVH⟩
+  have hex : ∀ a : Fin m, ∃ t : Fin r, V a.castSucc t = true ∧ H t ⟨a.val, by omega⟩ = true := by
+    intro a
+    have ha := congrFun (congrFun hVH a.castSucc) ⟨a.val, by omega⟩
+    have hval : B_exp m a.castSucc ⟨a.val, by omega⟩ = true := by
+      simp [B_exp]
+    rw [hval] at ha
+    simpa [boolMul] using ha
+  choose f hfV hfH using hex
+  have hex_last : ∃ t : Fin r, V (Fin.last m) t = true ∧ H t ⟨m, by omega⟩ = true := by
+    have hl := congrFun (congrFun hVH (Fin.last m)) ⟨m, by omega⟩
+    have hval : B_exp m (Fin.last m) ⟨m, by omega⟩ = true := by
+      simp [B_exp]
+    rw [hval] at hl
+    simpa [boolMul] using hl
+  rcases hex_last with ⟨t_last, ht_lastV, _⟩
+  have hrow_eq : ∀ (i : Fin (m + 1)) (a : Fin m), V i (f a) = true → i = a.castSucc := by
+    intro i a hVi
+    have htrue : boolMul V H i ⟨a.val, by omega⟩ = true := by
+      simp only [boolMul, decide_eq_true_eq]
+      exact ⟨f a, hVi, hfH a⟩
+    rw [hVH] at htrue
+    revert htrue
+    refine Fin.lastCases ?_ ?_ i
+    · intro hfalse
+      simp [B_exp] at hfalse
+    · intro r₀ hr₀
+      simp [B_exp] at hr₀
+      exact congrArg Fin.castSucc (Fin.ext hr₀)
+  let g : Fin (m + 1) → Fin r := Fin.lastCases t_last f
+  have hginj : Function.Injective g := by
+    intro i₁ i₂
+    refine Fin.lastCases ?_ ?_ i₁
+    · refine Fin.lastCases ?_ ?_ i₂
+      · intro _; rfl
+      · intro a₂ heq
+        simp only [g, Fin.lastCases_last, Fin.lastCases_castSucc] at heq
+        have hbad := hrow_eq (Fin.last m) a₂ (heq ▸ ht_lastV)
+        have hval : m = a₂.val := congrArg Fin.val hbad
+        omega
+    · intro a₁
+      refine Fin.lastCases ?_ ?_ i₂
+      · intro heq
+        simp only [g, Fin.lastCases_last, Fin.lastCases_castSucc] at heq
+        have hbad := hrow_eq (Fin.last m) a₁ (heq.symm ▸ ht_lastV)
+        have hval : m = a₁.val := congrArg Fin.val hbad
+        omega
+      · intro a₂ heq
+        simp only [g, Fin.lastCases_castSucc] at heq
+        exact hrow_eq a₁.castSucc a₂ (heq ▸ hfV a₁)
+  have hcard := Fintype.card_le_of_injective g hginj
+  simpa using hcard
+
+lemma brank_C_exp (m : ℕ) (hm : 1 ≤ m) : brank (C_exp m) = m + 1 := by
+  refine brank_eq (hasBoolRank_rows (C_exp m)) ?_
+  intro r hr
+  have hsub : HasBoolRank (B_exp m) r := by
+    have h := hasBoolRank_reindex_cols (Fin.castAdd (BigSubsets m).card) hr
+    have heq : (fun i j => C_exp m i (Fin.castAdd (BigSubsets m).card j)) = B_exp m := by
+      ext i j; exact C_exp_castAdd i j
+    rwa [heq] at h
+  have := brank_le hsub
+  rw [brank_B_exp m hm] at this
+  exact this
+
+lemma C_exp_not_trivial (m : ℕ) (j : Fin (2 * m + (BigSubsets m).card)) :
+    ¬ IsTrivial (C_exp m) j := by
+  intro htriv
+  by_cases hj : j.val < m
+  · let r : Fin (m + 1) := (⟨j.val, hj⟩ : Fin m).castSucc
+    have hr : r ∈ trunk (C_exp m) {j} := by
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+        forall_eq, r]
+      rw [C_exp_castSucc_of_lt _ hj]
+      simp
+    rw [htriv] at hr
+    exact Finset.notMem_empty r hr
+  · have hr : Fin.last m ∈ trunk (C_exp m) {j} := by
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+        forall_eq]
+      exact C_exp_last_of_ge hj
+    rw [htriv] at hr
+    exact Finset.notMem_empty (Fin.last m) hr
+
+lemma C_exp_base_not_redundant (m : ℕ) (j₀ : Fin (2 * m)) :
+    ¬ IsRedundant (C_exp m) (Fin.castAdd (BigSubsets m).card j₀) := by
+  set j : Fin (2 * m + (BigSubsets m).card) := Fin.castAdd (BigSubsets m).card j₀
+  rintro ⟨σ, hjnot, heq⟩
+  by_cases hj : j₀.val < m
+  · have hlast_not : Fin.last m ∉ trunk (C_exp m) σ := by
+      rw [← heq]
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+        forall_eq]
+      rw [C_exp_last_of_lt (show j.val < m from hj)]
+      decide
+    have hex_k : ∃ k ∈ σ, C_exp m (Fin.last m) k = false := by
+      by_contra hall
+      push_neg at hall
+      apply hlast_not
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and]
+      intro k hk
+      cases hck : C_exp m (Fin.last m) k
+      · exact absurd hck (hall k hk)
+      · rfl
+    rcases hex_k with ⟨k, hkσ, hk_last⟩
+    have hk_lt : k.val < m := C_exp_last_false_imp hk_last
+    have hkj : k ≠ j := fun h => hjnot (h ▸ hkσ)
+    let a : Fin m := ⟨j₀.val, hj⟩
+    have ha_in : a.castSucc ∈ trunk (C_exp m) σ := by
+      rw [← heq]
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+        forall_eq]
+      rw [C_exp_castSucc_of_lt a (show j.val < m from hj)]
+      simp [a, j]
+    have ha_k := (Finset.mem_filter.mp ha_in).2 k hkσ
+    rw [C_exp_castSucc_of_lt a hk_lt] at ha_k
+    simp only [decide_eq_true_eq, a] at ha_k
+    exact hkj (Fin.ext (by simpa [j] using ha_k.symm))
+  · have hlast_in : Fin.last m ∈ trunk (C_exp m) σ := by
+      rw [← heq]
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+        forall_eq]
+      exact C_exp_last_of_ge (show ¬ j.val < m from hj)
+    have hall_ge : ∀ k ∈ σ, ¬ k.val < m := by
+      intro k hkσ hlt
+      have hkt := (Finset.mem_filter.mp hlast_in).2 k hkσ
+      rw [C_exp_last_of_lt hlt] at hkt
+      cases hkt
+    let b : Fin m := ⟨j₀.val - m, by omega⟩
+    have hb_not : b.castSucc ∉ trunk (C_exp m) σ := by
+      rw [← heq]
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+        forall_eq]
+      rw [C_exp_castSucc_of_mid b (show ¬ j.val < m from hj) (show j.val < 2 * m from j₀.isLt)]
+      simp [b, j]
+    have hex_k : ∃ k ∈ σ, C_exp m b.castSucc k = false := by
+      by_contra hall
+      push_neg at hall
+      apply hb_not
+      simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and]
+      intro k hk
+      cases hck : C_exp m b.castSucc k
+      · exact absurd hck (hall k hk)
+      · rfl
+    rcases hex_k with ⟨k, hkσ, hk_b⟩
+    have hk_ge : ¬ k.val < m := hall_ge k hkσ
+    have hkj : k ≠ j := fun h => hjnot (h ▸ hkσ)
+    by_cases hk2m : k.val < 2 * m
+    · rw [C_exp_castSucc_of_mid b hk_ge hk2m, decide_eq_false_iff_not] at hk_b
+      have hkeq : b.val = k.val - m := by
+        by_contra hne
+        exact hk_b hne
+      exact hkj (Fin.ext (by show k.val = j₀.val; have hb : b.val = j₀.val - m := rfl; omega))
+    · let S : Finset (Fin m) := (bigSubsetsEquiv m ⟨k.val - 2 * m, by omega⟩).1
+      have hScard : 2 ≤ S.card :=
+        (Finset.mem_filter.mp (bigSubsetsEquiv m ⟨k.val - 2 * m, by omega⟩).2).2
+      obtain ⟨r, hrS, hrb⟩ := exists_mem_ne_of_two_le_card hScard b
+      have hr_in : r.castSucc ∈ trunk (C_exp m) σ := by
+        rw [← heq]
+        simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+          forall_eq]
+        rw [C_exp_castSucc_of_mid r (show ¬ j.val < m from hj) (show j.val < 2 * m from j₀.isLt)]
+        simp only [decide_eq_true_eq]
+        intro hval
+        apply hrb
+        exact Fin.ext (by show r.val = j₀.val - m; simpa [j] using hval)
+      have hr_k := (Finset.mem_filter.mp hr_in).2 k hkσ
+      rw [C_exp_castSucc_of_ge2m r hk2m] at hr_k
+      simp only [decide_eq_true_eq] at hr_k
+      exact hr_k hrS
+
+lemma C_exp_appended_non_simply_redundant (m : ℕ) (t : Fin (BigSubsets m).card) :
+    IsNonSimplyRedundant (C_exp m) (Fin.natAdd (2 * m) t) := by
+  set j : Fin (2 * m + (BigSubsets m).card) := Fin.natAdd (2 * m) t
+  set S : Finset (Fin m) := (bigSubsetsEquiv m t).1
+  have hScard : 2 ≤ S.card := (Finset.mem_filter.mp (bigSubsetsEquiv m t).2).2
+  constructor
+  · let σ : Finset (Fin (2 * m + (BigSubsets m).card)) :=
+      S.image (fun b : Fin m => ⟨m + b.val, by omega⟩)
+    refine ⟨σ, ?_, ?_⟩
+    · intro hjσ
+      rcases Finset.mem_image.mp hjσ with ⟨b, _, hb⟩
+      have hval : m + b.val = 2 * m + t.val := congrArg Fin.val hb
+      omega
+    · ext i
+      refine Fin.lastCases ?_ ?_ i
+      · simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+          forall_eq]
+        rw [show C_exp m (Fin.last m) j = true from C_exp_natAdd_last t]
+        simp only [true_iff]
+        intro k hkσ
+        rcases Finset.mem_image.mp hkσ with ⟨b, _, rfl⟩
+        exact C_exp_last_of_ge (by dsimp; omega)
+      · intro r
+        simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+          forall_eq]
+        rw [show C_exp m r.castSucc j = decide (r ∉ S) from C_exp_natAdd_castSucc r t]
+        simp only [decide_eq_true_eq]
+        constructor
+        · intro hrS k hkσ
+          rcases Finset.mem_image.mp hkσ with ⟨b, hbS, rfl⟩
+          rw [C_exp_castSucc_of_mid r (by dsimp; omega) (by dsimp; have := b.isLt; omega)]
+          simp only [decide_eq_true_eq]
+          intro hval
+          apply hrS
+          have hrb : r = b := Fin.ext (by omega)
+          rwa [hrb]
+        · intro hall hrS
+          have hkσ : (⟨m + r.val, by omega⟩ : Fin (2 * m + (BigSubsets m).card)) ∈ σ :=
+            Finset.mem_image.mpr ⟨r, hrS, rfl⟩
+          have hkr := hall _ hkσ
+          rw [C_exp_castSucc_of_mid r (by dsimp; omega) (by dsimp; have := r.isLt; omega)] at hkr
+          simp only [decide_eq_true_eq] at hkr
+          dsimp at hkr
+          omega
+  · rintro (⟨_, heq⟩ | ⟨k, hjk, heq⟩)
+    · obtain ⟨r, hrS⟩ := Finset.card_pos.mp (by omega : 0 < S.card)
+      have hr_in : r.castSucc ∈ trunk (C_exp m) {j} := by
+        rw [heq]; simp [trunk]
+      have hr_val := (Finset.mem_filter.mp hr_in).2 j (Finset.mem_singleton_self j)
+      rw [show C_exp m r.castSucc j = decide (r ∉ S) from C_exp_natAdd_castSucc r t] at hr_val
+      simp only [decide_eq_true_eq] at hr_val
+      exact hr_val hrS
+    · have hkj : k ≠ j := fun h => hjk (Finset.mem_singleton.mpr h.symm)
+      by_cases hk1 : k.val < m
+      · have hlast : Fin.last m ∈ trunk (C_exp m) {k} := by
+          rw [← heq]
+          simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+            forall_eq]
+          exact C_exp_natAdd_last t
+        have hval := (Finset.mem_filter.mp hlast).2 k (Finset.mem_singleton_self k)
+        rw [C_exp_last_of_lt hk1] at hval
+        cases hval
+      · by_cases hk2 : k.val < 2 * m
+        · let b : Fin m := ⟨k.val - m, by omega⟩
+          obtain ⟨r, hrS, hrb⟩ := exists_mem_ne_of_two_le_card hScard b
+          have hr_in : r.castSucc ∈ trunk (C_exp m) {j} := by
+            rw [heq]
+            simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+              forall_eq]
+            rw [C_exp_castSucc_of_mid r hk1 hk2]
+            simp only [decide_eq_true_eq]
+            intro hval
+            exact hrb (Fin.ext hval)
+          have hr_val := (Finset.mem_filter.mp hr_in).2 j (Finset.mem_singleton_self j)
+          rw [show C_exp m r.castSucc j = decide (r ∉ S) from C_exp_natAdd_castSucc r t] at hr_val
+          simp only [decide_eq_true_eq] at hr_val
+          exact hr_val hrS
+        · let t' : Fin (BigSubsets m).card := ⟨k.val - 2 * m, by omega⟩
+          have hSeq : S = (bigSubsetsEquiv m t').1 := by
+            ext r
+            have hiff : r.castSucc ∈ trunk (C_exp m) {j} ↔ r.castSucc ∈ trunk (C_exp m) {k} := by
+              rw [heq]
+            simp only [trunk, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton,
+              forall_eq] at hiff
+            rw [show C_exp m r.castSucc j = decide (r ∉ S) from C_exp_natAdd_castSucc r t,
+                C_exp_castSucc_of_ge2m r hk2] at hiff
+            simp only [decide_eq_true_eq] at hiff
+            exact not_iff_not.mp hiff
+          have htt' : t = t' := (bigSubsetsEquiv m).injective (Subtype.ext hSeq)
+          apply hkj
+          ext
+          have hval : t.val = k.val - 2 * m := congrArg Fin.val htt'
+          have hjval : j.val = 2 * m + t.val := rfl
+          omega
+
+/-- **Theorem 2.3 (Exponential Gap with Zero Rank Increase)**:
+For every `m ≥ 2`, `C_exp m` is an `(m + 1) × (2^m + m - 1)` binary matrix extending the
+`(m + 1) × (2 * m)` base matrix `B_exp m` by `ℓ = 2^m - m - 1` columns such that:
+1. `(BigSubsets m).card = 2 ^ m - m - 1` and total columns `2 * m + (BigSubsets m).card = 2 ^ m + m - 1`;
+2. Every column of `C_exp m` is non-trivial;
+3. All `2 * m` base columns of `B_exp m` are non-redundant in `C_exp m`;
+4. All `2^m - m - 1` appended columns are non-simply redundant in `C_exp m`;
+5. `brank (B_exp m) = m + 1` and `brank (C_exp m) = m + 1`
+   (while `brank (B_exp m) + ℓ = (m + 1) + (2^m - m - 1) = 2^m`). -/
+theorem exponential_gap_family (m : ℕ) (hm : 2 ≤ m) :
+    (BigSubsets m).card = 2 ^ m - m - 1 ∧
+    2 * m + (BigSubsets m).card = 2 ^ m + m - 1 ∧
+    (m + 1) + (BigSubsets m).card = 2 ^ m ∧
+    (∀ j : Fin (2 * m + (BigSubsets m).card), ¬ IsTrivial (C_exp m) j) ∧
+    (∀ j : Fin (2 * m), ¬ IsRedundant (C_exp m) (Fin.castAdd (BigSubsets m).card j)) ∧
+    (∀ t : Fin (BigSubsets m).card, IsNonSimplyRedundant (C_exp m) (Fin.natAdd (2 * m) t)) ∧
+    brank (B_exp m) = m + 1 ∧
+    brank (C_exp m) = m + 1 := by
+  have hadd := card_bigSubsets_add m
+  refine ⟨card_bigSubsets m, ?_, ?_, C_exp_not_trivial m, C_exp_base_not_redundant m,
+    C_exp_appended_non_simply_redundant m, brank_B_exp m (by omega), brank_C_exp m (by omega)⟩
+  · omega
+  · omega
+
 /-! ### Proposition 2.5 & Counterexamples 2.6, 2.7 (Reverse Direction Refutations) -/
+
+/-- Appending an all-1s column to an `m × n` Boolean matrix `M`. -/
+def appendAllOnes {m n : ℕ} (M : Matrix (Fin m) (Fin n) Bool) :
+    Matrix (Fin m) (Fin (n + 1)) Bool :=
+  fun i j => Fin.lastCases true (fun k => M i k) j
+
+theorem brank_appendAllOnes_of_no_zero_row {m n : ℕ} (M : Matrix (Fin m) (Fin n) Bool)
+    (hnz : ∀ i : Fin m, ∃ j : Fin n, M i j = true) :
+    brank (appendAllOnes M) = brank M := by
+  have hub : HasBoolRank (appendAllOnes M) (brank M) := by
+    obtain ⟨V, H, hVH⟩ := hasBoolRank_brank M
+    refine ⟨V, fun t j => Fin.lastCases true (fun k => H t k) j, ?_⟩
+    ext i j
+    refine Fin.lastCases ?_ ?_ j
+    · simp [boolMul, appendAllOnes]
+      obtain ⟨j₀, hj₀⟩ := hnz i
+      have hrow := congrFun (congrFun hVH i) j₀
+      rw [hj₀] at hrow
+      simp only [boolMul, decide_eq_true_eq] at hrow
+      obtain ⟨t, htV, _⟩ := hrow
+      exact ⟨t, htV⟩
+    · intro k
+      have hrow := congrFun (congrFun hVH i) k
+      simpa [boolMul, appendAllOnes] using hrow
+  refine brank_eq hub ?_
+  intro r hr
+  have hsub : HasBoolRank M r := by
+    have h := hasBoolRank_reindex_cols (fun k : Fin n => k.castSucc) hr
+    have heq : (fun i (k : Fin n) => appendAllOnes M i k.castSucc) = M := by
+      ext i k; simp [appendAllOnes]
+    rwa [heq] at h
+  exact brank_le hsub
+
+theorem brank_appendAllOnes_of_zero_row {m n : ℕ} (M : Matrix (Fin m) (Fin n) Bool)
+    (h0 : ∃ i₀ : Fin m, ∀ j : Fin n, M i₀ j = false) :
+    brank (appendAllOnes M) = brank M + 1 := by
+  have hub : HasBoolRank (appendAllOnes M) (brank M + 1) := by
+    obtain ⟨V, H, hVH⟩ := hasBoolRank_brank M
+    let V' : Matrix (Fin m) (Fin (brank M + 1)) Bool :=
+      fun i t => Fin.lastCases true (fun t₀ => V i t₀) t
+    let H' : Matrix (Fin (brank M + 1)) (Fin (n + 1)) Bool :=
+      fun t j =>
+        Fin.lastCases
+          (Fin.lastCases true (fun _ => false) j)
+          (fun t₀ => Fin.lastCases false (fun k => H t₀ k) j)
+          t
+    refine ⟨V', H', ?_⟩
+    ext i j
+    refine Fin.lastCases ?_ ?_ j
+    · simp only [boolMul, appendAllOnes, Fin.lastCases_last, decide_eq_true_eq]
+      refine ⟨Fin.last (brank M), ?_, ?_⟩
+      · simp [V']
+      · simp [H']
+    · intro k
+      have hrow := congrFun (congrFun hVH i) k
+      cases hM : M i k
+      · rw [hM] at hrow
+        simp only [boolMul, decide_eq_false_iff_not, not_exists, not_and] at hrow
+        simp only [boolMul, appendAllOnes, Fin.lastCases_castSucc, hM, decide_eq_false_iff_not,
+          not_exists, not_and]
+        intro t
+        refine Fin.lastCases ?_ ?_ t
+        · intro _ hH
+          simp [H'] at hH
+        · intro t₀ hV hH
+          simp only [V', Fin.lastCases_castSucc] at hV
+          simp only [H', Fin.lastCases_castSucc] at hH
+          exact hrow t₀ hV hH
+      · rw [hM] at hrow
+        simp only [boolMul, decide_eq_true_eq] at hrow
+        rcases hrow with ⟨t₀, htV, htH⟩
+        simp only [boolMul, appendAllOnes, Fin.lastCases_castSucc, hM, decide_eq_true_eq]
+        refine ⟨t₀.castSucc, ?_, ?_⟩
+        · simp [V', htV]
+        · simp [H', htH]
+  refine brank_eq hub ?_
+  intro r ⟨V, H, hVH⟩
+  rcases h0 with ⟨i₀, hi₀⟩
+  have hlast := congrFun (congrFun hVH i₀) (Fin.last n)
+  simp only [boolMul, appendAllOnes, Fin.lastCases_last, decide_eq_true_eq] at hlast
+  rcases hlast with ⟨t₀, ht₀V, _⟩
+  have hHt₀ : ∀ k : Fin n, H t₀ k.castSucc = false := by
+    intro k
+    cases hk : H t₀ k.castSucc
+    · rfl
+    · exfalso
+      have hrow := congrFun (congrFun hVH i₀) k.castSucc
+      simp only [appendAllOnes, Fin.lastCases_castSucc, hi₀ k] at hrow
+      have htrue : boolMul V H i₀ k.castSucc = true := by
+        simp only [boolMul, decide_eq_true_eq]
+        exact ⟨t₀, ht₀V, hk⟩
+      rw [htrue] at hrow
+      cases hrow
+  cases r with
+  | zero => exact Fin.elim0 t₀
+  | succ r' =>
+    let drop : Fin r' → Fin (r' + 1) := fun s =>
+      if h : s.val < t₀.val then ⟨s.val, by omega⟩ else ⟨s.val + 1, by omega⟩
+    have hsurj : ∀ t : Fin (r' + 1), t ≠ t₀ → ∃ s : Fin r', drop s = t := by
+      intro t ht
+      by_cases hlt : t.val < t₀.val
+      · refine ⟨⟨t.val, by omega⟩, ?_⟩
+        ext
+        simp [drop, hlt]
+      · have hgt : t₀.val < t.val := by
+          have hne : t.val ≠ t₀.val := fun h => ht (Fin.ext h)
+          omega
+        refine ⟨⟨t.val - 1, by omega⟩, ?_⟩
+        have hnot : ¬ (t.val - 1 < t₀.val) := by omega
+        ext
+        dsimp only [drop]
+        rw [dif_neg hnot]
+        dsimp only
+        omega
+    have hM : HasBoolRank M r' := by
+      refine ⟨fun i s => V i (drop s), fun s k => H (drop s) k.castSucc, ?_⟩
+      ext i k
+      have hrow := congrFun (congrFun hVH i) k.castSucc
+      simp only [appendAllOnes, Fin.lastCases_castSucc] at hrow
+      cases hMik : M i k
+      · rw [hMik] at hrow
+        simp only [boolMul, decide_eq_false_iff_not, not_exists, not_and] at hrow ⊢
+        intro s hV hH
+        exact hrow (drop s) hV hH
+      · rw [hMik] at hrow
+        simp only [boolMul, decide_eq_true_eq] at hrow ⊢
+        rcases hrow with ⟨t, htV, htH⟩
+        have htne : t ≠ t₀ := by
+          intro heq
+          subst heq
+          rw [hHt₀ k] at htH
+          cases htH
+        obtain ⟨s, hs⟩ := hsurj t htne
+        exact ⟨s, hs.symm ▸ htV, hs.symm ▸ htH⟩
+    have hle := brank_le hM
+    omega
+
+/-- **Proposition 2.5 (Exact Effect of an All-1s Column — General Refutation of Section 7.3 Line 1112)**:
+Appending an all-1s column to any `m × n` Boolean matrix `M` increases `brank` by `1` iff
+`M` has an all-zero row, and leaves `brank` unchanged iff `M` has no all-zero row. -/
+theorem brank_append_allOnes {m n : ℕ} (M : Matrix (Fin m) (Fin n) Bool) :
+    ((∃ i₀ : Fin m, ∀ j : Fin n, M i₀ j = false) → brank (appendAllOnes M) = brank M + 1) ∧
+    ((∀ i : Fin m, ∃ j : Fin n, M i j = true) → brank (appendAllOnes M) = brank M) :=
+  ⟨brank_appendAllOnes_of_zero_row M, brank_appendAllOnes_of_no_zero_row M⟩
 
 /-- Counterexample 2.6: `2 × 2` matrix with an all-1s column (`k = 1, ℓ = 0`) and `brank = 2 > 1`. -/
 def C_all1 : Matrix (Fin 2) (Fin 2) Bool :=
@@ -318,9 +915,7 @@ theorem refutation_all1_reverse :
     let swap : Fin 2 → Fin 2 := fun j => if j = 0 then 1 else 0
     have hsub := hasBoolRank_reindex_cols swap hr
     have hlt : brank (fun i j => C_all1 i (swap j)) = 2 := by
-      apply brank_lower_triangular
-      · intro i; fin_cases i <;> decide
-      · intro i j hij; fin_cases i <;> fin_cases j <;> simp at hij <;> decide
+      apply brank_lower_triangular <;> decide
     have := brank_le hsub
     omega
 

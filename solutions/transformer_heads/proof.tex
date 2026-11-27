@@ -1,0 +1,327 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype,xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\ReLU}{ReLU}
+\DeclareMathOperator{\Attn}{Attn}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\CLS}{\mathrm{CLS}}
+\newcommand{\tok}{\mathrm{tok}}
+\newcommand{\cls}{\mathrm{cls}}
+
+\title{Refutation of Conjecture 1 (Multilayer Transformer Head Count)\\
+in Yu et al.\ (ICLR 2026)}
+\author{}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\textbf{Target Conjecture:} & Penghao Yu, Haotian Jiang, Zeyu Bao, Ruoxi Yu, and Qianxiao Li, \\
+& \emph{``The Effect of Attention Head Count on Transformer Approximation,''} \\
+& ICLR 2026 (\href{https://arxiv.org/abs/2510.06662}{arXiv:2510.06662} v2, March 31, 2026; camera-ready), Conjecture~1. \\
+\textbf{Domain:} & Machine Learning Theory / Transformer Expressivity \& Approximation Theory. \\
+\textbf{Verification:} & Lean~4 formalization in \texttt{Conjectures/TransformerHeads.lean} (Lemmas~1--3, \\
+& end-to-end Theorem~B for $L=2,h=1,D=3$, Theorem~A for all $D\ge 1$); \\
+& numerical check in \texttt{verify\_transformer\_heads.py}.
+\end{tabular}
+\end{center}
+
+\begin{abstract}
+We show that Conjecture~1 (\texttt{Conjecture1}) of Yu et al.\ (ICLR 2026, \texttt{arXiv:2510.06662}) is \textbf{false for standard multilayer bidirectional transformer encoders} in which every token issues attention queries and residual connections around attention are present (matching the multi-token generalization of eq.~(4) in Yu et al.\ and the same authors' follow-up \emph{InfoFlow}, \texttt{arXiv:2605.17930}). Both constructions below use no LayerNorm, restrict all FFN and attention weights and biases to $[-1,1]$, maintain hidden-state norms $\|x^{(\ell)}(s)\|_2 \le 1$ at every layer, and use an inverse temperature $\beta = \Theta(T/\epsilon)$ (matching Yu et al.'s Theorem~2(1), which leaves $\beta > 0$ free and excludes $\beta$ from the FFN parameter count $M$):
+\begin{enumerate}[leftmargin=2em,itemsep=2pt]
+    \item \textbf{Theorem~A (PE + attention residuals + intermediate FFN):} A $2$-layer, $1$-head transformer encoder ($L \cdot h = 2$) with head dimension $n = 5D + 2$ approximates any $D \ge 3$ ($D \le T$) within $\epsilon$ using FFN parameter count $M = O_{d,D}(1/\epsilon^\gamma)$, independent of $T$ when $S_i = [T]$.
+    \item \textbf{Theorem~B (NoPE + NoLN + attention residuals + zero intermediate FFNs):} For every $L \ge 2$ and $h \ge 1$, an $L$-layer, $h$-head NoPE encoder with $n \le 5L - 1$ approximates $D = (2L - 1)h > L \cdot h$ (e.g., $L = 2, h = 1, D = 3$ with $n = 9$) within $\epsilon$ using FFN parameter count $M = O_{d,L,h}(1/\epsilon^\gamma)$, independent of $T$.
+\end{enumerate}
+\end{abstract}
+
+\begin{remark}[Architectural scope and novelty]
+Yu et al.\ (\texttt{arXiv:2510.06662}) formally define only a single-layer model (with $\CLS$-only querying) and leave the multilayer architecture unspecified. Both Theorems~A and~B rely on non-$\CLS$ tokens issuing queries in intermediate layers and on residual connections around attention. \emph{$\CLS$-only} multilayer models (where only the $\CLS$ token updates) and \emph{residual-free} multilayer encoders are not refuted here and remain open.
+
+No prior refutation or resolution of Conjecture~1 was found across \texttt{arXiv:2510.06662} v2, the ICLR 2026 camera-ready PDF, the authors' follow-up \emph{InfoFlow} (\texttt{arXiv:2605.17930}), citing papers, or OpenConjecture (the OpenReview forum was inaccessible due to a bot challenge). Conceptually, both constructions exploit a clean structural mechanism---non-$\CLS$ tokens act as parallel query slots---overlooked by Conjecture~1 for standard multilayer encoders.
+\end{remark}
+
+\section{Exact Target and Preliminary Lemmas}
+
+Let $d \ge 1$ be the input dimension, $T \ge 1$ the sequence length, and $X_T = (x(1), \dots, x(T)) \in ([0,1]^d)^T$. Following Yu et al., the target class $\mathcal{F}_D^{d,T}$ consists of functions of the form
+\[
+H(X_T) = F_0\bigl(\bar{z}_1(X_T), \dots, \bar{z}_D(X_T)\bigr), \qquad \bar{z}_i(X_T) := \min_{t \in S_i} f_i(x(t)),
+\]
+for nonempty subsets $S_1, \dots, S_D \subseteq [T]$, continuous functions $f_i : [0,1]^d \to [0,1]$, and $F_0 : [0,1]^D \to \R$ satisfying Assumption~2 (\texttt{assump:target}) of Yu et al.
+
+\begin{lemma}[Explicit target $H_D \in \mathcal{F}_D^{d,T}$ and ${[-1,1]}$-bounded FFN approximation]\label{lem:target}
+For any $D \ge 1$ and $d \ge 1$, choose the pairwise distinct centers
+\[
+x^{(i)} := \Bigl(\frac{i}{D+1}, \dots, \frac{i}{D+1}\Bigr) \in (0,1)^d, \qquad i = 1, \dots, D,
+\]
+and set $f_i(x) := \frac{1}{d}\|x - x^{(i)}\|_2^2 \in [0,1]$, $S_i := [T]$, $F_0(z) := \sum_{i=1}^D z_i$, and
+\[
+H_D(X_T) := \sum_{i=1}^D \min_{t \in [T]} f_i(x(t)).
+\]
+Then $H_D$ satisfies every hypothesis of Assumption~2 (\texttt{assump:target}) in Yu et al., so $H_D \in \mathcal{F}_D^{d,T}$. Moreover, for every $\delta \in (0, 1/4]$ and every $i \in [D]$, there exists a $2$-layer $\ReLU$ FFN $\Psi_{i,\delta} : [0,1]^d \to [0,1]$ with all weights and biases in $[-1,1]$ and hidden width at most $d\bigl(\lceil 1/(2\sqrt{\delta})\rceil + 2\bigr)$ such that
+\[
+\sup_{x \in [0,1]^d} \bigl|\Psi_{i,\delta}(x) - f_i(x)\bigr| \le \delta.
+\]
+\end{lemma}
+
+\begin{proof}
+Each $f_i$ is continuous on $[0,1]^d$ with unique minimum $0$ attained at $x^{(i)} \in (0,1)^d$, the minimizers $x^{(1)}, \dots, x^{(D)}$ are pairwise distinct, $S_i = [T]$ is nonempty, and $F_0(z) = \sum_{i=1}^D z_i$ is smooth with unit partial derivatives, verifying Assumption~2.
+
+Fix $i \in [D]$, let $c_0 := \frac{i}{D+1} \in (0,1)$, and let $g(u) := (u - c_0)^2$ for $u \in [0,1]$. Set $N := \lceil 1/(2\sqrt{\delta})\rceil \ge 1$ and $h_0 := 1/N \le 2\sqrt{\delta}$, and let $\hat{g}$ be the continuous piecewise-linear interpolant of $g$ on the uniform knots $u_m = m h_0$ ($m = 0, 1, \dots, N$). Since $g'' \equiv 2 > 0$, standard piecewise-linear interpolation error gives
+\[
+0 \le \hat{g}(u) - g(u) \le \frac{h_0^2}{8} \sup_{[0,1]} |g''| = \frac{h_0^2}{4} \le \delta \qquad \forall u \in [0,1].
+\]
+By convexity of $g$, we also have $0 \le g(u) \le \hat{g}(u) \le \max\{g(0), g(1)\} < 1$ for all $u \in [0,1]$. On $[u_m, u_{m+1}]$, the slope of $\hat{g}$ is $s_m = u_m + u_{m+1} - 2c_0$, so the initial slope is $s_0 = h_0 - 2c_0 \in (-2, 1]$ and each interior slope jump at $u_m$ ($1 \le m \le N-1$) equals $s_m - s_{m-1} = 2h_0 = 2/N$. Because $u = \ReLU(u)$ on $[0,1]$, we have the exact representation
+\[
+\hat{g}(u) = c_0^2 + \frac{s_0}{2}\ReLU(u) + \frac{s_0}{2}\ReLU(u) + \sum_{m=1}^{N-1} \frac{2}{N}\ReLU(u - u_m), \qquad u \in [0,1].
+\]
+For $N = 1$ the sum is empty; for $N \ge 2$ each coefficient $2/N \in (0,1]$. Also $|s_0/2| < 1$, $u_m \in [0,1]$, and $c_0^2 \in (0,1)$. Averaging $\hat{g}(x_k)$ over $k = 1, \dots, d$ divides all output weights and the output bias by $d$ (keeping all weights and biases in $[-1,1]$), yields $\Psi_{i,\delta}(x) := \frac{1}{d}\sum_{k=1}^d \hat{g}(x_k) \in [0,1]$ satisfying $|\Psi_{i,\delta}(x) - f_i(x)| \le \delta$, and uses $d(N+1) \le d\bigl(\lceil 1/(2\sqrt{\delta})\rceil + 2\bigr)$ hidden $\ReLU$ neurons.
+\end{proof}
+
+\begin{lemma}[Rescaling Lemma]\label{lem:rescale}
+Let $\Phi : \R^m \to \R^q$ be a $2$-layer $\ReLU$ FFN of hidden width $p$ with all weights and biases in $[-1,1]$. Then for any $\alpha \ge 1$, the rescaled map $u \mapsto \Phi(\alpha u)$ admits an exact $2$-layer $\ReLU$ FFN realization of hidden width $p\lceil \alpha \rceil$ with all weights and biases in $[-1,1]$.
+\end{lemma}
+
+\begin{proof}
+Write $\Phi(z) = b_0 + \sum_{k=1}^p a_k \ReLU(w_k^\top z + b_k)$ with $w_k \in [-1,1]^m$, $b_k \in [-1,1]$, and $a_k, b_0 \in [-1,1]^q$. Setting $K := \lceil \alpha \rceil \ge 1$ and using positive homogeneity of $\ReLU$,
+\[
+a_k \ReLU\bigl(w_k^\top(\alpha u) + b_k\bigr)
+= a_k \alpha \ReLU\bigl(w_k^\top u + b_k/\alpha\bigr)
+= \sum_{r=1}^K \Bigl(\frac{\alpha}{K} a_k\Bigr) \ReLU\bigl(w_k^\top u + b_k/\alpha\bigr).
+\]
+Since $\alpha \ge 1$, we have $|b_k/\alpha| \le |b_k| \le 1$, $\|w_k\|_\infty \le 1$, and $\|\frac{\alpha}{K} a_k\|_\infty = \frac{\alpha}{\lceil \alpha \rceil}\|a_k\|_\infty \le 1$. Replacing each of the $p$ hidden neurons by $K$ identical copies gives an exact $[-1,1]$-bounded realization of width $p\lceil \alpha \rceil$.
+\end{proof}
+
+\begin{lemma}[Uniform Two-Sided Softmin Error Bound]\label{lem:softmin}
+Let $S \subseteq [T]$ be nonempty, let $a_1, \dots, a_T \in [0,1]$, and set $a_* := \min_{t \in S} a_t$. For $\tilde{\beta} > 0$, define logits
+\[
+\rho(t) := \begin{cases}
+-a_t, & t \in S, \\
+-(a_t + 2), & t \in [T] \setminus S, \\
+-2, & t = T + 1,
+\end{cases}
+\]
+and softmax weights $w(t) := e^{\tilde{\beta}\rho(t)} \big/ \sum_{s=1}^{T+1} e^{\tilde{\beta}\rho(s)}$ for $t \in [T+1]$. Then the weighted average $\tilde{z} := \sum_{t=1}^T w(t) a_t \in [0,1]$ satisfies
+\[
+\bigl|\tilde{z} - a_*\bigr| \le \frac{T}{e\tilde{\beta}} + (T + 1)e^{-\tilde{\beta}}.
+\]
+When $S = [T]$, this sharpens to $\bigl|\tilde{z} - a_*\bigr| \le \frac{T}{e\tilde{\beta}} + e^{-\tilde{\beta}}$ (and to $0 \le \tilde{z} - a_* \le \frac{T}{e\tilde{\beta}}$ if the $\CLS$ token $t = T+1$ is excluded from the attention sum).
+\end{lemma}
+
+\begin{proof}
+Pick $t_* \in S$ with $a_{t_*} = a_*$. Then the partition function satisfies $Z := \sum_{s=1}^{T+1} e^{\tilde{\beta}\rho(s)} \ge e^{-\tilde{\beta} a_*}$. For every $t \in ([T]\setminus S) \cup \{T+1\}$, we have $\rho(t) \le -2 \le -a_* - 1$ (since $a_* \le 1$), whence
+\[
+w(t) \le \frac{e^{\tilde{\beta}\rho(t)}}{e^{-\tilde{\beta} a_*}} \le e^{-\tilde{\beta}}.
+\]
+Write $W_{\mathrm{out}} := \sum_{t \in [T]\setminus S} w(t) + w(T+1) \le (T + 1 - |S|)e^{-\tilde{\beta}}$, so $\sum_{t \in S} w(t) = 1 - W_{\mathrm{out}}$ and
+\[
+\tilde{z} - a_* = \sum_{t \in S} w(t)(a_t - a_*) + \sum_{t \in [T]\setminus S} w(t)(a_t - a_*) - w(T+1) a_*.
+\]
+For the lower bound, $a_t - a_* \ge 0$ on $S$, $a_t - a_* \ge -1$ on $[T]\setminus S$, and $a_* \le 1$, giving
+\[
+\tilde{z} - a_* \ge -W_{\mathrm{out}} \ge -(T + 1 - |S|)e^{-\tilde{\beta}}.
+\]
+For the upper bound, for each $t \in S$ let $\Delta_t := a_t - a_* \ge 0$; since $x e^{-\tilde{\beta} x} \le (e\tilde{\beta})^{-1}$ for all $x \ge 0$,
+\[
+w(t)(a_t - a_*) \le \Delta_t e^{-\tilde{\beta}\Delta_t} \le \frac{1}{e\tilde{\beta}}.
+\]
+Also $a_t - a_* \le 1$ for $t \in [T]\setminus S$ and $-w(T+1)a_* \le 0$, so
+\[
+\tilde{z} - a_* \le \frac{|S|}{e\tilde{\beta}} + (T - |S|)e^{-\tilde{\beta}}.
+\]
+Combining both bounds yields $|\tilde{z} - a_*| \le \frac{|S|}{e\tilde{\beta}} + (T + 1 - |S|)e^{-\tilde{\beta}}$, from which all three claims follow immediately (noting $W_{\mathrm{out}} = w(T+1) \le e^{-\tilde{\beta}}$ when $S = [T]$, and $W_{\mathrm{out}} = 0$ if $t = T+1$ is omitted).
+\end{proof}
+
+\section{Theorem A: $L = 2, h = 1$ with Positional Encoding Solves Arbitrary $D \ge 3$}
+
+\begin{theorem}[Theorem A: $L=2, h=1$ with PE solves arbitrary $D \ge 3$]\label{thm:A}
+Let $D \ge 3$, $T \ge D$, $d \ge 1$, and $\epsilon \in (0, 1)$. For any target $H \in \mathcal{F}_D^{d,T}$ with $S_1, \dots, S_D \subseteq [T]$ (in particular $H_D$ from Lemma~\ref{lem:target} with $S_i = [T]$), there exists a $2$-layer, $1$-head bidirectional transformer encoder ($L \cdot h = 2$) with positional encoding, attention residuals, no LayerNorm, embedding and head dimension $E = n = 5D + 2$, all FFN and attention weights and biases in $[-1,1]$, hidden-state norms $\|x^{(\ell)}(s)\|_2 \le 1$ for all layers $\ell \in \{0, 1, 2\}$ and tokens $s \in [T+1]$, and inverse temperatures $\beta_1 = \Theta(T/\epsilon)$, $\beta_2 = \Theta(\log(T/\epsilon))$, whose $\CLS$ output uniformly approximates $H$ on $([0,1]^d)^T$ within $\epsilon$. When $S_i = [T]$ for all $i \in [D]$, the total FFN parameter count is $M = O_{d,D}(1/\epsilon^\gamma)$, completely independent of $T$, refuting Conjecture~1 of Yu et al.\ for every $a_2, b_2 > 0$.
+\end{theorem}
+
+\begin{proof}
+Set $E = n := 5D + 2$, decompose vectors $u \in \R^E$ into seven blocks
+\[
+u = (u_A, u_B, u_C, u_F, u_G, u_H, u_I) \in \R^D \times \R^D \times \R^D \times \R^D \times \R^D \times \R \times \R,
+\]
+and set the scaling factor $c := (11D + 3)^{-1/2}$. Fix $\delta \in (0, 1/4]$ and $[-1,1]$-bounded $2$-layer $\ReLU$ approximators $\Psi_{i,\delta} : [0,1]^d \to [0,1]$ satisfying $\|\Psi_{i,\delta} - f_i\|_\infty \le \delta$ (for $H_D$, given explicitly by Lemma~\ref{lem:target}). We construct the network in five stages.
+
+\paragraph{1. Input embeddings ($t \in [T]$ and $\CLS$ at $t = T+1$).}
+For each input token $t \in [T]$, define $x^{(0)}(t) := c\,\bar{x}^{(0)}(t)$, where
+\begin{align*}
+\bar{x}^{(0)}_A(t)_i &= -\Psi_{i,\delta}(x(t)) + r_i(t),
+& r_i(t) &= \begin{cases} 0, & t \in S_i, \\ -2, & t \notin S_i, \end{cases} \\
+\bar{x}^{(0)}_B(t) &= \1_{t \le D}\, e_t,
+& \bar{x}^{(0)}_C(t)_i &= \Psi_{i,\delta}(x(t)), \\
+\bar{x}^{(0)}_F(t) &= 0, \qquad \bar{x}^{(0)}_G(t) = 0,
+& \bar{x}^{(0)}_H(t) &= \1_{t \le D}, \qquad \bar{x}^{(0)}_I(t) = 0,
+\end{align*}
+with $e_t \in \R^D$ the $t$-th standard basis vector. For the $\CLS$ token ($t = T+1$), define $c^{(0)} := c\,\bar{c}^{(0)}$ with $\bar{c}^{(0)}_A = (-2, \dots, -2)$, $\bar{c}^{(0)}_I = 1$, and all other blocks $0$. Note that when $S_i = [T]$, $r_i(t) \equiv 0$, so the only positional encoding is the indicator $\1_{t \le D}$ on the first $D$ tokens. Since $|\bar{x}^{(0)}_A(t)_i| \le 3$ and $\bar{x}^{(0)}_C(t)_i \in [0,1]$,
+\[
+\bigl\|\bar{x}^{(0)}(t)\bigr\|_2^2 \le 9D + 1 + D + 1 = 10D + 2 < 11D + 3,
+\qquad
+\bigl\|\bar{c}^{(0)}\bigr\|_2^2 = 4D + 1 < 11D + 3,
+\]
+so $\|x^{(0)}(t)\|_2 < 1$ and $\|c^{(0)}\|_2 < 1$.
+
+\paragraph{2. Layer~1 attention ($h = 1$, $\{0,1\}$ weights).}
+Choose $\{0,1\}$-valued projections so that queries read Block~$B$, keys read Block~$A$, values read Block~$C$, and the output projection writes into Block~$F$:
+\begin{align*}
+W_Q^{(1)} u &= (u_B, 0), & W_K^{(1)} u &= (u_A, 0), \\
+W_V^{(1)} u &= (u_C, 0), & W_O^{(1)} (v, 0) &= (0,0,0,v,0,0,0).
+\end{align*}
+Let $\beta_1 > 0$ be the Layer~1 inverse temperature and set $\tilde{\beta}_1 := c^2 \beta_1$. For each token $s \in \{1, \dots, D\}$, its query is $c e_s$, so its attention logit with token $t \in [T+1]$ is
+\[
+\beta_1 \bigl\langle W_Q^{(1)} x^{(0)}(s),\, W_K^{(1)} x^{(0)}(t) \bigr\rangle
+= \tilde{\beta}_1 \bar{x}^{(0)}_A(t)_s
+= \begin{cases}
+-\tilde{\beta}_1 \Psi_{s,\delta}(x(t)), & t \in S_s, \\
+-\tilde{\beta}_1\bigl(\Psi_{s,\delta}(x(t)) + 2\bigr), & t \in [T] \setminus S_s, \\
+-2\tilde{\beta}_1, & t = T + 1.
+\end{cases}
+\]
+Thus, for every $s \in [D]$ simultaneously using a \emph{single} attention head, the $s$-th coordinate of Block~$F$ after Layer~1 attention and residual addition $\hat{x}^{(1)} := x^{(0)} + \Attn^{(1)}(x^{(0)})$ equals $\hat{x}^{(1)}_{F,s}(s) = c\,\tilde{z}_s(X_T)$ (noting $\bar{c}^{(0)}_C = 0$). By Lemma~\ref{lem:softmin} and $\|\Psi_{s,\delta} - f_s\|_\infty \le \delta$,
+\begin{equation}\label{eq:thmA-L1}
+\bigl|\tilde{z}_s(X_T) - \bar{z}_s(X_T)\bigr| \le \delta + \frac{T}{e\tilde{\beta}_1} + (T + 1)e^{-\tilde{\beta}_1}, \qquad \forall s \in [D].
+\end{equation}
+Because every entry of $\hat{x}^{(1)}_F(s)$ is a convex combination of $\{c\Psi_{i,\delta}(x(t)), 0\} \subseteq [0,c]$, we have $\|\hat{x}^{(1)}_F(s)\|_2^2 \le D c^2$ for every $s \in [T+1]$.
+
+\paragraph{3. Layer~1 FFN (exact gating with $D$ $\ReLU$ neurons).}
+Define the Layer~1 FFN $F^{(1)} : \R^E \to \R^E$ with all weights and biases in $[-1,1]$ by setting
+\[
+F^{(1)}(u)_{G,i} := \ReLU(u_{F,i} + u_{B,i} - c), \qquad i = 1, \dots, D,
+\]
+and $0$ in all other blocks. Since $\hat{x}^{(1)}_{F,i}(s) \in [0,c]$ and $\hat{x}^{(1)}_{B,i}(s) = c\,\1_{s = i}$:
+\begin{itemize}[leftmargin=2em,itemsep=1pt]
+    \item if $s = i \in [D]$, then $\hat{x}^{(1)}_{F,i}(s) + \hat{x}^{(1)}_{B,i}(s) - c = \hat{x}^{(1)}_{F,s}(s) = c\,\tilde{z}_s(X_T) \ge 0$;
+    \item if $s \neq i$ (including $s > D$ and $s = \CLS$), then $\hat{x}^{(1)}_{B,i}(s) = 0$ and $\hat{x}^{(1)}_{F,i}(s) - c \le 0$.
+\end{itemize}
+Hence $x^{(1)} := \hat{x}^{(1)} + F^{(1)}(\hat{x}^{(1)})$ satisfies
+\[
+x^{(1)}_G(s) = \begin{cases}
+c\,\tilde{z}_s(X_T)\, e_s, & s \in [D], \\
+0, & s \in \{D+1, \dots, T+1\}.
+\end{cases}
+\]
+Consequently, $\|x^{(1)}_G(s)\|_2^2 \le c^2$, and therefore
+\[
+\bigl\|x^{(1)}(s)\bigr\|_2^2 \le c^2\bigl((10D + 2) + D + 1\bigr) = c^2(11D + 3) = 1 \qquad \forall s \in [T+1].
+\]
+
+\paragraph{4. Layer~2 attention ($h = 1$, $\{0,1\}$ weights).}
+Choose $\{0,1\}$-valued projections so that queries read Block~$I$, keys read Block~$H$, values read Block~$G$, and the output writes into Block~$G$. Let $\beta_2 > 0$ be the Layer~2 inverse temperature and set $\tilde{\beta}_2 := c^2 \beta_2$. For the $\CLS$ token, the unscaled attention score with token $t \in [T+1]$ is $\rho^{(2)}(\CLS, t) = c^2 \1_{t \le D}$, so $\CLS$ assigns weight $\frac{e^{\tilde{\beta}_2}}{D e^{\tilde{\beta}_2} + (T + 1 - D)}$ to each $t \in [D]$ and $\frac{1}{D e^{\tilde{\beta}_2} + (T + 1 - D)}$ to each $t > D$. Since $x^{(1)}_G(\CLS) = 0$ and $x^{(1)}_G(t) = c\,\tilde{z}_t(X_T)e_t$ for $t \in [D]$ (and $0$ for $t > D$), the $\CLS$ Block~$G$ state after Layer~2 attention is
+\[
+\tilde{c}^{(2)}_G = \frac{c\, e^{\tilde{\beta}_2}}{D e^{\tilde{\beta}_2} + (T + 1 - D)}\bigl(\tilde{z}_1(X_T), \dots, \tilde{z}_D(X_T)\bigr).
+\]
+Its norm satisfies $\|\tilde{c}^{(2)}_G\|_2^2 \le c^2/D \le c^2$, keeping $\|\hat{c}^{(2)}\|_2 \le 1$, and
+\[
+\left|\frac{e^{\tilde{\beta}_2}}{D e^{\tilde{\beta}_2} + (T + 1 - D)} - \frac{1}{D}\right|
+= \frac{T + 1 - D}{D\bigl(D e^{\tilde{\beta}_2} + (T + 1 - D)\bigr)}
+\le \frac{T}{D^2} e^{-\tilde{\beta}_2}.
+\]
+Combining with \eqref{eq:thmA-L1} gives
+\[
+\left\|\frac{D}{c}\,\tilde{c}^{(2)}_G - \bar{z}(X_T)\right\|_\infty
+\le \delta + \frac{T}{e\tilde{\beta}_1} + (T + 1)e^{-\tilde{\beta}_1} + \frac{T}{D}e^{-\tilde{\beta}_2}.
+\]
+
+\paragraph{5. Layer~2 FFN and parameter count.}
+Apply Lemma~\ref{lem:rescale} with rescaling factor $\alpha_D := D/c = D\sqrt{11D + 3}$ to a $[-1,1]$-bounded $2$-layer $\ReLU$ approximator of $F_0$ on $[0,1]^D$ (for $H_D$, $F_0(z) = \sum_{i=1}^D \ReLU(z_i)$ is already exact with width $D$). Choosing $\delta = O_D(\epsilon)$, $\tilde{\beta}_1 = \Theta(T/\epsilon)$, and $\tilde{\beta}_2 = \Theta(\log(T/\epsilon))$ yields uniform approximation error strictly less than $\epsilon$. When $S_i = [T]$ for all $i \in [D]$, the total FFN parameter count across the input embeddings, the $D$-neuron Layer~1 FFN, and the Layer~2 readout FFN is $M = O_{d,D}(1/\epsilon^\gamma)$, completely independent of $T$. This contradicts the $T$-dependent lower bound of Conjecture~1 for every $a_2, b_2 > 0$.
+\end{proof}
+
+\section{Theorem B: NoPE + NoLN + Zero Intermediate FFNs Refutes $L \cdot h \ge D$ for Every $L \ge 2, h \ge 1$}
+
+\begin{theorem}[Theorem B: NoPE refutation for all $L \ge 2, h \ge 1$]\label{thm:B}
+For every $L \ge 2$ and $h \ge 1$, set
+\[
+D := (2L - 1)h > L \cdot h
+\]
+(for example, $L = 2, h = 1, D = 3$). For any $T \ge 1$, $d \ge 1$, $\epsilon \in (0, 1)$, and any target $H \in \mathcal{F}_D^{d,T}$ with $S_i = [T]$ for all $i \in [D]$ (in particular $H_D$ from Lemma~\ref{lem:target}), there exists an $L$-layer, $h$-head bidirectional transformer encoder with \emph{no positional encoding} (NoPE), \emph{no LayerNorm} (NoLN), attention residuals, \emph{zero intermediate FFNs}, per-head dimension $n \le 5L - 1$ (e.g., $n = 9$ for $L = 2, h = 1$), all FFN and attention weights and biases in $[-1,1]$, hidden-state norms $\|x^{(\ell)}(s)\|_2 \le 1$ at every layer $\ell \in \{0, \dots, L\}$, and inverse temperature $\beta = \Theta(T/\epsilon)$, that uniformly approximates $H$ within $\epsilon$ with total FFN parameter count $M = O_{d,L,h}(1/\epsilon^\gamma)$, completely independent of $T$.
+\end{theorem}
+
+\begin{proof}
+Set $D := (2L - 1)h$, choose the per-head dimension
+\[
+n := 5L - 3 + \lceil 2/h \rceil \le 5L - 1,
+\]
+and set $E := nh \ge (5L - 3)h + 2 = 2D + (L - 1)h + 2$. Decompose $u \in \R^E$ into blocks
+\begin{align*}
+u &= \bigl(u_V,\, u_M,\, u_{M'},\, u_{\cls},\, u_{\tok},\, u_{\mathrm{pad}}\bigr) \\
+  &\in \R^D \times \R^D \times \R^{(L-1)h} \times \R \times \R \times \R^{E - 2D - (L-1)h - 2},
+\end{align*}
+and set $c := E^{-1/2}$. Fix $\delta \in (0, 1/4]$ and $[-1,1]$-bounded approximators $\Psi_{i,\delta} : [0,1]^d \to [0,1]$ satisfying $\|\Psi_{i,\delta} - f_i\|_\infty \le \delta$ for $i \in [D]$.
+
+\paragraph{1. NoPE embeddings.}
+For each input token $t \in [T]$, set $x^{(0)}_V(t)_i := c\,\Psi_{i,\delta}(x(t))$ ($i \in [D]$), $x^{(0)}_{\tok}(t) := c$, and all other coordinates to $0$; there is zero dependence on the position $t$. For the $\CLS$ token ($t = T+1$), set $c^{(0)}_{\cls} := c$ and all other coordinates to $0$. Every coordinate lies in $[0,c]$.
+
+\paragraph{2. Layers $\ell = 1, \dots, L - 1$ (zero intermediate FFNs, $\{-1, 0, 1\}$ attention weights).}
+Use inverse temperature $\beta > 0$ at every layer and let $\tilde{\beta} := c^2 \beta$. At layer $\ell \in \{1, \dots, L-1\}$, each head $j \in [h]$ simultaneously serves two distinct retrieval tasks:
+\[
+i_1 := (\ell - 1)h + j \in \{1, \dots, (L-1)h\}
+\qquad\text{and}\qquad
+i_2 := Lh + (\ell - 1)h + j \in \{Lh + 1, \dots, D\},
+\]
+handling task $i_1$ for the query $s = \CLS$ and task $i_2$ for all input queries $s \in [T]$. Note that $n \ge 5L - 2 \ge 8 \ge 4$ since $L \ge 2$. Define the $\{-1,0,1\}$-valued query, key, value, and output projections for head $j$ at layer $\ell$ by
+\begin{align*}
+W_{Q,j}^{(\ell)} u &= (u_{\cls},\; u_{\tok},\; u_{\cls} + u_{\tok},\; u_{\cls} + u_{\tok},\; 0, \dots, 0) \in \R^n, \\
+W_{K,j}^{(\ell)} u &= (-u_{V,i_1},\; -u_{V,i_2},\; -u_{\cls},\; -u_{\cls},\; 0, \dots, 0) \in \R^n, \\
+W_{V,j}^{(\ell)} u &= (u_{V,i_1},\; u_{V,i_2},\; 0, \dots, 0) \in \R^n,
+\end{align*}
+with $W_{O,j}^{(\ell)}$ writing the first two coordinates of the head output into slots $M_{i_1}$ and $M_{i_2}$, respectively. Because no layer modifies $u_V$, $u_{\cls}$, or $u_{\tok}$, the inner products $\langle W_{Q,j}^{(\ell)} x^{(\ell-1)}(s), W_{K,j}^{(\ell)} x^{(\ell-1)}(t)\rangle$ are:
+\begin{itemize}[leftmargin=2em,itemsep=1pt]
+    \item for $s = \CLS$: $-c^2 \Psi_{i_1,\delta}(x(t))$ when $t \in [T]$, and $-2c^2$ when $t = T+1$;
+    \item for $s \in [T]$: $-c^2 \Psi_{i_2,\delta}(x(t))$ when $t \in [T]$, and $-2c^2$ when $t = T+1$.
+\end{itemize}
+No intermediate FFN is applied. After residual addition across layers $\ell = 1, \dots, L-1$, each slot $M_i$ with $i \notin \{(L-1)h+1, \dots, Lh\}$ is written by exactly one $(\ell, j)$ pair, and therefore:
+\begin{enumerate}[label=(\alph*),leftmargin=2.2em,itemsep=1pt]
+    \item $\CLS$ stores $c\,\tilde{z}_{i_1}(X_T)$ in $M_{i_1}$ for all $i_1 \in \{1, \dots, (L-1)h\}$;
+    \item \emph{every} input token $s \in [T]$ stores the \emph{exact same} value $c\,\tilde{z}_{i_2}(X_T)$ in $M_{i_2}$ for all $i_2 \in \{Lh + 1, \dots, D\}$;
+    \item every coordinate of every token remains in $[0,c]$.
+\end{enumerate}
+
+\paragraph{3. Layer $L$ (final retrieval and piggyback readout).}
+At layer $L$, head $j \in [h]$ handles the final $\CLS$ task $i_1 := (L-1)h + j$ and simultaneously copies the $(L-1)$ token-stored minima indexed by
+\[
+i_2(\ell, j) := Lh + (\ell - 1)h + j, \qquad \ell = 1, \dots, L - 1,
+\]
+into the fresh $\CLS$ slots $M'_{(\ell - 1)h + j}$. Define the $\{-1,0,1\}$-valued projections (using $L \le n$ value/output coordinates):
+\begin{align*}
+W_{Q,j}^{(L)} u &= (u_{\cls},\; u_{\cls},\; u_{\cls},\; 0, \dots, 0) \in \R^n, \\
+W_{K,j}^{(L)} u &= (-u_{V,i_1},\; -u_{\cls},\; -u_{\cls},\; 0, \dots, 0) \in \R^n, \\
+W_{V,j}^{(L)} u &= \bigl(u_{V,i_1},\; u_{M, i_2(1,j)},\; \dots,\; u_{M, i_2(L-1,j)},\; 0, \dots, 0\bigr) \in \R^n,
+\end{align*}
+with $W_{O,j}^{(L)}$ writing the first coordinate into $M_{i_1}$ and the next $L-1$ coordinates into $M'_{j}, M'_{h+j}, \dots,\allowbreak M'_{(L-2)h+j}$.
+
+For the $\CLS$ query, the Layer~$L$ logits are $-\tilde{\beta}\Psi_{i_1,\delta}(x(t))$ for $t \in [T]$ and $-2\tilde{\beta}$ for $t = T+1$. Hence $\CLS$ receives $c\,\tilde{z}_{i_1}(X_T)$ in $M_{i_1}$ (satisfying $|\tilde{z}_{i_1}(X_T) - \bar{z}_{i_1}(X_T)| \le \delta + \frac{T}{e\tilde{\beta}} + e^{-\tilde{\beta}}$ by Lemma~\ref{lem:softmin} for $S = [T]$), and its $\CLS$ self-attention weight satisfies $w^{(L)}_j(T+1) \le e^{-\tilde{\beta}}$. For each piggybacked task $i_2 = i_2(\ell, j)$, every input token $t \in [T]$ holds the identical value $c\,\tilde{z}_{i_2}(X_T)$ in slot $M_{i_2}$, while $\CLS$ holds some value $v_{\cls} \in [0,c]$ in slot $M_{i_2}$. Therefore the value written to $M'_{(\ell-1)h+j}$ at $\CLS$ is
+\[
+\tilde{m}_{i_2} = \bigl(1 - w^{(L)}_j(T+1)\bigr)\, c\,\tilde{z}_{i_2}(X_T) + w^{(L)}_j(T+1)\, v_{\cls},
+\]
+so $|\tilde{m}_{i_2}/c - \tilde{z}_{i_2}(X_T)| \le w^{(L)}_j(T+1) \le e^{-\tilde{\beta}}$. Combining with Lemma~\ref{lem:softmin} for $S = [T]$, all $D = (2L - 1)h$ minima arrive at $\CLS$ (in blocks $M_1, \dots, M_{Lh}$ and $M'_1, \dots, M'_{(L-1)h}$) with uniform error at most
+\[
+\delta + \frac{T}{e\tilde{\beta}} + 2e^{-\tilde{\beta}}.
+\]
+Because every coordinate of every token lies in $[0,c]$ at every layer $\ell \in \{0, \dots, L\}$, we have $\|x^{(\ell)}(s)\|_2^2 \le E c^2 = 1$ at every layer. Finally, applying a Layer~$L$ readout FFN rescaled by $\alpha = 1/c = \sqrt{E}$ via Lemma~\ref{lem:rescale} yields uniform approximation error $< \epsilon$ with $\delta = O_{L,h}(\epsilon)$, $\tilde{\beta} = \Theta(T/\epsilon)$, and total FFN parameter count $M = O_{d,L,h}(1/\epsilon^\gamma)$, completely independent of $T$.
+\end{proof}
+
+\begin{remark}[Consistency with the authors' empirical 2-layer NoPE experiment]
+In Yu et al.'s empirical $2$-layer NoPE experiment (Table~4 in \texttt{arXiv:2510.06662} v1; Table~5 in v2 and the ICLR 2026 camera-ready PDF), the authors tested $L = 2$ and $D = 4$ with NoPE. For $h = 1$, Theorem~B achieves $(2L - 1)h = 3 < 4$, while for $h = 2$, $Lh = 4 \le 6$; thus $D = 4$ happens not to fall strictly between $Lh$ and $(2L - 1)h$ in the NoPE regime (though empirical training error does not directly measure approximation capacity).
+\end{remark}
+
+\end{document}
