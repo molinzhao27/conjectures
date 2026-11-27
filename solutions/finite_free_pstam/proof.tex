@@ -1,0 +1,250 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\sgn}{sgn}
+\newcommand{\one}{\mathbf{1}}
+
+\title{\bfseries Cubic Phase Transition, Refutation of Subcritical Bifurcation,\\
+and All-Degree Symmetric-Score Strictness for Finite Free \texorpdfstring{$p$-Stam}{p-Stam}}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: B.~Hashemi,\\
+\emph{Spectral Structure in Finite Free Information Inequalities and $p$-Stam Phase Transitions},\\
+\href{https://arxiv.org/abs/2604.11922}{arXiv:2604.11922} (April 2026),
+Conjectures~\texttt{conj:extremizer\_transition}, \texttt{conj:phase},\\
+\texttt{conj:pstam\_holds}, and \texttt{conj:strict}\\[0.35em]
+Companion verification script: \texttt{solutions/finite\_free\_pstam/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We establish four new results on the finite free $p$-Stam conjectures of Hashemi (\href{https://arxiv.org/abs/2604.11922}{arXiv:2604.11922}), while explicitly demarcating prior art.
+First, in degree $n = 3$, we prove strict concavity of $U(a) = \|s(P_a)\|_p^{-2}$ on $(-1,1)$ for every $1 < p \le 2$, establishing superadditivity of $\|s\|_p^{-2}$ and hence \texttt{conj:phase}, \texttt{conj:pstam\_holds}, and simple-root \texttt{conj:strict} for all simple real-rooted cubics.
+Second, we refute \texttt{conj:extremizer\_transition} in degree $n = 3$: the unrestricted and fixed-total-variance infima are zero (unattained on simple roots), and even on the fixed equal-variance slice the matching Hermite pair uniquely minimizes both $g_p$ and $\rho_p$ for all $7/4 \le p \le 2$. We also note the literal closed-domain refutation of \texttt{conj:strict} via multiple roots ($x^n \boxplus_n g = g$).
+Third, in every degree $n \ge 3$ and for every $1 < p < 2$, we prove strict $p$-Stam whenever at least one input score admits a sign-reversing permutation involution $S s_f = -s_f$ (including any reflection-symmetric input paired with an arbitrary simple partner), and establish uniform endpoint strictness on compact sets near $p = 1^+$ and (using \href{https://arxiv.org/abs/2609.10367v1}{arXiv:2609.10367v1}) near $p = 2^-$.
+Fourth, we exhibit an explicit counterexample ($n = 64, p = 3/2$) to centered Jacobian $\ell^p$-contraction at simple pairs, explaining why general asymmetric simple pairs in degrees $n \ge 4$ remain open.
+We explicitly attribute \texttt{conj:spectrum}, \texttt{rem:En\_sym}, and \texttt{rem:uniqueness} to Hashemi and Hyun (\href{https://arxiv.org/abs/2609.10367v1}{arXiv:2609.10367v1}; and Machina Mathematica for \texttt{conj:spectrum}), supercritical Hermite violation to Hashemi (\href{https://arxiv.org/abs/2604.11922}{arXiv:2604.11922}), and the $p=2$ Stam framework to Garza-Vargas, Srivastava, and Stier (\href{https://arxiv.org/abs/2602.15822}{arXiv:2602.15822}).
+\end{abstract}
+
+\section{Definitions, Domain, and Novelty Demarcation}
+
+For a monic degree-$n$ polynomial $f(x) = \prod_{i=1}^n (x - a_i)$ with distinct ordered real roots $a_1 < \dots < a_n$, define its score vector, $\ell^p$-Fisher information ($p > 1$, dual exponent $q := p/(p-1)$), and inverse $p$-Fisher functional by
+\[
+s_i(a) := \sum_{j \neq i} \frac{1}{a_i - a_j} = \frac{f''(a_i)}{2 f'(a_i)},
+\qquad
+\Phi_p(f) := \sum_{i=1}^n |s_i(a)|^p,
+\qquad
+F_p(f) := \Phi_p(f)^{-1/(p-1)} = \|s(a)\|_p^{-q}.
+\]
+Scores sum to zero, satisfy $s_n(a) > 0$, are translation-invariant, and obey $F_p(c_* f) = c^q F_p(f)$ under root dilation by $c > 0$. The finite free additive convolution $C = f \boxplus_n g$ averages $\prod_{i=1}^n (x - a_i - b_{\pi(i)})$ over $\pi \in S_n$; for descending monic coefficients $f_i, g_j$ (signs included), its $x^{n-k}$ coefficient is
+\[
+(f \boxplus_n g)_k = \sum_{i+j=k} \frac{(n-i)!\,(n-j)!}{n!\,(n-k)!}\, f_i g_j.
+\]
+Following~\cite{Hashemi2026}, the additive and scale-free $p$-Stam deficits are
+\[
+g_p(f,g) := F_p(f \boxplus_n g) - F_p(f) - F_p(g),
+\qquad
+\rho_p(f,g) := \frac{g_p(f,g)}{F_p(f) + F_p(g)}.
+\]
+
+\begin{remark}[Prior art and novelty demarcation]
+In~\cite{Hashemi2026}, the spectrum $\{2^{-k/2}\}_{k=1}^{n-1}$ (\texttt{conj:spectrum}), symmetry of $E_n$ (\texttt{rem:En\_sym}), and uniqueness of the Hermite equality case at $p = 2$ (\texttt{rem:uniqueness}) were subsequently proved in \textbf{Hashemi and Hyun}~\cite{HashemiHyun2026} (Appendix~A and main theorem; \texttt{conj:spectrum} was also established in~\cite{MachinaSpec}), building on the $p = 2$ Stam framework of Garza-Vargas, Srivastava, and Stier~\cite{GVS2026}. Supercritical failure at the Hermite pair ($p > 2$) was already proved in~\cite{Hashemi2026} (Proposition~5.5 and Lemma~5.6). Our new contributions are Theorems~\ref{thm:cubic}, \ref{thm:bifurcation}, and~\ref{thm:sym}, Propositions~\ref{prop:endpoints} and~\ref{prop:obstruction}, and the boundary observation below. Arbitrary asymmetric simple pairs in degrees $n \ge 4$ remain open for \texttt{conj:pstam\_holds}, \texttt{conj:phase}, and \texttt{conj:strict}, as does the existence of non-Hermite variance-constrained minimizers for $n \ge 4$ at small~$p$.
+\end{remark}
+
+\begin{remark}[Literal closed-domain failure of \texttt{conj:strict}]
+Under the continuous extension to monic real-rooted polynomials with repeated roots, $F_p(f) = 0$ at any multiple root (in an isolated merging cluster of $m \ge 2$ roots, the leftmost score tends to $-\infty$). Since $x^n \boxplus_n g = g$, we have $g_p(x^n, g) = 0$ for every simple~$g$, every $n \ge 3$, and every $p \in (1,2)$, refuting \texttt{conj:strict} as literally quantified over the closed domain. All positive strictness results below hold on the interior of simple real-rooted polynomials.
+\end{remark}
+
+\section{Complete Cubic \texorpdfstring{$p$-Stam}{p-Stam} Theorem and Phase Transition (\texorpdfstring{$n = 3$}{n = 3})}
+
+Every centered simple cubic is a positive dilation $d > 0$ of $P_a(x) := x^3 - 3x - 2a$ with shape parameter $a \in (-1,1)$. Define $U(a) := \|s(P_a)\|_p^{-2}$ on $(-1,1)$, extended continuously by $U(\pm 1) = 0$, so $F_p(d_* P_a) = d^q U(a)^{q/2}$.
+
+\begin{theorem}[Strict cubic $p$-Stam and phase transition]\label{thm:cubic}
+Let $n = 3$ and $p \in (1, 2]$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $U$ is even and strictly concave on $(-1,1)$.
+\item Every pair of simple real-rooted cubics $f, g$ satisfies the stronger inverse-squared-norm superadditivity
+\begin{equation}\label{eq:cubic-strong}
+\|s(f \boxplus_3 g)\|_p^{-2} \;\ge\; \|s(f)\|_p^{-2} + \|s(g)\|_p^{-2}.
+\end{equation}
+\item Raising~\eqref{eq:cubic-strong} to $q/2 = p/(2p-2) \ge 1$ gives $g_p(f,g) > 0$ for all simple cubics when $1 < p < 2$, and $g_2(f,g) \ge 0$ with equality iff both $f$ and $g$ are affine Hermite cubics ($a = b = 0$). Combined with $g_p(H_3, H_3) = (2^{q/2} - 2) F_p(H_3) < 0$ for $p > 2$~\cite{Hashemi2026}, this proves \texttt{conj:phase}, \texttt{conj:pstam\_holds}, and simple-root \texttt{conj:strict} in degree $n = 3$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Set $a = \cos t$ with $t \in (0,\pi)$. The roots of $P_a$ are $r_j = 2\cos((t + 2\pi j)/3)$ ($j = 0,1,2$), and since $P_a'(r_j) = 3(r_j^2 - 1)$ and $P_a''(r_j) = 6 r_j$,
+\[
+s_j = \frac{r_j}{r_j^2 - 1} = \frac{\sin(2(t + 2\pi j)/3)}{\sin t}.
+\]
+Thus $w(t) := s \sin t$ traces a circle of radius $\sqrt{3/2}$ in $\one^\perp \subset \mathbb{R}^3$ with polar angle $2t/3$ in an oriented orthonormal basis. Reflecting $a \mapsto -a$ maps $t \mapsto \pi - t$ and negates scores up to permutation, so $U$ is even.
+
+Fix $a \in (-1,1) \setminus \{0\}$, so all $s_j \neq 0$. Let $z \in \mathbb{R}^3$ be the $\ell^p$-norming functional of $w(t)$, with $z_j \propto \sgn(w_j)|w_j|^{p-1}$ and $\|z\|_q = 1$. Freezing $z$ while varying $a$ yields a smooth local upper bound $U(a) \le (1-a^2)/(z \cdot w(t))^2$, with equality at the chosen~$a$. Put $\delta := 2t/3 - \phi$, where $\phi$ is the polar angle of the projection of $z$ onto $\one^\perp$. Up to a fixed positive factor, the upper bound is $(1-a^2)\sec^2 \delta$. Differentiating twice in $a$ (with $dt/da = -1/\sin t$) and dividing by $\sec^2 \delta$ gives
+\[
+L(T) := -\frac{10}{9} + 4\cot(t)\, T + \frac{8}{3}\, T^2, \qquad T := \tan \delta.
+\]
+
+We check that the projected $\ell^p$ normal lies between the radial direction $w(t)$ ($\delta = 0$) and the projected $\ell^1$ normal $\sgn(w(t))$. Permuting and flipping a common sign, write $w(t) \propto (-1, u, v)$ with $u + v = 1$ and $u \ge v > 0$. Set $b := p - 1 \in (0,1]$, $A := u^b$, $B := v^b$. Relative to the axis $(-2,1,1)$ in $\one^\perp$, the projected $\ell^p$ normal has slope proportional (with the same positive constant for all~$p$) to $(A-B)/(2+A+B)$, whereas the $\ell^1$ normal has slope $0$ and the radial vector has slope proportional to $(u-v)/3$. Since $b \in (0,1]$, we have $A + B \ge 1$, and $u \mapsto u^b - (1-u)^b$ is convex on $[1/2,1]$ (second derivative $b(b-1)(u^{b-2} - (1-u)^{b-2}) \ge 0$), hence lies below its chord $2u - 1 = u - v$. Therefore $0 \le (A-B)/(2+A+B) \le (u-v)/3$, so all three directions lie in a wedge of angle $< \pi/6 < \pi/2$.
+
+At the radial endpoint, $L(0) = -10/9 < 0$. At the $\ell^1$ endpoint, the score signs are locally constant, so the frozen bound equals $U_1(a) := \|s(P_a)\|_1^{-2}$ locally. For any three zero-sum numbers, $\|s\|_1 = 2\max_j |s_j|$, attained at the unique coordinate of opposite sign to the other two; this belongs to an outer root~$r$ with $|r| > 1$, giving $4 U_1 = (r - r^{-1})^2$. Using $a = (r^3 - 3r)/2$,
+\[
+\frac{d(4U_1)}{da} = \frac{4}{3}(r^{-1} + r^{-3}),
+\qquad
+\frac{d^2(4U_1)}{da^2} = -\frac{8(r^{-2} + 3r^{-4})}{9(r^2 - 1)} < 0.
+\]
+Hence $L(T) < 0$ at both endpoints of the wedge; convexity of $L$ in $T$ gives $L(T) < 0$ at the $\ell^p$ normal, proving $U''(a) < 0$ for $a \neq 0$. For $p > 1$, $U$ is $C^1$ at $a = 0$ with $U'(0) = 0$ by evenness, so $U$ is strictly concave on $(-1,1)$.
+
+For two centered simple cubics with scales $d, e > 0$ and shapes $a, b \in (-1,1)$, the cubic $\boxplus_3$ coefficient formula gives output scale $R := \sqrt{d^2 + e^2}$ and shape $c = A^3 a + B^3 b$, where $A := d/R$, $B := e/R$ ($A^2 + B^2 = 1$). Concavity and the unique maximum of $U$ at $0$ yield
+\[
+U(c) = U\bigl(A^2(Aa) + B^2(Bb)\bigr) \ge A^2 U(Aa) + B^2 U(Bb) \ge A^2 U(a) + B^2 U(b).
+\]
+Multiplying by $R^2$ proves~\eqref{eq:cubic-strong}. For $1 < p < 2$, $q/2 > 1$ and both summands are positive, giving $g_p(f,g) > 0$. For $p = 2$, equality forces $U(Aa) = U(a)$ and $U(Bb) = U(b)$, hence $a = b = 0$.
+\end{proof}
+
+\section{Cubic Refutation of Subcritical Extremizer Bifurcation}
+
+\begin{theorem}[Cubic refutation of \texttt{conj:extremizer\_transition}]\label{thm:bifurcation}
+In degree $n = 3$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item On the unrestricted simple-root domain, $\inf_{f,g} g_p(f,g) = 0$ for all $p \in (1,2)$ and is unattained. Even with fixed total variance $d^2 + e^2 = \mathrm{const}$, taking two Hermite cubics ($a = b = 0$) with $e \to 0^+$ drives $g_p \to 0$ and $\rho_p \to 0$ with pair mismatch $d_{PQ} \equiv 0$.
+\item On the fixed equal-variance slice ($d = e = 1$ after common dilation), for every $p \in [7/4, 2]$ the matching Hermite pair $(a,b) = (0,0)$ is the \emph{unique} global minimizer of both $g_p$ and $\rho_p$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Part~(1) follows from Theorem~\ref{thm:cubic} and $g_p(d_* H_3, e_* H_3) = ((d^2+e^2)^{q/2} - d^q - e^q) F_p(H_3) \to 0$ as $e \to 0^+$ at fixed $d > 0$ (while the denominator baseline tends to $d^q F_p(H_3) > 0$).
+
+For~(2), take $d = e = 1$, so $R = \sqrt{2}$ and $c = r(a+b)/2$ with $r := 1/\sqrt{2}$. Put $M := U(0) > 0$, $K(x) := M - U(x) \ge 0$, and $k := q/2 \ge 1$. Convexity of $K$ and $K(0) = 0$ give
+\[
+K(c) \le r\,K\!\left(\frac{a+b}{2}\right) \le \frac{r}{2}\bigl(K(a) + K(b)\bigr).
+\]
+Convexity of $x \mapsto x^k$ on $[0,M]$ gives $M^k - U(c)^k \le k M^{k-1} K(c)$ (tangent at $M$) and $M^k - U(x)^k \ge M^{k-1} K(x)$ for $x \in \{a,b\}$ (chord from $0$ to $M$). Hence
+\[
+g_p(a,b) - g_p(0,0)
+= \bigl(M^k - U(a)^k\bigr) + \bigl(M^k - U(b)^k\bigr) - 2^k\bigl(M^k - U(c)^k\bigr)
+\ge M^{k-1}\bigl(1 - 2^{k-1} k r\bigr)\bigl(K(a) + K(b)\bigr).
+\]
+For $7/4 \le p \le 2$, we have $1 \le k \le 7/6$, so $2^{k-1} k r \le \frac{7}{6}\, 2^{-1/3} < 1$ (since $7^3 = 343 < 432 = 2 \cdot 6^3$). Since $K(x) > 0$ for $x \neq 0$, $(0,0)$ uniquely minimizes $g_p$. Because the positive baseline $U(a)^k + U(b)^k$ is uniquely maximized at $(0,0)$, $(0,0)$ also uniquely minimizes $\rho_p$.
+\end{proof}
+
+\section{All-Degree Strictness with One Symmetric Score and Near Endpoints}
+
+Let $J = (A,B) \in \mathbb{R}^{n \times 2n}$ be the full root Jacobian of $C = f \boxplus_n g$ at a simple real-rooted pair $(f,g)$. We first establish three root-map properties (refining the estimates in~\cite{GVS2026} with the centering term explicit):
+\begin{equation}\label{eq:rootmap}
+A, B \text{ are positive doubly stochastic}, \qquad
+A s_f = B s_g = s_C, \qquad
+\|A u + B v\|_2^2 \le \|u\|_2^2 + \|v\|_2^2 + 2n \bar{u}\bar{v}.
+\end{equation}
+
+\begin{proof}[Proof of~\eqref{eq:rootmap}]
+\emph{Real-rootedness and simplicity.} The symmetric multiaffine polarization of a real-rooted degree-$n$ polynomial~$g$ is nonvanishing on $\mathbb{H}^n$: inductively split a repeated variable~$w$ of multiplicity~$m$ into~$z$ via $P \mapsto P + (z-w) P_w'/m$. For fixed previous arguments in $\mathbb{H}$, all roots $c_j$ in $w$ lie in $\operatorname{Im} \le 0$; for $y = \operatorname{Im} w > 0$, each $(w-c_j)^{-1}$ lies in the closed disk $-\operatorname{Im} \zeta \ge y|\zeta|^2$, and so does their average $L = P_w'/(mP)$ (padded with zeros if $\deg_w P < m$), so any zero $z = w - 1/L$ has $\operatorname{Im} z \le 0$. Evaluating at $(x - a_i)_{i=1}^n$ proves real-rootedness of $f \boxplus_n g$. For fixed monic $g$, $f \mapsto f \boxplus_n g$ is an invertible affine map on monic coefficient space (triangular with unit diagonal), hence maps the open simple real-rooted set into itself.
+
+\emph{Majorization and $\ell^2$ bound.} For $u,v \in \mathbb{R}^n$, let $r_1(t) < \dots < r_n(t)$ be the ordered roots along $(a+tu, b+tv)$, and $\lambda_1 \le \dots \le \lambda_n$ the ordered convolution roots for $(u,v)$, so $r_i(t)/t \to \lambda_i$ as $t \to +\infty$ (reversed as $t \to -\infty$). For each $k \in [n]$, the monic polynomial $Q_k(x,t)$ whose roots are the $N = \binom{n}{k}$ $k$-subset sums of $r_i(t)$ has total degree $\le N$ in $(x,t)$. Fix $M$ strictly above the top $k$ slopes $\lambda_i$. Every branch of $Q_k$ minus $Mt$ tends to $+\infty$ as $t \to -\infty$ and $-\infty$ as $t \to +\infty$. Its derivative at $t = 0$ cannot be positive, else a generic horizontal level $x = Mt + c$ (avoiding the finitely many exceptional values of the squarefree part of $Q_k$) would be crossed at least $3$ times by this branch and at least once by every other branch (with full multiplicity on persistent coincidences), producing $> N$ roots of the degree-$\le N$ nonzero polynomial $Q_k(Mt+c, t)$. Letting $M$ decrease gives majorization of $r'(0)$ by $\lambda$ (totals match by the degree-$1$ coefficient). Hence $\sum_i (r_i'(0)-z)_+ \le \sum_i (\lambda_i - z)_+$ for all~$z$; integrating in $z$ yields $\|r'(0)\|_2^2 \le \|\lambda\|_2^2 = \|u\|_2^2 + \|v\|_2^2 + 2n\bar{u}\bar{v}$.
+
+\emph{Positivity and transport.} Varying one root of $f$ has slopes $(1,0,\dots,0)$, so majorization gives $A_{ij} \ge 0$, with column sums $1$ (root sum) and row sums $1$ (translation equivariance). Perturbing $a_j \mapsto a_j + t$ produces $C - t Q$, where $Q$ is the degree-$(n-1)$ convolution of $f(x)/(x-a_j)$ with $g'/n$; since $g'$ is simple by Rolle, $Q$ is simple. If $A_{ij} = 0$, then $Q(c_i) = 0$ and $t = C'(c_i)/Q'(c_i)$ would create a double root at $c_i$, impossible since $g$ stays simple. Thus $A_{ij} > 0$ and symmetrically $B_{ij} > 0$. Perturbing $f$ by $-t f''/2$ induces velocity $s_f$; commuting $\boxplus_n$ with $d^2/dx^2$ gives output perturbation $-t C''/2$ and velocity $s_C$, yielding $A s_f = s_C = B s_g$.
+\end{proof}
+
+\begin{theorem}[All-degree strict subcritical $p$-Stam with one symmetric score]\label{thm:sym}
+Let $n \ge 3$ and $1 < p < 2$. Let $f, g$ be simple monic real-rooted polynomials of degree~$n$, and suppose there is a permutation involution $S$ ($S^2 = I$) with $S s_f = -s_f$ (for instance, any reflection-symmetric $f$ with arbitrary simple~$g$). Setting $P := (I-S)/2$ and $\eta := \|AP\|_{1\to 1}$, we have $\eta \in (0,1)$ and
+\begin{equation}\label{eq:sym}
+F_p(f \boxplus_n g) \;\ge\; \eta^{-(2-p)/(p-1)} F_p(f) + F_p(g) \;>\; F_p(f) + F_p(g).
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Here $P = (I-S)/2$ is an orthogonal projection with $P s_f = s_f$ and $\one^\top P = 0$. Every column of $AP$ is half the difference of two entrywise positive probability vectors, so $\eta := \|AP\|_{1\to 1} < 1$, while $AP s_f = s_C \neq 0$ implies $\eta > 0$. Because $Pu$ has mean zero for all $u \in \mathbb{R}^n$, the cross term $2n \overline{(Pu)} \bar{v}$ in~\eqref{eq:rootmap} vanishes identically, giving $\|AP u + B v\|_2^2 \le \|u\|_2^2 + \|v\|_2^2$ on $\mathbb{R}^{2n}$ and hence on $\mathbb{C}^{2n}$. On $\ell^1$, $\|\eta^{-1} AP u + B v\|_1 \le \|u\|_1 + \|v\|_1$.
+
+Define $T_z := (\eta^{z-1} AP,\, B)$ on the strip $0 \le \operatorname{Re} z \le 1$. Since $\|T_z\|_{1\to 1} \le 1$ on $\operatorname{Re} z = 0$ and $\|T_z\|_{2\to 2} \le 1$ on $\operatorname{Re} z = 1$, Riesz--Thorin complex interpolation (applied to unit $d \in \ell^p(\mathbb{C}^{2n})$, $e \in \ell^q(\mathbb{C}^n)$ via $|d_j|^{p(1-z/2)}$, $|e_i|^{qz/2}$ and the three-lines theorem) yields $\|T_\theta\|_{p\to p} \le 1$ at $\theta := 2 - 2/p \in (0,1)$. Evaluating at $d = (\eta^{1-\theta} \lambda s_f,\, (1-\lambda) s_g)$ for $\lambda \in (0,1)$ gives $T_\theta d = s_C$, whence
+\[
+\Phi_p(C) \le \eta^{p(1-\theta)} \lambda^p \Phi_p(f) + (1-\lambda)^p \Phi_p(g)
+= \eta^{2-p} \lambda^p \Phi_p(f) + (1-\lambda)^p \Phi_p(g).
+\]
+Minimizing $a \lambda^p + b (1-\lambda)^p$ over $\lambda \in (0,1)$ gives $(a^{-1/(p-1)} + b^{-1/(p-1)})^{1-p}$; raising both sides to $-1/(p-1)$ yields~\eqref{eq:sym}.
+\end{proof}
+
+\begin{proposition}[Uniform endpoint strictness on compact sets]\label{prop:endpoints}
+Let $n \ge 3$ and let $\mathcal{K}$ be any compact set of pairs of simple monic real-rooted degree-$n$ polynomials.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item There exists $\delta_1(\mathcal{K}) > 0$ such that $g_p(f,g) > 0$ on $\mathcal{K} \times (1,\, 1+\delta_1(\mathcal{K}))$.
+\item Using the $p = 2$ Hermite uniqueness theorem of Hashemi and Hyun~\cite{HashemiHyun2026}, there exists $\delta_2(\mathcal{K}) > 0$ such that $g_p(f,g) > 0$ on $\mathcal{K} \times (2-\delta_2(\mathcal{K}),\, 2)$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+For~(1), strict positivity of $A, B$ and opposite signs in $s_f, s_g$ force strict cancellation $\|s_C\|_1 < \min(\|s_f\|_1, \|s_g\|_1)$. Compactness yields $r < 1$ and $\delta_1 > 0$ with $\|s_C\|_p / \|s_f\|_p \le r$, $\|s_C\|_p / \|s_g\|_p \le r$, and $2 r^q < 1$ on $\mathcal{K} \times (1, 1+\delta_1)$, whence $F_p(f)/F_p(C) + F_p(g)/F_p(C) \le 2r^q < 1$.
+
+For~(2), by~\cite{HashemiHyun2026}, $g_2(f,g) = 0$ on simple pairs iff $(f,g)$ is an affine Hermite pair of scales $d, e > 0$. Writing $R = \sqrt{d^2+e^2}$, $u = d/R$, $v = e/R$, we have $g_p(f,g) = F_p(H_n) R^q (1 - u^q - v^q)$, so $\partial_p g_p|_{p=2} = F_2(H_n) R^2 (u^2 \log u + v^2 \log v) < 0$ (as $q'(2) = -1$). Because $|x|^p \log |x|$ extends continuously by~$0$, $\partial_p g_p$ is continuous near $p = 2$; every equality pair thus has a neighborhood with $g_p > g_2 \ge 0$ immediately below~$2$, while non-equality pairs stay positive by continuity. Compactness yields $\delta_2(\mathcal{K}) > 0$.
+\end{proof}
+
+\section{Obstruction to Centered Jacobian \texorpdfstring{$\ell^p$}{lp}-Contraction}
+
+\begin{proposition}[Counterexample to centered Jacobian $\ell^p$-contraction]\label{prop:obstruction}
+At $n = 64$ and $p = 3/2$, there exists a simple diagonal pair $(f,f)$ with centered root vector $\tilde{a} \in \one^\perp$ whose convolution Jacobian $J = (A,A)$ satisfies $\|J(\tilde{a},\tilde{a})\|_p^p > 2\|\tilde{a}\|_p^p$.
+\end{proposition}
+
+\begin{proof}
+Start with $a = (-1,\dots,-1,n-1) \in \one^\perp$. Before centering, the polynomial is $x^{n-1}(x-n)$, whose self-convolution is $x^{n-2}(x^2 - 2nx + n(n-1))$, giving centered output roots $c = (-2,\dots,-2,\, n-2-\sqrt{n},\, n-2+\sqrt{n})$. At $n = 64$, $p = 3/2$, convexity of $x^{3/2}$ on $62 \pm 8$ gives
+\[
+\|c\|_{3/2}^{3/2} - 2\|a\|_{3/2}^{3/2}
+\ge 62 \cdot 2^{3/2} - 126 - 2\bigl(63^{3/2} - 62^{3/2}\bigr)
+> 62 \cdot \frac{14}{5} - 126 - 3\sqrt{63} > 23.6 > 0.
+\]
+Splitting the repeated roots of $a$ by an arbitrarily small centered perturbation $\tilde{a} \in \one^\perp$ preserves $\|\tilde{c}\|_{3/2}^{3/2} > 2\|\tilde{a}\|_{3/2}^{3/2}$ by continuity, and Euler's homogeneity identity for common dilation gives $J(\tilde{a},\tilde{a}) = \tilde{c}$ identically.
+\end{proof}
+
+\section{Self-Contained Reproof of the Hermite Spectrum (Prior Art)}
+
+For completeness we record a short reproof of \texttt{conj:spectrum} and \texttt{rem:En\_sym}, previously established in Hashemi and Hyun~\cite[Appendix~A]{HashemiHyun2026} and~\cite{MachinaSpec}. Let $D := d/dx$, $T_t := \exp(-t D^2/2)$, and $H_m := T_1 x^m$. The coefficient rule gives $f \boxplus_n g = \sum_j g_j \frac{(n-j)!}{n!} D^j f$, so convolution with $H_n$ acts as $T_1$, and $T_1 H_m(x) = T_2 x^m = 2^{m/2} H_m(x/\sqrt{2})$. Perturbing $H_n$ to $H_n + \varepsilon H_m$ ($0 \le m < n$) induces root velocity $-v_m$ at the Hermite roots $h_i$, where $v_m(i) := H_m(h_i)/H_n'(h_i)$, while the output $T_1 H_n + \varepsilon T_1 H_m$ has root velocity $-2^{(m-n+1)/2} v_m$ at $\sqrt{2}\, h$, so $E_n v_m = 2^{-(n-1-m)/2} v_m$. Telescoping $H_{m+1} = x H_m - m H_{m-1}$ yields the Christoffel--Darboux sum
+\[
+\sum_{m=0}^{n-1} \frac{H_m(x) H_m(y)}{m!}
+= \frac{H_n(x) H_{n-1}(y) - H_{n-1}(x) H_n(y)}{(n-1)!\,(x-y)},
+\]
+which vanishes for $x = h_i \neq h_j = y$ and equals $H_n'(h_i)^2 / n!$ at $x = y = h_i$. Thus the matrix with columns $\sqrt{n!/m!}\, v_m$ has orthonormal rows and hence orthonormal columns; deleting $v_{n-1} = \one/n$ gives an orthonormal eigenbasis of $E_n$ on $W = \one^\perp$, proving that $E_n$ is symmetric positive definite with singular values $\{2^{-k/2} : 1 \le k \le n-1\}$ on~$W$.
+
+\section{Reproducible Verification}
+
+The script \texttt{solutions/finite\_free\_pstam/explore.py} verifies all Hermite tangent actions and Euclidean Gram matrices in exact rational SymPy arithmetic for $3 \le n \le 12$, direct Jacobian SVDs and 30 strengthened symmetric-input bounds (Theorem~\ref{thm:sym}), 4,608 random pair/exponent checks (3,072 with $p \le 2$, all nonnegative; 1,536 with $p > 2$, 62 negative), 72 Hermite checks, 675 asymmetric Laguerre checks up to degree $n = 1{,}024$, 6 cubic curvature grids, and 3 equal-variance cubic deficit grids confirming unique minimization at $(0,0)$. All assertions passed.
+
+\begin{thebibliography}{9}
+\bibitem{GVS2026}
+J.~Garza-Vargas, N.~Srivastava, and Z.~Stier.
+The finite free Stam inequality.
+Preprint \href{https://arxiv.org/abs/2602.15822}{arXiv:2602.15822}, February 2026.
+
+\bibitem{Hashemi2026}
+B.~Hashemi.
+Spectral structure in finite free information inequalities and $p$-Stam phase transitions.
+Preprint \href{https://arxiv.org/abs/2604.11922}{arXiv:2604.11922}, April 2026.
+
+\bibitem{HashemiHyun2026}
+B.~Hashemi and S.~Hyun.
+When finite free curves split.
+Preprint \href{https://arxiv.org/abs/2609.10367v1}{arXiv:2609.10367v1}, September 2026.
+
+\bibitem{MachinaSpec}
+Machina Mathematica.
+Spectrum of the linearized finite free convolution at the Hermite diagonal (\texttt{freeconv-spectrum}).
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,265 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\title{\bfseries Continuous Piecewise Linear Triangulations\\ of the Product Surface}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: R.~Burlacu, L.~Hager, and R.~Hildebrand,\\
+\emph{Optimal Triangulations for Piecewise Linear Approximations of Non-Convex Variable Products},\\
+\href{https://arxiv.org/abs/2604.04026}{arXiv:2604.04026} (2026), Conjecture~\texttt{conj:continuous-optimality}\\[0.35em]
+Companion verification script: \texttt{solutions/pwl\_product\_triang/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We make partial progress on Conjecture~\texttt{conj:continuous-optimality} of Burlacu, Hager, and Hildebrand (\href{https://arxiv.org/abs/2604.04026}{arXiv:2604.04026}), which asserts that every continuous piecewise linear $\varepsilon$-approximation of $F(x,y) = xy$ over a locally finite triangulation $\mathcal{T}$ of $\mathbb{R}^2$ has triangle density $\delta(\mathcal{T}) \ge \sqrt{3}/(8\varepsilon)$.
+First, we prove a universal lower bound strictly above the unrestricted (possibly discontinuous) optimum $3\sqrt{3}/(32\varepsilon)$, without any bounded-diameter hypothesis:
+\[
+\delta(\mathcal{T}) \;\ge\; \frac{1}{M\varepsilon}\left(1 + \frac{1 - (123/20)/M}{1 + 6(11/10)^2}\right) = \frac{0.16240658646\ldots}{\varepsilon} \;>\; \frac{3\sqrt{3}}{32\varepsilon},
+\]
+where $M := 32\sqrt{3}/9$.
+Its quantitative vertex obstruction also completes the open sketch in Remark~\texttt{lem:no-optimal-tiling} of~\cite{Burlacu2026}.
+Second, we prove the sharp conjectured bound $\delta(\mathcal{T}) \ge \sqrt{3}/(8\varepsilon)$ for every continuous triangulation in which all triangles share the same unordered multiset of signed edge products, allowing arbitrary globally consistent vertex deviations (strictly generalizing the parallelogram-tiling theorem of \href{https://arxiv.org/abs/2604.04026}{arXiv:2604.04026}).
+Third, we construct an explicit $10$-face continuous periodic triangulation with exact global error $169/180 < 1$ (at $\varepsilon = 1$) containing a triangle of area $5\varepsilon > 8\varepsilon/\sqrt{3}$, ruling out any facewise area cap $A(T) \le 8\varepsilon/\sqrt{3}$.
+The full conjecture remains open.
+\end{abstract}
+
+\section{Setting and Local Error Characterization}
+
+Following Burlacu, Hager, and Hildebrand~\cite{Burlacu2026} (Definitions~2.1--2.6) and Atariah, Rote, and Wintraecken~\cite{Atariah2018} (building on Pottmann et~al.~\cite{Pottmann2000}), let $\mathcal{T}$ be a locally finite face-to-face triangulation of $\mathbb{R}^2$ by closed nondegenerate triangles (every compact square meets finitely many faces).
+A continuous piecewise linear (PWL) approximation $f$ of $F(x,y) = xy$ on $\mathcal{T}$ is determined by a single signed deviation $d_v := f(v) - F(v)$ at each vertex $v$, satisfying $|f - F| \le \varepsilon$ everywhere.
+Fixing the concentric squares $Q_\ell := [-\ell/2, \ell/2]^2$ of side length~$\ell$ (as in~\cite{Atariah2018}), the \emph{triangle density} is
+\[
+\delta(\mathcal{T}) := \limsup_{\ell \to \infty} \frac{\#\{T \in \mathcal{T} : T \cap Q_\ell \neq \varnothing\}}{\ell^2}.
+\]
+Rescaling $(x,y) \mapsto (\sqrt{\varepsilon}\,x, \sqrt{\varepsilon}\,y)$ and heights by $\varepsilon$ reduces all statements to $\varepsilon = 1$, which we assume throughout the proofs.
+
+Write $q(u) := u_x u_y$ for $u = (u_x, u_y) \in \mathbb{R}^2$. Along the edge $[v_i, v_j]$ parameterized by $(1-t)v_i + tv_j$ ($t \in [0,1]$), the signed error is
+\[
+E(t) = (1-t)d_i + t d_j + t(1-t)\,q(v_j - v_i).
+\]
+Hence $|E(t)| \le 1$ on $[0,1]$ if and only if $d_i, d_j \in [-1,1]$ and
+\begin{equation}\label{eq:edge-bounds}
+-\bigl(\sqrt{1 + d_i} + \sqrt{1 + d_j}\bigr)^2
+\;\le\; q(v_j - v_i)
+\;\le\; \bigl(\sqrt{1 - d_i} + \sqrt{1 - d_j}\bigr)^2.
+\end{equation}
+Indeed, for $t \in (0,1)$, $E(t) \le 1$ reads $q(v_j - v_i) \le (1-d_i)/t + (1-d_j)/(1-t)$, whose minimum over $(0,1)$ is $(\sqrt{1-d_i} + \sqrt{1-d_j})^2$; negating $E$ gives the lower bound.
+Inside any face, $\nabla^2(f - F)$ has determinant $-1$, so every interior stationary point is a saddle and~\eqref{eq:edge-bounds} on the three edges is necessary and sufficient for $|f - F| \le 1$ on the whole triangle.
+For a triangle with edge vectors $u, v$ and signed edge products $p = q(u)$, $r = q(v)$, $s = q(u-v)$, expanding $\det(u,v)^2$ gives the area identity
+\begin{equation}\label{eq:area}
+4A^2 = \det(u, v)^2 = (p + r - s)^2 - 4pr, \qquad A = \tfrac{1}{2}|\det(u, v)|.
+\end{equation}
+
+\section{Explicit Continuous Periodic Mesh with an Oversized Face}
+
+\begin{proposition}[Continuous periodic mesh with a face of area $5\varepsilon$]\label{prop:oversized}
+At $\varepsilon = 1$, there exists a continuous periodic triangulation of $\mathbb{R}^2$ with period rectangle $[0, 21/10] \times [0, 51/10]$ (area $1071/100$), $10$ triangles per period, density $1000/1071$, exact global maximum error $169/180 < 1$, and an individual triangle of area $5 > 8/\sqrt{3}$.
+\end{proposition}
+
+\begin{proof}
+In $[0,2] \times [0,5]$, take $A = (0,0)$, $B = (0,5)$, $D = (2,0)$, $C = (2,5/2)$, $E = (2,5)$ with deviations $d_A = -2/3$, $d_B = +2/3$, and $d_C = d_D = d_E = 0$, forming triangles $ABC$, $ADC$, and $BCE$.
+The only nonzero edge products are $q(C-A) = +5$ on $AC$ and $q(C-B) = -5$ on $BC$; both satisfy~\eqref{eq:edge-bounds} strictly since $5 < (1 + \sqrt{5/3})^2$, and triangle $ABC$ has exact area~$5$.
+
+Complete the period box $[0, 21/10] \times [0, 51/10]$ as follows:
+\begin{itemize}[leftmargin=1.6em,itemsep=2pt]
+\item On $[2, 21/10] \times [0,5]$, place translates $A' = (21/10, 0)$ and $B' = (21/10, 5)$ with deviations $-2/3$ and $+2/3$, and add the three triangles $A'B'C$, $A'DC$, and $B'EC$.
+\item On $[0, 21/10] \times [5, 51/10]$, split at $x = 2$ into two thin rectangles, triangulate each with one diagonal (joining $(0,5)$ to $(2, 51/10)$ and $(2,5)$ to $(21/10, 51/10)$), and copy the bottom-edge deviations $(x,0)$ to the top edge $(x, 51/10)$.
+\end{itemize}
+Extend the triangulation and deviations periodically by $(21/10, 0)$ and $(0, 51/10)$ and interpolate $f(v) = F(v) + d_v$ affinely on each face.
+Every torus edge has incidence~$2$, and matching boundary deviations ensure global continuity.
+Every added edge has $|q| \le 1/2$, while all deviations satisfy $|d_v| \le 2/3$, so both caps in~\eqref{eq:edge-bounds} are at least $(1 + \sqrt{1/3})^2 > 4/3 > 1/2$.
+Exact rational evaluation of~\eqref{eq:edge-bounds} across all edges confirms the global maximum error $169/180 < 1$ (attained on $AC$ and $BC$).
+\end{proof}
+
+\begin{remark}
+Proposition~\ref{prop:oversized} rules out any facewise area cap $A(T) \le 8\varepsilon/\sqrt{3}$ by exhibiting an explicit continuous periodic mesh containing a face of area $5\varepsilon$. This gives a concrete periodic realization of the non-constant-deviation effect already noted qualitatively in Remark~\texttt{rem:conjecture-evidence} of~\cite{Burlacu2026}. Its density $1000/(1071\varepsilon)$ lies well above $\sqrt{3}/(8\varepsilon)$.
+\end{remark}
+
+\section{Sharp Bound for One Signed Edge-Product Multiset}
+
+\begin{theorem}[Sharp bound for one signed edge-product multiset]\label{thm:multiset}
+Let $\mathcal{T}$ be a locally finite triangulation of $\mathbb{R}^2$ admitting a continuous PWL $\varepsilon$-approximation of $F(x,y) = xy$ with arbitrary globally consistent vertex deviations. If every face of $\mathcal{T}$ has the same unordered multiset of three signed edge products, then every face has area at most $8\varepsilon/\sqrt{3}$ and $\delta(\mathcal{T}) \ge \sqrt{3}/(8\varepsilon)$. Equality is attained by the constant-deviation parallelogram tiling with $\Delta = \varepsilon/3$.
+\end{theorem}
+
+\begin{proof}
+Scale to $\varepsilon = 1$.
+
+\emph{Case~1: All three products are weakly of one sign.}
+Reflecting one coordinate and negating deviations if needed, assume all edge products are $\ge 0$.
+Order the vertices $v_1, v_2, v_3$ of a face by increasing $x$-coordinate (breaking ties by increasing $y$-coordinate).
+Since $q(v_j - v_i) \ge 0$, their $y$-coordinates are also nondecreasing, so $v_1$ and $v_3$ are opposite corners of an axis-aligned rectangle enclosing the triangle.
+Thus $A \le \frac{1}{2}q(v_3 - v_1) \le 4 < 8/\sqrt{3}$ (covering also triangles with two null edges).
+
+\emph{Case~2: Mixed signs.}
+Reflecting one coordinate and negating deviations if needed, write the common multiset as $\{a, b, -w\}$ with $0 \le a \le b$ and $b, w > 0$.
+We claim that every vertex of $\mathcal{T}$ has an incident edge of product~$b$ and an incident edge of product~$-w$.
+\begin{itemize}[leftmargin=1.6em,itemsep=2pt]
+\item \emph{Subcase $a > 0$, no incident $-w$-edge.} Every corner at the vertex would be bounded by two positive-product spokes with a negative-product opposite edge. Because two spokes in opposite positive quadrants have a difference of positive product, all spokes must lie in a single open positive quadrant, which cannot cover a neighborhood of the vertex. (If $a = b$, every corner has a positive spoke, proving the claim.)
+\item \emph{Subcase $0 < a < b$, no incident $b$-edge.} Every incident corner joins an $a$-spoke and a $-w$-spoke. Each such corner contains exactly one of the four open coordinate-axis rays, so the vertex has degree~$4$ with alternating spokes $p_1, n_1, p_2, n_2$ (shifted to the origin) satisfying $q(p_i) = a$, $q(n_j) = -w$, and $q(p_i - n_j) = b$ for all $i,j \in \{1,2\}$. Subtracting the two equations for $i = 1,2$ at fixed $j$ shows that $n_1, n_2$ are orthogonal to $p_1 - p_2 \neq 0$ with respect to the nondegenerate symmetric bilinear form $B(u,v) := \frac{1}{2}(u_x v_y + u_y v_x)$ polarizing~$q$. Hence $n_1, n_2$ are collinear, and $q(n_1) = q(n_2) = -w$ forces $n_2 = -n_1$. Averaging $q(p_1 - n_1) = b$ and $q(p_1 + n_1) = b$ gives $b = q(p_1) + q(n_1) = a - w < a$, a contradiction.
+\item \emph{Subcase $a = 0$.} Any vertex lacking a $b$-edge or a $-w$-edge must touch a null edge ($q = 0$). Place that vertex at the origin and assume the null edge is horizontal, $(s, 0)$ with $s \neq 0$ (the vertical case is identical after swapping coordinates). If both flanking triangles presented the same nonnull product at the origin, their third vertices $(x,y)$ would both satisfy $sy = q(x,y) - q(x-s,y) = \pm(b+w)$, placing them on the same side of the edge---impossible in a triangulation. Hence the vertex touches both $b$ and $-w$.
+\end{itemize}
+
+Starting from any vertex $v_0$, follow an infinite alternating walk $v_0, v_1, v_2, \dots$ along a $b$-edge $(v_{2k}, v_{2k+1})$ and a $-w$-edge $(v_{2k+1}, v_{2k+2})$.
+The midpoint tests ($t = 1/2$) on these edges give
+\[
+b \;\le\; 4 - 2(d_{v_{2k}} + d_{v_{2k+1}}), \qquad w \;\le\; 4 + 2(d_{v_{2k+1}} + d_{v_{2k+2}}).
+\]
+Summing gives $d_{v_{2k+2}} - d_{v_{2k}} \ge (b + w - 8)/2$. Since $d_v \in [-1,1]$ is bounded, we must have $b + w \le 8$.
+
+By~\eqref{eq:area} with $s = -w$, $4A^2 = (b-a)^2 + 2w(a+b) + w^2$ is convex in $a \in [0,b]$.
+At $a = 0$, $4A^2 = (b+w)^2 \le 64$.
+At $a = b$, $4A^2 = w(4b + w) \le w(32 - 3w) = \frac{256}{3} - 3(w - \frac{16}{3})^2 \le \frac{256}{3}$.
+Thus $A \le 8/\sqrt{3}$ on every face.
+Since the triangles meeting $Q_\ell$ cover $Q_\ell$, we obtain $\delta(\mathcal{T}) \ge \sqrt{3}/8$.
+
+For sharpness, let $u = (s, t)$ and $v = (t, s)$ with $st = 8/3$ and $s - t = 4/\sqrt{3}$ ($s > t > 0$), split every translate of the parallelogram spanned by $u, v$ along $v - u$, and set $d_v \equiv 1/3$.
+Each face has edge products $\{8/3, 8/3, -16/3\}$ and area $8/\sqrt{3}$; boundary cells contribute $O(\ell)$, giving $\delta(\mathcal{T}) = \sqrt{3}/8$.
+\end{proof}
+
+\section{Universal Density Improvement for Arbitrary Continuous Meshes}
+
+Set $M := 32\sqrt{3}/9$ and $B := 123/20 = 6.15$. Call a face $T$ \emph{large} if $A(T) > B$.
+
+\begin{lemma}[Unrestricted area bound, quantitative stability, and vertex obstruction]\label{lem:obstruction}
+At $\varepsilon = 1$, every valid triangle satisfies $A(T) \le M$. Furthermore:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Every large triangle ($A(T) > B$) has mixed edge-product signs. After possibly reflecting one coordinate and negating all deviations so that two positive-product edges $p, r > 0$ meet at vertex~$0$ opposite a negative-product edge $-w < 0$,
+\begin{equation}\label{eq:bands}
+d_0 < -0.96, \qquad 0.5 < d_1, d_2 < 0.92, \qquad w > \max(p, r).
+\end{equation}
+\item Mark the two endpoints of the negative-product base in~\eqref{eq:bands} (using the reflected convention on sign-reversed faces). Every vertex receives at most $4$ marks, and every marked vertex is incident to a triangle of area at most~$B$. In particular, no locally finite continuous triangulation consists exclusively of large triangles (completing Remark~\texttt{lem:no-optimal-tiling} of~\cite{Burlacu2026}).
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(1)~One-sign triangles satisfy $A \le 4 < B$.
+For mixed signs, write $a_i := \sqrt{(1 - d_i)/2} \in [0,1]$ and $b_i := \sqrt{1 - a_i^2} = \sqrt{(1 + d_i)/2}$.
+By~\eqref{eq:edge-bounds}, $p \le 2(a_0 + a_1)^2$, $r \le 2(a_0 + a_2)^2$, and $w \le 2(b_1 + b_2)^2$.
+Because $4A^2 = (p-r)^2 + 2w(p+r) + w^2$ increases in $w$ and is separately convex in $p, r$, it is maximized at $w = 2(b_1+b_2)^2$ and one of the four endpoint pairs for $(p,r)$.
+If $p = 0$ or $r = 0$, using the vertex~$i$ shared by the remaining two edges gives $2A \le 2[(1+a_i)^2 + (1+b_i)^2] \le 6 + 4\sqrt{2} < 2B$.
+
+At the remaining corner $(p,r,w) = (2(a_0+a_1)^2,\, 2(a_0+a_2)^2,\, 2Q)$ with $Q := (b_1+b_2)^2$, set $m := (a_1+a_2)/2$, $h := (a_1-a_2)^2/4$, $S := 1 - m^2$, and $C := (a_0+m)^2$.
+Since $Q \le 2(b_1^2 + b_2^2) = 4(S - h)$, direct algebraic expansion gives
+\[
+A_{\mathrm{corner}}^2 = 16Ch + Q(Q + 4C + 4h)
+\;\le\; 16S(S + C) - 16Sh
+= P(m) - 16S\bigl\{h + (1 - a_0)(1 + a_0 + 2m)\bigr\},
+\]
+where $P(m) := 32(1-m)(1+m)^2$.
+Since $P'(m) = -32(m+1)(3m-1)$, the maximum of $P$ on $[0,1]$ is $P(1/3) = 1024/27 = M^2$, proving $A \le M$.
+
+If $A > B$, then $P(m) > B^2$.
+Because $P$ is unimodal with peak at $1/3$ and $P(29/100) < B^2$, $P(39/100) < B^2$, we have $0.29 < m < 0.39$ and hence $S > 0.84$.
+Since $M^2 - B^2 < 0.104$, we obtain $h < 0.104/(16 \cdot 0.84) < 0.09^2$ and $1 - a_0 < 0.01$.
+Thus $a_0 > 0.99$ and $0.20 < a_1, a_2 < 0.48$, which via $d_i = 1 - 2a_i^2$ yields the deviation bounds in~\eqref{eq:bands}.
+In particular $p, r < 2(1 + 0.48)^2 < 4.5$.
+If $w \le \max(p, r)$, maximizing $4A^2$ over $[0, 4.5]^3$ by separate convexity gives $4A^2 \le 5(4.5)^2 < 4B^2$, a contradiction; hence $w > \max(p, r)$.
+
+(2)~Each marked corner is bounded by opposite-sign spokes and thus contains exactly one of the four open coordinate-axis rays from its vertex, so each vertex receives at most $4$ marks.
+Suppose for contradiction that all faces incident to a marked vertex $v$ are large (forming a finite complete fan by local finiteness).
+Because the four deviation bands $(-1, -0.96)$, $(-0.92, -0.5)$, $(0.5, 0.92)$, $(0.96, 1)$ in~\eqref{eq:bands} and its sign reversal are pairwise disjoint, every incident face shares the same sign convention and marks~$v$.
+Translating $v$ to the origin and fixing the convention of~\eqref{eq:bands}, the vertex has degree~$4$ with one spoke in each open quadrant:
+\[
+p_1 = (u, v), \quad p_2 = (-s, -t) \quad (q > 0), \qquad
+n_1 = (h, -g), \quad n_2 = (-h', g') \quad (q < 0),
+\]
+where all eight scalars $u, v, s, t, h, g, h', g'$ are strictly positive.
+Every positive spoke $p \in \{p_1, p_2\}$ is adjacent to both negative spokes $n \in \{n_1, n_2\}$, the opposite edge has $q(p - n) > 0$, and~\eqref{eq:bands} gives $q(n) < -q(p)$. Hence
+\[
+p_x n_y + p_y n_x = q(p) + q(n) - q(p - n) < 0
+\]
+for all four pairs $(p, n)$.
+The two inequalities for $p_1$ read $g'/h' < v/u < g/h$, while those for $p_2$ read $g/h < t/s < g'/h'$, a contradiction.
+\end{proof}
+
+\begin{theorem}[Universal density improvement]\label{thm:universal}
+For every locally finite triangulation $\mathcal{T}$ of $\mathbb{R}^2$ admitting a continuous PWL $\varepsilon$-approximation of $F(x,y) = xy$ (without any bounded-diameter assumption),
+\[
+\delta(\mathcal{T})
+\;\ge\; \frac{1}{M\varepsilon}\left(1 + \frac{1 - (123/20)/M}{1 + 6(11/10)^2}\right)
+= \frac{0.16240658646\ldots}{\varepsilon}
+\;>\; \frac{3\sqrt{3}}{32\varepsilon}.
+\]
+\end{theorem}
+
+\begin{proof}
+Scale to $\varepsilon = 1$. Set $\eta := 1 - B/M$ (noting $\eta < 1/484$ since $B^2 > M^2(1 - 1/484)^2$), $\alpha := 11/10$, $N_\ell := \#\{T \in \mathcal{T} : T \cap Q_\ell \neq \varnothing\}$, and $D_\ell := M N_\ell / \ell^2 - 1 \ge 0$.
+Since $\sum_{T \cap Q_\ell \neq \varnothing} |T \cap Q_\ell| = \ell^2$, the deficit sum satisfies
+\[
+\sum_{T \cap Q_\ell \neq \varnothing} \bigl(M - |T \cap Q_\ell|\bigr) = \ell^2 D_\ell.
+\]
+Let $G_\ell$ be the number of faces with $|T \cap Q_\ell| > B$. Each remaining meeting face contributes at least $M - B = M\eta$ to the deficit sum, so $N_\ell - G_\ell \le \ell^2 D_\ell / (M\eta)$. Using $N_\ell \ge \ell^2 / M$,
+\[
+G_\ell \;\ge\; \frac{\ell^2}{M}\Bigl(1 - \frac{D_\ell}{\eta}\Bigr).
+\]
+
+We next show that every one of these $G_\ell$ faces is contained in the concentric square $Q_{\alpha\ell}$.
+For such a face $T$, $|T \cap Q_\ell| > B = (1-\eta)M \ge (1-\eta)|T|$, so $|T \setminus Q_\ell| < \eta |T|$.
+Along either coordinate axis, let $W$ be the projection width of $T$.
+If an extremal vertex of $T$ overhangs a side of $Q_\ell$ by distance $z > 0$, the portion of $T$ past that side line contains a homothetic subtriangle at that vertex of area fraction $(z/W)^2 < \eta$, so $z < \sqrt{\eta}\,W$.
+Thus $W < \ell + 2\sqrt{\eta}\,W$, giving $W < \ell / (1 - 2\sqrt{\eta})$.
+Hence both coordinates of every point in $T$ have magnitude at most $\frac{\ell}{2} + \sqrt{\eta}\,W < \frac{\ell}{2(1 - 2\sqrt{\eta})}$, so $T \subseteq Q_{\ell / (1 - 2\sqrt{\eta})} \subset Q_{\alpha\ell}$ because $\eta < 1/484$ implies $(1 - 2\sqrt{\eta})^{-1} < 11/10 = \alpha$.
+
+These $G_\ell$ large faces produce $2G_\ell$ marks on vertices inside $Q_{\alpha\ell}$.
+By Lemma~\ref{lem:obstruction}(2), each marked vertex carries at most $4$ marks and is incident to a face of area at most~$B$ (which therefore meets $Q_{\alpha\ell}$).
+Since each face of area $\le B$ has $3$ vertices, $Q_{\alpha\ell}$ meets at least $2G_\ell / (4 \cdot 3) = G_\ell / 6$ faces of area $\le B$.
+Each such face contributes at least $M\eta$ to the deficit sum on $Q_{\alpha\ell}$, so
+\[
+(\alpha\ell)^2 D_{\alpha\ell} \;\ge\; \frac{G_\ell}{6} \cdot M\eta
+\;\ge\; \frac{\eta\ell^2}{6}\Bigl(1 - \frac{D_\ell}{\eta}\Bigr)
+\quad\Longrightarrow\quad
+D_{\alpha\ell} \;\ge\; \frac{\eta}{6\alpha^2}\Bigl(1 - \frac{D_\ell}{\eta}\Bigr).
+\]
+Set $D := \limsup_{\ell \to \infty} D_\ell$.
+If $D = \infty$, the bound is immediate; otherwise, for any $\delta > 0$ we eventually have $D_\ell, D_{\alpha\ell} \le D + \delta$, whence $D + \delta \ge \frac{\eta}{6\alpha^2}(1 - (D+\delta)/\eta)$.
+Letting $\delta \to 0^+$ yields $D \ge \eta / (1 + 6\alpha^2)$.
+Restoring $\delta(\mathcal{T}) = (1 + D)/(M\varepsilon)$ completes the proof.
+\end{proof}
+
+\section{Reproducible Verification}
+
+Running \texttt{.venv/bin/python -B solutions/pwl\_product\_triang/explore.py} verifies: (i)~in exact rational arithmetic, the $10$-face periodic mesh of Proposition~\ref{prop:oversized} (torus edge incidence~$2$, area $1071/100$, max face area~$5$, max error $169/180 < 1$); (ii)~in SymPy and exact rationals, all algebraic identities and rational cutoffs in Theorem~\ref{thm:multiset}, Lemma~\ref{lem:obstruction}, and Theorem~\ref{thm:universal}; and (iii)~a finite $2 \times 2$ periodic SLSQP search ($64/64$ runs converged and passed feasibility checks, best mean area $4.6188021535 \approx 8/\sqrt{3}$, serving purely as a finite sanity check rather than a proof of optimality).
+
+\begin{thebibliography}{9}
+
+\bibitem{Atariah2018}
+D.~Atariah, G.~Rote, and M.~Wintraecken.
+Optimal triangulation of saddle surfaces.
+\emph{Beitr\"age zur Algebra und Geometrie}, 59(1):113--126, 2018.
+
+\bibitem{Burlacu2026}
+R.~Burlacu, L.~Hager, and R.~Hildebrand.
+Optimal triangulations for piecewise linear approximations of non-convex variable products.
+Preprint \href{https://arxiv.org/abs/2604.04026}{arXiv:2604.04026}, 2026.
+
+\bibitem{Pottmann2000}
+H.~Pottmann, R.~Krasauskas, B.~Hamann, K.~Joy, and W.~Seibold.
+On piecewise linear approximation of quadratic functions.
+\emph{Journal for Geometry and Graphics}, 4(1):31--53, 2000.
+
+\end{thebibliography}
+
+\end{document}

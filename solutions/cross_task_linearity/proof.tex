@@ -1,0 +1,227 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\argmax}{arg\,max}
+\DeclareMathOperator{\cosine}{cosine}
+\DeclareMathOperator{\coef}{coef}
+
+\title{\bfseries Refutation of Cross-Task Linearity Transitivity}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: Z.~Zhou, Z.~Chen, Y.~Chen, B.~Zhang, and J.~Yan,\\
+\emph{On the Emergence of Cross-Task Linearity in Pretraining-Finetuning Paradigm},\\
+\href{https://arxiv.org/abs/2402.03660}{arXiv:2402.03660} (ICML 2024), Section~4.1, Conjecture~4.1 (\texttt{con:transitivity})\\[0.35em]
+Companion verification script: \texttt{solutions/cross\_task\_linearity/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~4.1 (\texttt{con:transitivity}) of Zhou et~al.\ (\href{https://arxiv.org/abs/2402.03660}{arXiv:2402.03660}, ICML~2024), which asserts that cross-task linearity (CTL) is a transitive relation on neural network checkpoints.
+A one-layer ReLU network at three collinear checkpoints $A, B, C$ satisfies \emph{exact} CTL on $(A, B)$ and $(B, C)$ across all positive inputs and all interpolation weights, while on $(A, C)$ at $t = 1/2$ the Euclidean gap is arbitrarily large ($Mx/\sqrt{2}$), the relative error approaches~$1$, and both diagnostics used in the paper ($\cosine$ and $\coef$) approach~$0$.
+This rules out exact CTL, any uniform $\varepsilon$-CTL bound depending only on premise errors, and arbitrary near-$1$ thresholds on both diagnostics.
+We also realize the one-layer failure via single-step gradient descent from a shared pretrained global minimizer (in a stylized setting with a frozen baseline unit and step size~$2$), exhibit an unbounded two-layer failure inside a single open activation cone (and identically for deep linear networks), and give exact necessary and sufficient characterizations of transitivity for one-layer ReLU networks, arbitrary-depth feedforward affine/ReLU networks, and general maps on convex parameter domains.
+\end{abstract}
+
+\section{Setup and Quantitative Formulations}
+
+For models $\theta_p, \theta_q$ fine-tuned on datasets $\mathcal{D}_p, \mathcal{D}_q$ and interpolation parameter $t \in [0, 1]$, put $\theta_t := (1 - t)\theta_p + t\theta_q$.
+Zhou et~al.~\cite{zhou2024ctl} define $(\theta_p, \theta_q)$ to satisfy \emph{Cross-Task Linearity (CTL)} on $\mathcal{D}_p \cup \mathcal{D}_q$ if for every layer $\ell \in \{1, \dots, L\}$, every $t \in [0, 1]$, and every $x \in \mathcal{D}_p \cup \mathcal{D}_q$,
+\[
+f^{(\ell)}(\theta_t; x) \;\approx\; (1 - t)f^{(\ell)}(\theta_p; x) + t f^{(\ell)}(\theta_q; x),
+\]
+where $f^{(\ell)}(\theta; x)$ is the post-activation feature vector at layer~$\ell$ (with layer~$L$ the output).
+The symbol $\approx$ is not assigned a formal norm or tolerance in~\cite{zhou2024ctl}; empirically, the authors evaluate CTL via two per-example diagnostics comparing $h := f^{(\ell)}(\theta_t; x)$ against $g := (1 - t)f^{(\ell)}(\theta_p; x) + t f^{(\ell)}(\theta_q; x)$:
+\[
+\cosine_t^{(\ell)}(x) := \frac{\langle h, g \rangle}{\|h\|_2 \|g\|_2}, \qquad
+\coef_t^{(\ell)}(x) := \frac{\|h\|_2\,\cosine_t^{(\ell)}(x)}{\|g\|_2} = \frac{\langle h, g \rangle}{\|g\|_2^2}.
+\]
+
+\begin{quote}
+\textbf{Conjecture~4.1 (\texttt{con:transitivity}, \cite[Section~4.1]{zhou2024ctl}).}
+\emph{Given models $\theta_i, \theta_j, \theta_k$, the pair $(\theta_i, \theta_k)$ satisfies CTL if $(\theta_i, \theta_j)$ and $(\theta_j, \theta_k)$ satisfy CTL.}
+\end{quote}
+(The appendix of~\cite{zhou2024ctl} restates this implication as a definition, \texttt{def:suppl\_\allowbreak transitivity}, and invokes it in \texttt{lem:multi\_\allowbreak interpolation}, \texttt{thm:linearity\_\allowbreak multi}, and \texttt{thm:ctl\_\allowbreak connects\_wd}.)
+
+To address every formal interpretation of $\approx$, we test:
+\begin{enumerate}[label=\textup{(\roman*)},nosep]
+\item \emph{Exact CTL}: $h = g$ for all $\ell, t, x$;
+\item \emph{Uniform $\varepsilon$-CTL}: $E_{\mathcal{D}}(p, q) := \sup_{\ell, x \in \mathcal{D}, t \in [0,1]} \|h - g\|_2 \le \varepsilon$;
+\item \emph{Diagnostic thresholds}: $\cosine_t^{(\ell)}(x) \ge 1 - \tau$ and $|\coef_t^{(\ell)}(x) - 1| \le \tau$.
+\end{enumerate}
+In every counterexample below, the premise identities hold identically for \emph{all} $x > 0$ simultaneously, so pair-specific dataset unions $\mathcal{D}_p \cup \mathcal{D}_q \subset (0, \infty)$ introduce no ambiguity.
+
+\begin{remark}[Informal $\approx$ and empirical scope]
+Zhou et~al.~\cite{zhou2024ctl} state \texttt{con:transitivity} informally and motivate it empirically on large pretrained vision models. Our results rigorously refute exact CTL, every uniform $\varepsilon$-CTL bound depending only on premise errors, and arbitrary near-$1$ thresholds on $\cosine$ and $\coef$; they remain silent on the empirical frequency of approximate CTL in practical ViT or ResNet fine-tuning.
+\end{remark}
+
+\section{One-Layer Collinear Counterexample and Shared-Checkpoint GD}
+
+Let $\sigma(s) := \max(s, 0)$. On scalar input $x > 0$, define the one-layer ReLU network with trainable parameters $(u, v) \in \mathbb{R}^2$ and fixed positive bias $d > 0$ on a third constant ReLU unit:
+\[
+F((u, v); x) := \bigl(\sigma(ux),\; \sigma(vx),\; d\bigr) \in \mathbb{R}^3.
+\]
+
+\begin{theorem}[Collinear one-layer refutation]\label{thm:one-layer}
+Fix $M > 0$ and $d > 0$, and take the collinear checkpoints
+\[
+A = (M, -M), \qquad B = (0, 0), \qquad C = (-M, M).
+\]
+\begin{enumerate}[label=\textup{(\arabic*)},nosep]
+\item For every $x > 0$ and every $t \in [0, 1]$, exact CTL holds on $(A, B)$ and on $(B, C)$, with $\cosine_t^{(1)}(x) = \coef_t^{(1)}(x) = 1$.
+\item On $(A, C)$ at $t = 1/2$ (where $\frac{1}{2}A + \frac{1}{2}C = B$), the actual and target features are $h = (0, 0, d)$ and $g = (Mx/2, Mx/2, d)$, satisfying
+\begin{align*}
+\|h - g\|_2 &= \frac{Mx}{\sqrt{2}}, &
+\frac{\|h - g\|_2}{\|g\|_2} &= \frac{Mx/\sqrt{2}}{\sqrt{d^2 + (Mx)^2/2}}, \\
+\cosine_{1/2}^{(1)}(x) &= \frac{d}{\sqrt{d^2 + (Mx)^2/2}}, &
+\coef_{1/2}^{(1)}(x) &= \frac{d^2}{d^2 + (Mx)^2/2}.
+\end{align*}
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Along $(A, B)$, the interpolated parameter is $((1 - t)M, -(1 - t)M)$, so for all $x > 0$ and $t \in [0, 1]$,
+\[
+F((1 - t)A + tB; x) = \bigl((1 - t)Mx,\, 0,\, d\bigr) = (1 - t)F(A; x) + tF(B; x).
+\]
+Symmetrically, on $(B, C)$, $F((1 - t)B + tC; x) = (0, tMx, d) = (1 - t)F(B; x) + tF(C; x)$. Since $d > 0$, every vector is nonzero, giving $\cosine = \coef = 1$ throughout both premise segments. On $(A, C)$ at $t = 1/2$, we have $\frac{1}{2}A + \frac{1}{2}C = B$, so $h = (0, 0, d)$ and $g = (Mx/2, Mx/2, d)$. Direct inner-product evaluation yields $\|h - g\|_2^2 = (Mx)^2/2$, $\langle h, g \rangle = d^2$, $\|h\|_2 = d$, and $\|g\|_2^2 = d^2 + (Mx)^2/2$, establishing all four formulas.
+\end{proof}
+
+Evaluating on the singleton dataset $\mathcal{D} = \{1\}$ (so supremum and mean coincide) and taking $M/d \to \infty$ sends $\|h - g\|_2 \to \infty$, $\|h - g\|_2/\|g\|_2 \to 1$, $\cosine_{1/2}^{(1)}(1) \to 0$, and $\coef_{1/2}^{(1)}(1) \to 0$, while both premise errors remain identically~$0$. Even for collinear checkpoints, affinity on two adjacent segments permits a change of slope at their shared endpoint.
+
+\begin{proposition}[Shared-checkpoint gradient-descent construction]\label{prop:gd}
+Set $M = 1$ and $d = 1/10$ in $F((u, v); x)$, freeze the constant unit~$d$, and minimize the average squared one-hot loss
+\[
+\mathcal{L}_{\mathcal{D}}(u, v) := \frac{1}{|\mathcal{D}|} \sum_{(x, y) \in \mathcal{D}} \frac{1}{2}\bigl\|F((u, v); x) - e_y\bigr\|_2^2 \qquad (y \in \{1, 2, 3\}).
+\]
+\begin{enumerate}[label=\textup{(\arabic*)},nosep]
+\item On the pretraining set $\mathcal{D}_0 = \{(1/2, 1), (1/2, 2)\}$, $P = (1, 1)$ is the unique global minimizer of $\mathcal{L}_{\mathcal{D}_0}$ over all $(u, v) \in \mathbb{R}^2$.
+\item Starting from $P = (1, 1)$, one full-batch gradient descent step of size $\eta = 2$ on the three tasks
+\[
+\mathcal{D}_A = \{(1, 1)\}, \qquad
+\mathcal{D}_B = \bigl\{(3/5, 3),\, (4/5, 3)\bigr\}, \qquad
+\mathcal{D}_C = \{(1, 2)\}
+\]
+yields $A = (1, -1)$, $B = (0, 0)$, and $C = (-1, 1)$, respectively. Each model is a global minimizer of its task loss over $\mathbb{R}^2$ and achieves exact $\argmax$ classification on its task and on every held-out positive input $x \ge 1$ bearing that task's label.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Set $a := \sigma(u/2) \ge 0$ and $b := \sigma(v/2) \ge 0$. On $\mathcal{D}_0$,
+\[
+\mathcal{L}_{\mathcal{D}_0}(u, v)
+= \frac{1}{4}\bigl((a - 1)^2 + a^2 + b^2 + (b - 1)^2 + 2d^2\bigr)
+= \frac{1}{2}\Bigl(a - \frac{1}{2}\Bigr)^2 + \frac{1}{2}\Bigl(b - \frac{1}{2}\Bigr)^2 + \frac{1}{4} + \frac{d^2}{2}.
+\]
+Hence the unique global minimum occurs at $a = b = 1/2$ (any nonpositive weight yields $0$, increasing that coordinate's averaged term from $1/8$ to $1/4$), which uniquely forces $P = (1, 1)$.
+
+At $P = (1, 1)$, all preactivations $ux, vx$ on $\mathcal{D}_A, \mathcal{D}_B, \mathcal{D}_C$ are strictly positive, so
+\[
+\nabla\mathcal{L}_{\mathcal{D}_A}(P) = (0, 1), \quad
+\nabla\mathcal{L}_{\mathcal{D}_B}(P) = \Bigl(\frac{9/25 + 16/25}{2},\, \frac{9/25 + 16/25}{2}\Bigr) = \Bigl(\frac{1}{2}, \frac{1}{2}\Bigr), \quad
+\nabla\mathcal{L}_{\mathcal{D}_C}(P) = (1, 0).
+\]
+One step $P - 2\nabla\mathcal{L}(P)$ gives $A = (1, -1)$, $B = (0, 0)$, and $C = (-1, 1)$. Each checkpoint matches both trainable coordinates of its targets identically, hence globally minimizes its loss with $d$ frozen, and for every $x \ge 1$ the scores $(x, 0, 1/10)$, $(0, 0, 1/10)$, $(0, x, 1/10)$ peak uniquely at classes $1, 3, 2$, respectively. Held-out inputs $x = 2$ (or arbitrarily large $x > 0$) realize Theorem~\ref{thm:one-layer} on the test unions with fixed weights.
+\end{proof}
+
+\begin{remark}[Stylized GD caveats]
+Proposition~\ref{prop:gd} freezes the constant baseline coordinate~$d$ (which would otherwise receive a nonzero gradient on class-$3$ examples) and uses step size $\eta = 2$, crossing $0$ in a single step.
+\end{remark}
+
+\section{Failure Inside a Single Strictly Active Cone}
+
+\begin{proposition}[Strictly active two-layer counterexample]\label{prop:two-layer}
+Define the two-layer scalar network $h((u, v); x) := \sigma(ux)$ and $y((u, v); x) := \sigma(v\,h((u, v); x))$ for $x > 0$ and $(u, v) \in (0, \infty)^2$ (where $h = ux$ and $y = uvx$, identical to a deep linear network). For any $r, s > 0$, let
+\[
+A = (1 + r, 1), \qquad B = (1, 1), \qquad C = (1, 1 + s).
+\]
+Then all ReLUs remain strictly active on $\conv(A, B, C)$, exact layerwise CTL holds on $(A, B)$ and $(B, C)$ for every $x > 0$ and $t \in [0, 1]$, and on $(A, C)$ layer~$1$ is exact while layer~$2$ satisfies
+\[
+y\bigl((1 - t)A + tC; x\bigr) - \bigl((1 - t)y(A; x) + t\,y(C; x)\bigr) = t(1 - t)rsx,
+\]
+with maximum gap $rsx/4$ at $t = 1/2$ (e.g., for $r = s = x = 1$, endpoints~$2$ vs.\ midpoint~$9/4$).
+\end{proposition}
+
+\begin{proof}
+On $(A, B)$ the weight $v \equiv 1$ is constant, and on $(B, C)$ the weight $u \equiv 1$ is constant, so both layers are affine on both premise segments. On $(A, C)$, $u_t = 1 + (1 - t)r$ and $v_t = 1 + ts$, so $h_t = u_t x$ interpolates affinely while
+\[
+y_t - \bigl((1 - t)y(A; x) + t\,y(C; x)\bigr)
+= \bigl((1 + (1 - t)r)(1 + ts) - (1 + (1 - t)r + ts)\bigr)x
+= t(1 - t)rsx.
+\]
+More generally, on $(0, \infty)^2$, a pair $(p, q)$ satisfies exact CTL iff $(u_q - u_p)(v_q - v_p) = 0$.
+\end{proof}
+
+\begin{remark}[Diagnostics on the two-layer example]
+Because $y > 0$ is one-dimensional, $\cosine_t^{(2)}(x) \equiv 1$, whereas at $t = 1/2$,
+\[
+\coef_{1/2}^{(2)}(x) = \frac{y(p_{1/2}; x)}{\frac{1}{2}(y(A; x) + y(C; x))} = 1 + \frac{rs/4}{1 + (r + s)/2} \xrightarrow[r, s \to \infty]{} \infty.
+\]
+Appending a constant coordinate $d > 0$ to form $\tilde{y} = (y, d) \in \mathbb{R}^2$ breaks $\cosine$ as well: setting $r = s = M$ and $d = M^{3/2}x$ yields $\tilde{g}/d \to (0, 1)$ and $\tilde{h}/h \to (1, 0)$, so $\cosine_{1/2}^{(2)}(x) \to 0$ as $M \to \infty$ while both premise pairs remain exact.
+\end{remark}
+
+\section{Exact Characterizations of Transitivity}
+
+\begin{theorem}[Exact conditions for transitivity of exact CTL]\label{thm:char}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{One ReLU layer.} For scalar preactivations $a, c \in \mathbb{R}$, we have $\sigma((1 - t)a + tc) = (1 - t)\sigma(a) + t\sigma(c)$ for all $t \in [0, 1]$ if and only if $ac \ge 0$; when $ac < 0$, the supremum gap is $|ac|/(|a| + |c|) > 0$. On a common evaluation set, given exact premises $(A, B)$ and $(B, C)$ for a one-layer ReLU network (weights and biases may both vary), exact CTL fails on $(A, C)$ if and only if some neuron and input have $b = 0$ and $ac < 0$ (where $a, b, c$ are the preactivations at $A, B, C$).
+\item \emph{Arbitrary-depth feedforward affine/ReLU networks.} For checkpoints $p, q$ and input~$x$, suppose layers $1, \dots, \ell - 1$ satisfy exact CTL on $(p, q)$ at~$x$, with endpoint layer-$\ell$ inputs $h_p, h_q$ ($h_p = h_q = x$ for $\ell = 1$), endpoint preactivations $z_p, z_q$, and mixed increment $k := (W_q^{(\ell)} - W_p^{(\ell)})(h_q - h_p)$. Then the interpolated layer-$\ell$ preactivation is
+\begin{equation}\label{eq:quad-preact}
+z(t) = (1 - t)z_p + t z_q - t(1 - t)k.
+\end{equation}
+Layer~$\ell$ satisfies exact CTL on $(p, q)$ at~$x$ if and only if, for each coordinate~$i$:
+\begin{itemize}[nosep]
+\item for a ReLU layer with $\max(z_{p,i}, z_{q,i}) > 0$: $z_{p,i} \ge 0$, $z_{q,i} \ge 0$, and $k_i = 0$;
+\item for a ReLU layer with $z_{p,i}, z_{q,i} \le 0$: $\max_{t \in [0, 1]} z_i(t) \le 0$;
+\item for an identity-activation layer: $k_i = 0$.
+\end{itemize}
+\item \emph{Global characterization on a convex domain.} Let $F : \Omega \to Y$ be any map on a convex subset $\Omega$ of a real vector space, and write $p \sim q$ if $F$ is affine on the segment $[p, q]$. Then $\sim$ is transitive on $\Omega$ if and only if the maximal convex subsets of $\Omega$ on which $F$ is affine are pairwise disjoint.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{(1)} If $ac \ge 0$, then $(1 - t)a + tc$ keeps constant sign on $[0, 1]$, so $\sigma$ is affine on that segment. If $ac < 0$, the piecewise-affine gap $(1 - t)\sigma(a) + t\sigma(c) - \sigma((1 - t)a + tc)$ vanishes at $t = 0, 1$ and has a single breakpoint at $t^* = a/(a - c) \in (0, 1)$ with value $|ac|/(|a| + |c|) > 0$. Under $ab \ge 0$ and $bc \ge 0$, the condition $ac < 0$ holds iff $b = 0$ and $ac < 0$.
+
+\emph{(2)} Expanding $((1 - t)W_p^{(\ell)} + tW_q^{(\ell)})((1 - t)h_p + th_q) + (1 - t)b_p^{(\ell)} + tb_q^{(\ell)}$ using $(1 - t)^2 = (1 - t) - t(1 - t)$ and $t^2 = t - t(1 - t)$ yields~\eqref{eq:quad-preact}. For an identity layer, $z(t) \equiv (1 - t)z_p + t z_q$ iff $k = 0$. For a ReLU coordinate~$i$, if $\max(z_{p,i}, z_{q,i}) > 0$, then the target chord $(1 - t)\sigma(z_{p,i}) + t\sigma(z_{q,i})$ is strictly positive on $(0, 1)$, so $\sigma(z_i(t))$ matches it on $(0, 1)$ iff $z_i(t)$ itself equals that affine chord on $(0, 1)$; equating the quadratic term forces $k_i = 0$, and continuity at $t = 0, 1$ forces $z_{p,i}, z_{q,i} \ge 0$ (which is also sufficient). If $z_{p,i}, z_{q,i} \le 0$, the target chord is identically~$0$, so $\sigma(z_i(t)) \equiv 0$ iff $\max_{t \in [0, 1]} z_i(t) \le 0$. Induction over $\ell = 1, \dots, L$ completes the characterization.
+
+\emph{(3)} The relation $\sim$ is reflexive and symmetric. If $\sim$ is transitive, its equivalence classes are convex: for $p, q$ in a class~$E$ and $r \in [p, q]$, affinity of $F$ on $[p, q]$ implies $F$ is affine on $[p, r]$, so $r \sim p$ and $r \in E$. Moreover $F|_E$ is affine, and any convex affine subset~$K$ meeting $E$ at~$p$ satisfies $q \sim p$ for all $q \in K$, hence $K \subseteq E$. Thus the equivalence classes are precisely the maximal convex affine subsets and are pairwise disjoint. Conversely, the union of any nested chain of convex affine subsets is convex and affine, so by Zorn's lemma every exact segment $[p, q]$ lies in a maximal convex affine subset. If maximal convex affine subsets are pairwise disjoint and $A \sim B$, $B \sim C$, then the maximal subsets containing $[A, B]$ and $[B, C]$ intersect at~$B$ and therefore coincide, whence $[A, C]$ lies in that common set and $A \sim C$.
+\end{proof}
+
+\section{Exact Computational Verification}
+
+The script \texttt{solutions/cross\_task\_linearity/explore.py} verifies all identities in exact rational arithmetic (\texttt{fractions.Fraction}): the pretraining minimizer $P = (1, 1)$ and the three GD updates to $A, B, C$; exact premise CTL across $65$ interpolation weights $t = n/64$ and $12$ choices of $(M, x, d) \in \{1, 8, 1000\} \times \{1, 2\} \times \{1/10, 1/1000\}$, along with the closed-form $\cosine^2$ and $\coef$ midpoint formulas; the one-gate sign criterion and gap $|ab|/(|a| + |b|)$ across all $121$ pairs $(a, b) \in \{-5, \dots, 5\}^2$; and the strictly active two-layer gap $t(1 - t)rsx$ across $18$ triples $(r, s, x) \in \{1, 3, 10\} \times \{1, 4, 20\} \times \{1, 3\}$ at $65$ weights each. All assertions pass with exit code~$0$.
+
+\begin{thebibliography}{9}
+
+\bibitem{zhou2024ctl}
+Z.~Zhou, Z.~Chen, Y.~Chen, B.~Zhang, and J.~Yan.
+On the emergence of cross-task linearity in pretraining-finetuning paradigm.
+In \emph{Proceedings of the 41st International Conference on Machine Learning (ICML 2024)},
+\href{https://arxiv.org/abs/2402.03660}{arXiv:2402.03660}, 2024.
+
+\end{thebibliography}
+
+\end{document}

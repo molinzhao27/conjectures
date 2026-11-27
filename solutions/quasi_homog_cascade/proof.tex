@@ -1,0 +1,175 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\diag}{diag}
+
+\title{\bfseries Refutation of the Cascading Minimization Conjecture\\ for Quasi-Homogeneous Networks}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: D.~Kunin, A.~Yamamura, C.~Ma, and S.~Ganguli,\\
+\emph{The Asymmetric Maximum Margin Bias of Quasi-Homogeneous Neural Networks},\\
+ICLR 2023, \href{https://arxiv.org/abs/2210.03820}{arXiv:2210.03820}, Section~4, Conjecture~\texttt{conj:cascading}\\[0.35em]
+Companion verification script: \texttt{solutions/quasi\_homog\_cascade/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~\texttt{conj:cascading} (Cascading Minimization) of Kunin, Yamamura, Ma, and Ganguli (ICLR~2023, \href{https://arxiv.org/abs/2210.03820}{arXiv:2210.03820}) under Assumptions~A1--A6.
+The two-parameter polynomial classifier $f(x; a, b) = x_1 ab + x_2 a^3$ has the unique diagonal rate matrix $\Lambda = \diag(1/3, 2/3)$.
+On two training examples $(e_1, +1)$ and $(-e_2, -1)$, every positive initialization yields a global exponential-loss gradient-flow trajectory with both raw signed margins tending to $+\infty$ and $\Lambda$-normalized limit $\bar{\theta} = (\sqrt{3}, 0)$.
+At $\bar{\theta}$, the first signed margin vanishes identically, so every finite rescaling $\psi_\alpha(\bar{\theta})$ violates primal feasibility $q_1(\theta) \ge 1$ for every threshold $\tilde{\lambda} \in \mathbb{R}_+$.
+Unlike decoupled homogeneous ensembles (Nacson et~al., 2019), multiplicative coupling between distinct-rate coordinates enables gradient flow to drive the normalized highest-rate coordinate to zero while that coordinate remains strictly required for data separation.
+We also clarify a quantifier vacuity in the printed statement and provide a matching counterexample for the literal printed plus sign in Assumption~A4.
+\end{abstract}
+
+\section{Setup, Assumptions, and Quantifier Audit}
+
+Following Kunin et~al.~\cite{Kunin2023} (\S 3--\S 4), let $f(x; \theta)$ be a model trained on $\{(x_i, y_i)\}_{i=1}^n$ with $y_i \in \{-1, +1\}$ and signed margins $q_i(\theta) := y_i f(x_i; \theta)$. Assumptions~A1--A6 are:
+\begin{enumerate}[label=\textbf{A\arabic*.},leftmargin=*]
+\item \emph{(Quasi-homogeneity)} A nonzero diagonal positive semidefinite matrix $\Lambda = \diag(\lambda_1, \dots, \lambda_p)$ satisfies $f(x; \psi_\alpha \theta) = e^\alpha f(x; \theta)$ for all $x, \theta$ and $\alpha \in \mathbb{R}$, where $\psi_\alpha \theta := e^{\alpha \Lambda}\theta$.
+\item \emph{(Regularity)} For each fixed $x$, $f(x; \cdot)$ is locally Lipschitz and admits a chain rule.
+\item \emph{(Exponential loss)} $\mathcal{L}(\theta) := \frac{1}{n}\sum_{i=1}^n e^{-q_i(\theta)}$.
+\item \emph{(Gradient flow)} The displayed equation in~\cite{Kunin2023} prints $\dot{\theta} \in \partial^\circ_\theta \mathcal{L}(\theta)$ for $t > 0$ (omitting the minus sign), whereas the text defines gradient descent ($\dot{\theta} = -\nabla \mathcal{L}(\theta)$ in the smooth case) and its dynamics lemma uses $-\dot{\mathcal{L}} = \|\dot{\theta}\|_2^2$. We supply counterexamples for \emph{both} signs.
+\item \emph{(Separability)} There exists $t_0 \ge 0$ such that $\mathcal{L}(\theta(t_0)) < 1/n$.
+\item \emph{(Directional convergence)} The limit $\bar{\theta} := \lim_{t \to \infty} \hat{\theta}(t)$ exists, where $\hat{\theta}(t) := \psi_{-\tau(t)}\theta(t)$ with $\tau(t) \in \mathbb{R}$ uniquely chosen so that $\|\hat{\theta}(t)\|_\Lambda^2 := \sum_j \lambda_j \hat{\theta}_j(t)^2 = 1$.
+\end{enumerate}
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:cascading} (Cascading Minimization; \href{https://arxiv.org/abs/2210.03820}{arXiv:2210.03820}, \S 4).}
+\emph{Under Assumptions~A1--A6, there exist $\tilde{\lambda} \in \mathbb{R}_+$ and $\alpha \in \mathbb{R}$ such that $\psi_\alpha(\bar{\theta})$ is a first-order KKT point of}
+\begin{equation}\label{eq:cascade-opt}
+\min_{\theta}\; \frac{1}{2}\sum_{j : \lambda_j = \tilde{\lambda}} \lambda_j \theta_j^2
+\quad\text{subject to}\quad
+q_i(\theta) \ge 1\;\; (i \in [n]), \qquad
+\theta_j = 0\;\; (\lambda_j > \tilde{\lambda}).
+\end{equation}
+\end{quote}
+
+\begin{proposition}[Feasibility criterion and quantifier audit]\label{prop:quantifier}
+Strict positivity $q_i(\bar{\theta}) > 0$ for all $i \in [n]$ is necessary for $\psi_\alpha(\bar{\theta})$ to be feasible for~\eqref{eq:cascade-opt} at any $\tilde{\lambda} \in \mathbb{R}_+$ and $\alpha \in \mathbb{R}$. Conversely, under the printed quantifier allowing arbitrary $\tilde{\lambda} \in \mathbb{R}_+$, strict positivity is also sufficient: choosing $\tilde{\lambda} > \max_j \lambda_j$ makes the objective of~\eqref{eq:cascade-opt} identically zero with no equality constraints, and setting $\alpha := -\log\bigl(\min_i q_i(\bar{\theta})\bigr)$ yields a feasible point satisfying first-order KKT conditions with zero multipliers.
+\end{proposition}
+
+\begin{proof}
+By~A1, $q_i(\psi_\alpha \bar{\theta}) = e^\alpha q_i(\bar{\theta})$ for every $\alpha \in \mathbb{R}$, so $q_i(\psi_\alpha \bar{\theta}) \ge 1$ requires $q_i(\bar{\theta}) > 0$. Conversely, if $\min_i q_i(\bar{\theta}) > 0$, choosing $\tilde{\lambda} > \max_j \lambda_j$ eliminates both the objective and all constraints $\theta_j = 0$, while $\alpha = -\log(\min_i q_i(\bar{\theta}))$ ensures $q_i(\psi_\alpha \bar{\theta}) \ge 1$ for all $i$; zero dual multipliers trivially satisfy stationarity and complementary slackness.
+\end{proof}
+
+Because our counterexamples produce $q_1(\bar{\theta}) = 0$, they refute~\eqref{eq:cascade-opt} simultaneously for the printed quantifier $\tilde{\lambda} \in \mathbb{R}_+$ and for any strengthened quantifier restricting $\tilde{\lambda}$ to attained rates $\{\lambda_j\}$.
+
+\section{Counterexample Under Gradient Descent}
+
+\begin{theorem}[Refutation of \texttt{conj:cascading} under gradient descent]\label{thm:descent}
+Consider $f(x; a, b) := x_1 ab + x_2 a^3$ on $\mathbb{R}^2$ with training data $\{(e_1, +1), (-e_2, -1)\}$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $f$ satisfies~A1 with the unique diagonal rate matrix $\Lambda = \diag(1/3, 2/3)$, and satisfies~A2.
+\item For every positive start $(a_0, b_0) \in (0, \infty)^2$, the exponential-loss gradient descent flow $\dot{\theta} = -\nabla \mathcal{L}(\theta)$ exists globally on $[0, \infty)$ and satisfies~A3, A4 (descent), A5, and~A6, with $a(t), b(t) \to +\infty$, $b(t)/a(t) \to 1$, $\mathcal{L}(\theta(t)) \to 0$, and $\Lambda$-normalized limit $\bar{\theta} = (\sqrt{3}, 0)$.
+\item For every $\alpha \in \mathbb{R}$ and every $\tilde{\lambda} \in \mathbb{R}_+$, $\psi_\alpha(\bar{\theta})$ satisfies $q_1(\psi_\alpha \bar{\theta}) = 0 < 1$ and is therefore not a KKT point of~\eqref{eq:cascade-opt}.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{Step~1 (A1 and A2).} As a polynomial in $(a, b)$, $f(x; \cdot)$ is smooth, giving~A2. The signed margins are $q_1(a, b) = ab$ and $q_2(a, b) = a^3$. Under $\psi_\alpha(a, b) = (e^{\alpha/3}a, e^{2\alpha/3}b)$, both terms scale by $e^\alpha$. Conversely, scaling $ab$ and $a^3$ by $e^\alpha$ under $(e^{\alpha\lambda_a}a, e^{\alpha\lambda_b}b)$ forces $\lambda_a + \lambda_b = 1$ and $3\lambda_a = 1$, uniquely determining $\Lambda = \diag(1/3, 2/3)$.
+
+\emph{Step~2 (Global existence and positivity).} The loss is $\mathcal{L}(a, b) = \frac{1}{2}(e^{-ab} + e^{-a^3})$, so gradient descent is
+\begin{equation}\label{eq:descent-ode}
+\dot{a} = \frac{1}{2}\bigl(b e^{-ab} + 3a^2 e^{-a^3}\bigr), \qquad
+\dot{b} = \frac{1}{2} a e^{-ab}.
+\end{equation}
+From $(a_0, b_0) \in (0, \infty)^2$, both derivatives are strictly positive on $(0, \infty)^2$, so $a(t) \ge a_0 > 0$ and $b(t) \ge b_0 > 0$ are strictly increasing on the maximal interval $[0, T_{\max})$. Energy dissipation gives $\int_0^t \|\dot{\theta}(s)\|_2^2\,ds = \mathcal{L}(\theta(0)) - \mathcal{L}(\theta(t)) \le \mathcal{L}(\theta(0))$, so Cauchy--Schwarz implies
+\[
+\|\theta(t) - \theta(0)\|_2 \;\le\; \int_0^t \|\dot{\theta}(s)\|_2\,ds \;\le\; \sqrt{t\,\mathcal{L}(\theta(0))}.
+\]
+Thus no finite-time blowup can occur, and $T_{\max} = \infty$.
+
+\emph{Step~3 (Cancellation, A5, and $b/a \to 1$).} Set $D(t) := a(t)^2 - b(t)^2$. Differentiating along~\eqref{eq:descent-ode} cancels the $e^{-ab}$ terms identically:
+\begin{equation}\label{eq:D-dot}
+\dot{D} = 2a\dot{a} - 2b\dot{b} = 3a^3 e^{-a^3} > 0.
+\end{equation}
+Hence $D(t) \ge D(0) = a_0^2 - b_0^2$, so $b(t)^2 \le a(t)^2 + b_0^2 - a_0^2$ for all $t \ge 0$. If $a(t)$ were bounded above by $M$, then $b(t)$ would also be bounded above by some $M'$, forcing $\dot{a}(t) \ge \frac{1}{2} b_0 e^{-MM'} > 0$, a contradiction. Therefore $a(t) \to \infty$, $b(t) = O(a(t))$, and both $ab \ge b_0 a \to \infty$ and $a^3 \to \infty$. Thus $\mathcal{L}(\theta(t)) \to 0$, establishing~A5 for every positive initialization (at $(1, 1)$, $\mathcal{L}(0) = e^{-1} < 1/2$ holds already at $t = 0$).
+
+Furthermore, since $a$ is strictly increasing and $\dot{a} > \frac{1}{2}b_0 e^{-ab}$,~\eqref{eq:D-dot} yields
+\[
+0 < \frac{dD}{da} = \frac{3a^3 e^{-a^3}}{\dot{a}} \;\le\; \frac{6a^3}{b_0}\exp(ab - a^3).
+\]
+Because $b = O(a)$, we have $ab - a^3 \le -\frac{1}{2}a^3$ for all sufficiently large $a$, so the right-hand side is integrable on $[a_0, \infty)$. Consequently $D(t) \to D_\infty < \infty$, and $b(t)^2 / a(t)^2 = 1 - D(t)/a(t)^2 \to 1$.
+
+\emph{Step~4 ($\Lambda$-normalized limit and infeasibility).} Put $r(t) := e^{-\tau(t)/3} > 0$. The normalization $\|\hat{\theta}\|_\Lambda^2 = \frac{1}{3}\hat{a}^2 + \frac{2}{3}\hat{b}^2 = 1$ becomes
+\[
+(\hat{a}, \hat{b}) = (ar,\, br^2), \qquad (ar)^2 + 2(br^2)^2 = 3.
+\]
+Hence $r < \sqrt{3}/a$, which gives
+\[
+0 < \hat{b}(t) = b(t) r(t)^2 < \frac{3 b(t)}{a(t)^2} \;\xrightarrow[t \to \infty]{}\; 0.
+\]
+Positivity and $\hat{a}^2 + 2\hat{b}^2 = 3$ then yield $\hat{a}(t) \to \sqrt{3}$, verifying~A6 with $\bar{\theta} = (\sqrt{3}, 0)$. For every $\alpha \in \mathbb{R}$, $\psi_\alpha(\bar{\theta}) = (e^{\alpha/3}\sqrt{3}, 0)$ has $q_1(\psi_\alpha \bar{\theta}) = 0 < 1$, violating primal feasibility of~\eqref{eq:cascade-opt} for all $\tilde{\lambda} \in \mathbb{R}_+$.
+\end{proof}
+
+\begin{remark}[Multiplicative coupling vs.\ homogeneous ensembles]
+Conjecture~\texttt{conj:cascading} was motivated by an informal cascading-sparsification conjecture of Nacson et~al.~\cite{Nacson2019} for additive ensembles of homogeneous models. In a decoupled ensemble, zeroing out the highest-rate sub-model leaves an independent lower-rate sub-model. Theorem~\ref{thm:descent} reveals the structural obstruction in general quasi-homogeneous networks: multiplicative coupling between coordinates of different rates ($ab$ paired with $a^3$) allows gradient flow to drive the normalized highest-rate coordinate $\hat{b}$ to zero even though $b$ remains strictly necessary to separate the data, violating Assumption~A7 of Theorem~\texttt{theorem:KKT} in~\cite{Kunin2023}.
+\end{remark}
+
+\section{Counterexample Under the Literal Plus Sign in A4}
+
+\begin{theorem}[Refutation under the literal printed sign in A4]\label{thm:ascent}
+With $f(x; a, b) = x_1 ab + x_2 a^3$, unique rate matrix $\Lambda = \diag(1/3, 2/3)$, and training data $\{(e_1, +1), (-e_1, -1)\}$, the flow $\dot{\theta} = +\nabla \mathcal{L}(\theta)$ started at $(1, 1)$ exists globally on $[0, \infty)$, satisfies~A1--A6, and converges in $\Lambda$-normalized direction to $\bar{\theta} = (0, \sqrt{3/2})$, at which $q_1(\psi_\alpha \bar{\theta}) = q_2(\psi_\alpha \bar{\theta}) = 0$ for all $\alpha \in \mathbb{R}$.
+\end{theorem}
+
+\begin{proof}
+Here $q_1 = q_2 = ab$ and $\mathcal{L}(a, b) = e^{-ab}$, with $\mathcal{L}(1, 1) = e^{-1} < 1/2$ persisting on a positive interval (verifying~A5). The smooth ODE $\dot{\theta} = +\nabla\mathcal{L}(\theta)$ is $(\dot{a}, \dot{b}) = -e^{-ab}(b, a)$. By uniqueness and symmetry, $a(t) = b(t) = s(t)$, where $\dot{s} = -s e^{-s^2}$ and $s(0) = 1$. Since $0 < s \le 1$, we have $-1 \le \frac{d}{dt}(\log s) = -e^{-s^2} \le -e^{-1}$, yielding global existence and $e^{-t} \le s(t) \le e^{-t/e} \to 0$. Putting $r = e^{-\tau/3} > 0$, the unit equation $(sr)^2 + 2(sr^2)^2 = 3$ gives $\hat{b} = sr^2 \le \sqrt{3/2}$, whence $\hat{a}^2 = s^2 r^2 = s\hat{b} \to 0$ and $\hat{b} \to \sqrt{3/2}$. Thus~A6 holds with $\bar{\theta} = (0, \sqrt{3/2})$, and both margins vanish for every rescaling $\psi_\alpha(\bar{\theta})$.
+\end{proof}
+
+\section{Reproducible Numerical Verification}
+
+The script \texttt{solutions/quasi\_homog\_cascade/explore.py} verifies quasi-homogeneity, integrates the descent ODE~\eqref{eq:descent-ode} in physical time to $t = 10^6$ via DOP853 (\texttt{rtol=2e-11}, \texttt{atol=1e-13}) for three positive initializations, cross-checks against the exact orbit equation $da/db = b/a + 3a\exp(ab - a^3)$ up to $b = 10^4$ (avoiding physical-time velocity underflow), and integrates the literal-sign ODE to $t = 16$. Table~\ref{tab:cascade} summarizes the verified outputs; all assertions pass.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Flow and initialization & Checkpoint & Raw $\min_i q_i$ & Normalized $\min_i q_i(\hat{\theta})$ \\
+\midrule
+Descent, $(a_0, b_0) = (1.0, 1.0)$  & $b = 10^4$ & $1.00000 \times 10^8$ & $5.19615 \times 10^{-4}$ \\
+Descent, $(a_0, b_0) = (1.5, 1.0)$  & $b = 10^4$ & $1.00000 \times 10^8$ & $5.19615 \times 10^{-4}$ \\
+Descent, $(a_0, b_0) = (1.0, 1.25)$ & $b = 10^4$ & $1.00000 \times 10^8$ & $5.19615 \times 10^{-4}$ \\
+Literal A4 sign, $(1.0, 1.0)$       & $t = 16$   & ---                   & $6.32124 \times 10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\caption{Verified trajectories in \texttt{solutions/quasi\_homog\_cascade/explore.py}.}\label{tab:cascade}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Kunin2023}
+D.~Kunin, A.~Yamamura, C.~Ma, and S.~Ganguli.
+The asymmetric maximum margin bias of quasi-homogeneous neural networks.
+In \emph{Proceedings of ICLR}, 2023. \href{https://arxiv.org/abs/2210.03820}{arXiv:2210.03820}.
+
+\bibitem{Nacson2019}
+M.~S.~Nacson, S.~Gunasekar, J.~D.~Lee, N.~Srebro, and D.~Soudry.
+Lexicographic and depth-sensitive margins in homogeneous and non-homogeneous deep models.
+In \emph{Proceedings of ICML}, 2019. \href{https://arxiv.org/abs/1905.07325}{arXiv:1905.07325}.
+
+\end{thebibliography}
+
+\end{document}

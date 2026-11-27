@@ -1,0 +1,365 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Fw}{F_{\mathrm{weighted}}}
+
+\title{\bfseries Bounds, Exact Optima, and Dual Formulations\\ for the Seven-Atom Circle Moment Problem}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: G.~Zhang, \emph{Exact Recovery Thresholds for Weighted Data Selection}\\
+\emph{in Vector-Valued Linear Regression}, \href{https://arxiv.org/abs/2608.30254}{arXiv:2608.30254} (October 2026), Conjecture~\texttt{conj:CE}\\[0.35em]
+Companion verification files: \texttt{solutions/weighted\_data\_vector/explore.py}, \texttt{search.c}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We establish new analytic bounds, closed structural cases, minimax dualities, and exact algebraic certificates for Conjecture~\texttt{conj:CE} of Zhang (\href{https://arxiv.org/abs/2608.30254}{arXiv:2608.30254}), which conjectures $\Gamma_3 = 5/8$ and $\Gamma_4 = 1/4$ (equivalently $\Fw(2,2,3) = 13/8$ and $\Fw(2,2,4) = 5/4$) in the seven-atom circle moment problem.
+First, using a sharp anisotropic planar covariance mean lemma $H(S) = \det S / \tr S$ (strictly sharpening Lemma~\texttt{lem:mmean} of \href{https://arxiv.org/abs/2608.30254}{arXiv:2608.30254} at $m=2$), we prove
+\[
+\frac{C_3}{E} \;\le\; \frac{5}{6} - \frac{7}{24}d^2 \;\le\; \frac{5}{6}, \qquad \frac{C_3}{E} \;\le\; \frac{7}{8} - \frac{3}{8}d^2,
+\]
+where $d = |\lambda_1(\Sigma) - \lambda_2(\Sigma)|/\tr(\Sigma) \in [0,1]$ is the normalized output covariance anisotropy; this improves Zhang's $\Gamma_3 \le 7/8$ and settles $d^2 \ge 2/3$.
+Second, via an explicit rank-one perturbation and seven-atom compactness, we prove the strict uniform bound $\Gamma_4 < 1/2$ (improving Zhang's $\Gamma_4 \le 1/2$, without an explicit numerical gap).
+Third, we prove both conjectured bounds whenever all real output residuals lie on two lines ($C_4 = 0$ and $C_3/E \le 1/(2\sqrt{2}-1) < 5/8$), prove $C_4/E \le 1/4$ with four equally weighted atoms for equal-energy isotropic six-atom systems, and classify equal-energy isotropic five-atom systems.
+Fourth, we establish two minimax dualities via Sion's theorem with exact rational seven-atom certificates, certify the exact three-point optima of the $(5,2)$, $(6,3)$, and $(7,3)$ regular-polygon systems---in particular sharpening Zhang's heptagon witness $2/7$ to the exact optimum $1/4$---and exhibit a single seven-atom system for which keeping original relative weights fails both targets simultaneously.
+Conjecture~\texttt{conj:CE} remains open in general.
+\end{abstract}
+
+\section{Moment System, Real Dictionary, and Planar Mean Lemma}
+
+A \emph{moment system} consists of weights $p_i > 0$ ($\sum p_i = 1$), unit complex numbers $t_i \in S^1$, and complex residuals $z_i \in \mathbb{C}$ satisfying
+\[
+\sum p_i t_i = \sum p_i z_i = \sum p_i \bar{t}_i z_i = 0, \qquad E := \sum p_i |z_i|^2 > 0.
+\]
+For probability weights $q$ with $|\sum q_i t_i| < 1$, let $a + bt$ be the $q$-weighted least-squares fit to $z$, and put $C(q) := |a|^2 + |b|^2$.
+Set $C_k := \inf\{C(q) : |\supp q| \le k,\ |\sum q_i t_i| < 1\}$ and $\Gamma_k := \sup C_k/E$.
+Conjecture~\texttt{conj:CE} of Zhang~\cite{Zhang2026} asks whether $\Gamma_3 = 5/8$ and $\Gamma_4 = 1/4$ (equivalently $\Fw(2,2,3) = 13/8$ and $\Fw(2,2,4) = 5/4$).
+By minimizing linear energy over the mass-one polytope defined by the six real moment equations, a minimizing vertex has at most $7$ atoms and every witness on it lifts to the full system (a zero-energy vertex yields a zero fit on two distinct directions); thus seven atoms suffice~\cite[Proposition~\texttt{prop:seven}]{Zhang2026}.
+
+\emph{Real dictionary.} Choose unit vectors $u_i \in \mathbb{R}^2$ (viewed in $S^1 \subset \mathbb{C}$) with $\bar{u}_i / u_i = t_i$, and set $y_i := z_i u_i \in \mathbb{R}^2$ (negating $u_i$ negates $y_i$ jointly). A real $2 \times 2$ matrix $B$ acts on $\mathbb{C}$ as $u \mapsto au + b\bar{u}$ with $\|B\|_F^2 = 2(|a|^2 + |b|^2)$. In real coordinates,
+\begin{gather*}
+\sum p_i u_i u_i^\top = \tfrac{1}{2} I_2, \qquad
+\sum p_i y_i u_i^\top = 0, \qquad
+\Sigma := \sum p_i y_i y_i^\top, \\
+E = \tr(\Sigma) = \sum p_i \|y_i\|^2, \qquad
+C(q) = \tfrac{1}{2}\|B(q)\|_F^2.
+\end{gather*}
+By scaling $y_i$, we normalize $E = 1$ in the proofs. (The known lower example places a uniform centered unit equilateral output triangle on each of two perpendicular feature lines of mass $1/2$, giving $C_3/E = 5/8$ and $C_4/E = 1/4$.)
+
+\begin{lemma}[Planar covariance mean lemma]\label{lem:planar-H}
+Let $v_i \in \mathbb{R}^2$ carry weights $p_i > 0$ with $\sum p_i = 1$, $\sum p_i v_i = 0$, and covariance $S = \sum p_i v_i v_i^\top \succeq 0$. Define $H(S) := \det(S)/\tr(S)$ for $S \succ 0$ and $H(S) := 0$ for singular $S$. Then some convex combination of at most two support points has squared norm at most $H(S)$. Moreover,
+\[
+H(S) = \inf_{\tr L = 1} \tr(L^\top S L),
+\]
+so $H$ is concave and monotone in the positive semidefinite order.
+\end{lemma}
+
+\begin{remark}
+Since $H(S) = \det(S)/\tr(S) \le \frac{1}{4}\tr(S)$, Lemma~\ref{lem:planar-H} strictly sharpens Zhang's isotropic $m$-point mean lemma (\texttt{lem:mmean} in~\cite{Zhang2026}) at $m = 2$ whenever $S$ is anisotropic (note that Theorem~2 of \texttt{SharpPair}, as discussed in~\cite[\S 1]{Zhang2026}, covers $k=2$ for dimensions $M \ge 3$ rather than $M = 2$).
+\end{remark}
+
+\begin{proof}
+Decompose $p$ into extreme points of the mass-one, mean-zero polytope, each supported on at most $3$ points.
+A collinear centered subsystem contains $0$ on a segment (squared distance $0 = H(S)$).
+For a nondegenerate centered triangle with vertices $v_1, v_2, v_3$, weights $r_1, r_2, r_3 > 0$, and $S = \sum r_i v_i v_i^\top \succ 0$, the $3 \times 3$ matrix $M$ with columns $\sqrt{r_i}(1, S^{-1/2}v_i)^\top$ satisfies $MM^\top = I_3$, hence $M^\top M = I_3$.
+Off-diagonal entries give $v_i^\top S^{-1} v_j = -1$ ($j \neq i$), so the side opposite $v_i$ lies on $v_i^\top S^{-1} v = -1$.
+By the centered inscribed disk, the distance from $0$ to the boundary equals the minimum distance to these three supporting lines, so its square is
+\[
+\min_i \|S^{-1}v_i\|^{-2}
+\;\le\; \frac{1}{\sum_i r_i \|S^{-1}v_i\|^2}
+= \frac{1}{\tr(S^{-1})} = \frac{\det S}{\tr S} = H(S).
+\]
+For the variational identity, if $S \succ 0$ then Frobenius Cauchy--Schwarz gives
+\[
+1 = (\tr L)^2 = \langle S^{-1/2}, S^{1/2}L\rangle_F^2 \;\le\; \tr(S^{-1})\tr(L^\top S L),
+\]
+with equality at $L = S^{-1}/\tr(S^{-1})$; if $S$ is singular, a rank-one orthogonal projector onto $\ker(S)$ attains~$0$.
+As an infimum of linear functionals with $LL^\top \succeq 0$, $H$ is concave and PSD-monotone. Averaging the vertex bounds by concavity completes the proof.
+\end{proof}
+
+\section{Three-Point Bound \texorpdfstring{$\Gamma_3 \le 5/6$}{Gamma3 <= 5/6} and Strict Bound \texorpdfstring{$\Gamma_4 < 1/2$}{Gamma4 < 1/2}}
+
+\begin{theorem}[Anisotropic 3-point bound and $\Gamma_3 \le 5/6$]\label{thm:five-sixth}
+For every moment system of energy $E = \tr(\Sigma) > 0$ and normalized output covariance anisotropy $d := |\lambda_1(\Sigma) - \lambda_2(\Sigma)|/\tr(\Sigma) \in [0,1]$,
+\[
+\frac{C_3}{E} \;\le\; \frac{5}{6} - \frac{7}{24}d^2 \;\le\; \frac{5}{6}, \qquad
+\frac{C_3}{E} \;\le\; \frac{7}{8} - \frac{3}{8}d^2.
+\]
+In particular, $\Gamma_3 \le 5/6$, and $C_3 \le 5E/8$ holds whenever $d^2 \ge 2/3$.
+\end{theorem}
+
+\begin{proof}
+Normalize $E = 1$. Fix an anchor atom $i$. In an orthonormal input basis with first vector $u_i$, write $u_j = (c_j, s_j)$.
+Exact interpolation on $\{i, j\}$ ($s_j \neq 0$) gives columns $(y_i, w_j)$ with $w_j := (y_j - c_j y_i)/s_j$.
+Under weights $2p_j s_j^2$ (summing to $1$), the $w_j$ have mean zero and covariance
+\[
+S_i := \sum_{s_j \neq 0} 2p_j(y_j - c_j y_i)(y_j - c_j y_i)^\top
+\;\preceq\; \sum_{\text{all } j} 2p_j(y_j - c_j y_i)(y_j - c_j y_i)^\top
+= 2\Sigma + y_i y_i^\top.
+\]
+Any convex combination of two $w_j$ is realized in the limit by weighting anchor $i$ by $1$ and the two other atoms by $\varepsilon$ times their desired coefficients divided by $s_j^2$ ($\varepsilon \to 0^+$); by planar Carath\'eodory, three other atoms reach $(y_i, 0)$.
+Lemma~\ref{lem:planar-H} and PSD monotonicity of $H$ therefore yield, for every atom $i$,
+\begin{equation}\label{eq:anchor}
+2C_3 \;\le\; \|y_i\|^2 + H(2\Sigma + y_i y_i^\top), \qquad 2C_4 \;\le\; \|y_i\|^2.
+\end{equation}
+
+Choose output axes so $\Sigma = \diag((1+d)/2, (1-d)/2)$ with $d \in [0,1]$.
+Under $p$, write $s := \|y\|^2$ and $u := \exp(2\mathrm{i}\arg y)$ (arbitrary unit phase if $s=0$), so $\mathbb{E}[s] = 1$ and $\mathbb{E}[su] = d$.
+For $M = 2\Sigma + yy^\top$, $\tr M = 2 + s$ and $(M_{11} - M_{22}) + 2\mathrm{i}M_{12} = 2d + su$, so
+\[
+4\,\mathbb{E}H(2\Sigma + yy^\top) = \mathbb{E}\left[(2+s) - \frac{|2d + su|^2}{2+s}\right] = 3 - \mathbb{E}\frac{|2d + su|^2}{2+s}.
+\]
+Set $A := \mathbb{E}[(2+s)^{-1}]$, $U := \mathbb{E}[(s-1)^2/(2+s)]$, and $V := \mathbb{E}[s^2/(2+s)]$.
+Since $\mathbb{E}[s] = 1$, the identities $\frac{(s-1)^2}{2+s} = s - 4 + \frac{9}{2+s}$ and $\frac{s^2}{2+s} = s - 2 + \frac{4}{2+s}$ yield $U = 9A - 3$, $V = 4A - 1$, and $V - \frac{1}{3} = \frac{4}{9}U$.
+Substituting $\frac{1}{2+s} = \frac{1}{3} - \frac{s-1}{3(2+s)}$ into the cross term $4d\,\mathbb{E}[s\operatorname{Re}(u)/(2+s)]$ and using $\mathbb{E}[s\operatorname{Re}(u)] = d$,
+\[
+\frac{1}{4}\left(\mathbb{E}\frac{|2d+su|^2}{2+s} - \frac{1}{3}\right)
+= \frac{U}{9} + d^2\Bigl(A + \frac{1}{3}\Bigr) - \frac{d}{3}\,\mathbb{E}\frac{s\operatorname{Re}(u)(s-1)}{2+s}.
+\]
+Cauchy--Schwarz bounds the last expectation by $\sqrt{UV}$; completing the square in $\sqrt{U}$ gives
+\[
+\frac{U}{9} - \frac{d}{3}\sqrt{UV} + d^2\Bigl(A + \frac{1}{3}\Bigr)
+\;\ge\; d^2\Bigl(A + \frac{1}{3} - \frac{V}{4}\Bigr)
+= d^2\Bigl(A + \frac{1}{3} - \frac{4A - 1}{4}\Bigr) = \frac{7}{12}d^2.
+\]
+Hence $\mathbb{E}H(2\Sigma + yy^\top) \le \frac{2}{3} - \frac{7}{12}d^2$, and averaging~\eqref{eq:anchor} yields $C_3 \le \frac{5}{6} - \frac{7}{24}d^2$.
+Directly applying concavity of $H$ in~\eqref{eq:anchor} gives $\mathbb{E}H(2\Sigma + yy^\top) \le H(3\Sigma) = \frac{3}{4}(1 - d^2)$ and hence $C_3 \le \frac{7}{8} - \frac{3}{8}d^2$.
+\end{proof}
+
+\begin{theorem}[Strict uniform four-point improvement]\label{thm:gamma4}
+We have $\Gamma_4 < 1/2$ strictly.
+\end{theorem}
+
+\begin{proof}
+We first prove $C_4 < 1/2$ for every normalized ($E=1$) moment system.
+By~\eqref{eq:anchor}, $C_4 \ge 1/2$ forces $\|y_i\| = 1$ for every positive-weight atom.
+Whitening forces every feature line to carry mass $\le 1/2$.
+If some line has mass $1/2$, all other features are orthogonal to it, so each class has mean-zero outputs after consistent orientation; two points per class give $C_4 \le 1/4$ by Lemma~\ref{lem:planar-H} and $H(S) \le \tr(S)/4$.
+
+Otherwise, choose a feature line of mass $P < 1/2$, orient its features consistently as $u_i$, and select an atom $i$ on it with $y_i^\top \sum_{j \text{ on line}} p_j y_j \ge 0$ (which exists by averaging).
+In coordinates $u_j = (c_j, s_j)$ as in Theorem~\ref{thm:five-sixth}, the moment equations give $\sum_{j \text{ off line}} p_j s_j(y_j - c_j y_i) = 0$.
+Decompose $(p_j)_{j \text{ off line}}$ into a nonnegative sum of vectors $r$ supported on at most $3$ off-line indices each solving $\sum_j r_j s_j(y_j - c_j y_i) = 0$ (via vertices of the two-constraint probability polytope).
+Put $g(r) := \sum_j r_j c_j(y_j - c_j y_i)$.
+Since $\sum_{\text{all } j} p_j c_j(y_j - c_j y_i) = -\frac{1}{2}y_i$, subtracting the on-line sum ($c_j = 1$) gives
+\[
+\sum_r y_i^\top g(r) = P - \frac{1}{2} - y_i^\top \sum_{j \text{ on line}} p_j y_j < 0.
+\]
+Pick a component $r$ with $y_i^\top g(r) < 0$.
+Weight anchor $i$ by $1$ and the $\le 3$ off-line atoms by $\tau r_j$ ($\tau > 0$).
+Put $D := \sum r_j s_j^2 > 0$, $h := (\sum r_j c_j s_j)/D$, and $L := \sum r_j c_j^2 - Dh^2 \ge 0$.
+The weighted Gram determinant is $\tau D(1 + \tau L) > 0$, so the support of size $\le 4$ spans $\mathbb{R}^2$, and direct substitution confirms that the weighted normal equations are solved by
+\[
+B(\tau) = (y_i + v,\, -hv), \qquad v := \frac{\tau g(r)}{1 + \tau L}.
+\]
+Thus $\|B(\tau)\|_F^2 = 1 + 2\tau y_i^\top g(r) + O(\tau^2) < 1$ for small $\tau > 0$, proving $C_4 < 1/2$.
+
+For uniformity, pad every $7$-atom system to $7 \times 2$ matrices $X, Y$ with rows $X_i = \sqrt{p_i}u_i^\top$ and $Y_i = \sqrt{p_i}y_i^\top$.
+The constraint set $\mathcal{K} := \{(X,Y) : X^\top X = \frac{1}{2}I_2,\ X^\top Y = 0,\ \|Y\|_F = 1\}$ is compact.
+Suppose $(X^{(m)}, Y^{(m)}) \in \mathcal{K}$ has $C_4 \to 1/2$, and pass to a limit $(X^*, Y^*) \in \mathcal{K}$.
+Drop any rows with $X_i^* = 0$; the remaining indices $I_+$ form a valid moment system of mass $1$ and energy $E^* = \sum_{i \in I_+} \|Y_i^*\|^2 \le 1$.
+If $E^* > 0$, the strict argument produces a spanning $S \subseteq I_+$ ($|S| \le 4$) with weights $q_i^* > 0$ and cost $< E^*/2 \le 1/2$; if $E^* = 0$, any spanning pair in $I_+$ costs~$0$.
+Fixing positive row multipliers $w_i := q_i^*/\|X_i^*\|^2$ on $S$, the fitted matrix $B_S(X,Y)$ is continuous near $(X^*, Y^*)$ while the selected Gram matrix stays nonsingular, contradicting $C_4 \to 1/2$.
+\end{proof}
+
+\section{Closed Structural Classes}
+
+\begin{theorem}[Two real output lines]\label{thm:twolines}
+If all real output residuals $y_i$ lie on the union of at most two vector lines through the origin in $\mathbb{R}^2$, then $C_4 = 0$ and $C_3/E \le \frac{1}{2\sqrt{2}-1} < \frac{5}{8}$.
+\end{theorem}
+
+\begin{proof}
+Normalize $E = 1$. If some $y_i = 0$,~\eqref{eq:anchor} gives $C_4 = 0$ and $C_3 \le \frac{1}{2}H(2\Sigma) \le 1/4$.
+Assume $y_i \neq 0$ and partition atoms by output line; on each line write $y_i = r_i v$ with unit $v$.
+Linear independence of distinct lines splits $\sum p_i y_i u_i^\top = 0$ into $\sum_{i \in \text{group}} p_i r_i u_i = 0$ per group.
+Decompose each relation into minimal positive relations (size $\le 3$).
+If any spans $\mathbb{R}^2$, its $\le 3$ atoms give $C_3 = C_4 = 0$.
+Otherwise every atom belongs to a $2$-atom balancing pair on a feature line (opposite signs of $r_i$ under consistent orientation), and two such pairs on independent feature lines yield $C_4 = 0$.
+
+For $k = 3$, if a group spans multiple feature lines with $b := \min \|y_i\|^2$ in it, pairing a minimizing atom $i$ with a same-group balancing pair on another feature line allows matching the prediction of $B = y_i u_i^\top$, giving cost $b/2$.
+This yields $C_3 \le 1/2$ if the global minimum-norm atom lies in a multiline group; if every group uses one line, whitening forces two perpendicular lines, again giving $C_3 \le 1/2$.
+In the remaining case, a single-line group of mass $P \in (0,1)$ (unit feature $u$) has minimum squared radius $a$, while the other group is multiline with minimum $b$.
+Whitening gives $\sum_{j \text{ in other}} p_j \sin^2\angle(u, u_j) = 1/2$, so some other line has $\sin^2\angle(u, u_j) \ge 1/[2(1-P)]$.
+Using its zero-mean balancing pair with the minimizing single-line atom gives squared Frobenius norm $a/\sin^2\angle(u, u_j) \le 2(1-P)a$.
+Setting $t := 1-P \in (0,1)$ and combining $C_3 \le \min(b/2, ta)$ with $1 = E \ge (1-t)a + tb$ yields $C_3 \le \frac{t}{1 - t + 2t^2} \le \frac{1}{2\sqrt{2}-1} < \frac{5}{8}$ (maximized at $t = 1/\sqrt{2}$).
+\end{proof}
+
+\begin{theorem}[Equal-energy isotropic 6-atom systems at budget 4]\label{thm:6atom}
+If $N = 6$, $p_i = 1/6$, $\|y_i\| = 1$, and $\Sigma = \frac{1}{2}I_2$, then four equally weighted atoms span $\mathbb{R}^2$ and achieve $C_4 \le 1/4$.
+\end{theorem}
+
+\begin{proof}
+Form $X, U \in \mathbb{R}^{6 \times 2}$ with rows $u_i^\top/\sqrt{3}, y_i^\top/\sqrt{3}$, and complete their four orthonormal columns to a $6 \times 6$ orthogonal matrix $[X\ U\ Z]$.
+The rows of $Z$ have squared norm $1/3$; write them as $w_i^\top/\sqrt{3}$ with $\|w_i\| = 1$.
+Row orthogonality gives $a_{ij} + b_{ij} + c_{ij} = 0$ for $i \neq j$, where $a_{ij} = u_i^\top u_j$, $b_{ij} = y_i^\top y_j$, $c_{ij} = w_i^\top w_j$.
+There exists a pair $J = \{i, j\}$ ($i \neq j$) with $a_{ij}c_{ij} \ge 0$: otherwise the six tensors $u_k \otimes w_k \in \mathbb{R}^4$ would have pairwise strictly negative inner products, impossible for more than $d+1 = 5$ vectors in $\mathbb{R}^d$ (Rankin~\cite{Rankin1955}; directly, an affine dependence among $6$ vectors in $\mathbb{R}^4$ equates convex combinations on disjoint supports whose inner product would be simultaneously $\ge 0$ and $< 0$).
+
+Delete $J$ and give the remaining $4$ atoms equal weight.
+Put $G := X_J X_J^\top$, $a := a_{ij}$, $b := b_{ij}$, $c := c_{ij}$.
+Since $X^\top X = I_2$ and $X^\top U = 0$, the remaining Gram matrix $I_2 - X_J^\top X_J$ has eigenvalues $1 - (1 \pm a)/3 \ge 1/3 > 0$ (so it spans), and the fit is $B^\top = -(I_2 - X_J^\top X_J)^{-1} X_J^\top U_J = -X_J^\top(I_2 - G)^{-1}U_J$.
+Simultaneously diagonalizing $G$ and $U_J U_J^\top$ gives
+\[
+\frac{1}{2}\|B\|_F^2 = \frac{1}{6}\bigl(f_+ + f_- + b(f_+ - f_-)\bigr), \qquad
+f_\pm := f\Bigl(\frac{1 \pm a}{3}\Bigr), \qquad f(t) := \frac{t}{(1-t)^2}.
+\]
+Because $f_+ - f_-$ has the sign of $a$ and $b = -a - c$ with $ac \ge 0$, replacing $b$ by $-a$ yields an upper bound, and exact factorization gives
+\[
+\frac{1}{6}\bigl(f_+ + f_- - a(f_+ - f_-)\bigr) - \frac{1}{4} = -\frac{a^2(5a^2 + 4)}{4(4 - a^2)^2} \;\le\; 0. \qedhere
+\]
+\end{proof}
+
+\begin{proposition}[Classification of equal-energy isotropic 5-atom systems]\label{prop:5atom}
+If $N = 5$, $p_i = 1/5$, $\|y_i\| = 1$, and $\Sigma = \frac{1}{2}I_2$, then up to joint sign flips of $(u_i, y_i)$ and orthogonal transformations, $t_j = \zeta^j$ and $z_j = \zeta^{2j}$ ($\zeta = e^{2\pi\mathrm{i}/5}$), with exact three-point optimum $C_3 = (3 - \sqrt{5})/4$.
+\end{proposition}
+
+\begin{proof}
+Scale the two input and two output columns to orthonormality; the $1$-dimensional orthogonal complement is spanned by a vector whose entries all have magnitude $1/\sqrt{5}$.
+Flipping $(u_j, y_j)$ jointly makes this column constant.
+For the unit complex inputs $v_j$, orthogonality to $\mathbf{1}$ gives $\sum v_j = 0$ and isotropy gives $\sum v_j^2 = 0$, so the first two elementary symmetric polynomials $e_1, e_2$ vanish; since $|v_j| = 1$, $e_3 = \bar{e}_2 \prod v_k = 0$ and $e_4 = \bar{e}_1 \prod v_k = 0$.
+Hence $v_j^5 = \prod v_k$, giving $v_j = \zeta^j$ after rotation.
+The output columns span the real second-harmonic space, so $y_j = v_j^2$ after an orthogonal output map, whence $t_j = v_j^{-2} = v_j^3$ and $z_j = v_j = t_j^2$. Proposition~\ref{prop:cyclotomic} yields $C_3 = (3 - \sqrt{5})/4$.
+\end{proof}
+
+\section{Minimax Formulations and Exact Certificates}
+
+\begin{theorem}[Fixed-atom, comparator, and fixed-subspace minimax dualities]\label{thm:minimax}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{Fixed atoms, varying compatible masses.} Fix full-rank $x_i^\top \in \mathbb{R}^2$ and nonzero $y_i^\top \in \mathbb{R}^2$ admitting strictly positive compatible masses $p > 0$ with $\sum p_i y_i x_i^\top = 0$, and let $\mathcal{B}_k$ be the closure of all spanning $k$-sparse fits (via row multipliers). Then $\mathcal{B}_k$ is compact, and
+\begin{equation}\label{eq:minimax}
+\sup_{p > 0,\, \sum p_i y_i x_i^\top = 0} \frac{\inf_{B \in \mathcal{B}_k} \sum p_i \|Bx_i\|^2}{\sum p_i \|y_i\|^2}
+= \inf_{\pi,\, D \in \mathbb{R}^{2\times 2}} \max_i \frac{\mathbb{E}_{B \sim \pi}\|Bx_i\|^2 - \langle D, y_i x_i^\top\rangle_F}{\|y_i\|^2},
+\end{equation}
+where $\pi$ runs over probability measures on $\mathcal{B}_k$ (four matrices suffice by Carath\'eodory). If a positive $p^*$ attains the maximum $c > 0$ with certificate $(\pi, D)$ and $H := \mathbb{E}_\pi[B^\top B]$, complementary slackness forces
+\[
+c\left\|y_i + \frac{Dx_i}{2c}\right\|^2 = x_i^\top\left(H + \frac{D^\top D}{4c}\right)x_i \qquad (\forall i).
+\]
+\item \emph{Fixed comparator dual.} For arbitrary fixed observations $(x_i, y_i)$ (excluding trivial $(0,0)$ observations, which contribute zero to both losses and can be dropped without affecting the ratio) and any comparator $W$ with $d_i := \|y_i - Wx_i\|^2 > 0$, writing $L_p(B) := \sum p_i \|y_i - Bx_i\|^2$,
+\[
+\sup_{p > 0} \frac{\inf_{B \in \mathcal{B}_k} L_p(B)}{L_p(W)}
+= \min_\pi \max_i \frac{\mathbb{E}_{B \sim \pi}\|y_i - Bx_i\|^2}{d_i}.
+\]
+Comparators with $d_i > 0$ approximate any comparator having some zero losses by a generic arbitrarily small matrix perturbation (since $(x_i, y_i) \neq (0,0)$).
+\item \emph{Fixed subspaces.} Fix $X, U \in \mathbb{R}^{N \times 2}$ with $X^\top X = U^\top U = I_2$, $X^\top U = 0$, and vary $Y = UR$ with $\tr(RR^\top) = 1$. For diagonal multipliers $D_q$ on $\le k$ spanning rows, set $T_q := (X^\top D_q X)^{-1}X^\top D_q U$. The worst normalized loss over $R$ equals
+\[
+\min_{H \in \conv \overline{\{T_q^\top T_q\}}} \lambda_{\max}(H).
+\]
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+By $2 \times 2$ Cramer's rule, every spanning fit $B$ is a convex combination of the finitely many pair interpolants with weights proportional to $q_i q_j \det(x_i, x_j)^2$, so $\mathcal{B}_k$ is compact.
+All three identities then follow from Sion's minimax theorem~\cite{Sion1958} applied to the respective compact convex sets and bilinear payoffs:
+in~(1), normalize $\sum p_i \|y_i\|^2 = 1$ (positive $p$ are dense in the nonnegative compatible closure), apply Sion's theorem between $p$ and $\mathbb{E}_\pi[B^\top B]$, and dualize the linear program in $p$ (completing the square for complementary slackness);
+in~(2), change variables to $\tilde{p}_i \propto p_i d_i$ on the simplex;
+in~(3), pair $M = RR^\top \succeq 0$ ($\tr M = 1$) with $H \in \conv\overline{\{T_q^\top T_q\}}$ and use $\max_{\tr M = 1}\tr(MH) = \lambda_{\max}(H)$.
+\end{proof}
+
+\begin{proposition}[Exact rational dual certificates for a 7-atom continuum]\label{prop:dual-cert}
+For
+\[
+X = \begin{pmatrix} 1&0 \\ 0&1 \\ 1&1 \\ 1&-1 \\ 2&1 \\ 1&2 \\ 2&-1 \end{pmatrix}, \qquad
+A = \begin{pmatrix} 1&-2 \\ -1&3 \\ 2&1 \\ 0&3 \\ -1&-1 \\ 2&-2 \\ -3&1 \end{pmatrix}, \qquad
+Y = \bigl(I - X(X^\top X)^{-1}X^\top\bigr)A,
+\]
+uniform positive masses are compatible (leaving at least two free parameters). Using equal row multipliers on each $0$-indexed support: at $k=3$, mixing $(1,5,6)$ and $(3,5,6)$ in proportions $93:7$ with $100D = \bigl(\begin{smallmatrix}-22 & 24 \\ 1 & -20\end{smallmatrix}\bigr)$ gives maximum $560659/7066875 < 1/10$ in~\eqref{eq:minimax}; at $k=4$, mixing $(1,3,4,5)$ and $(1,3,5,6)$ in proportions $33:67$ with $100D = \bigl(\begin{smallmatrix}-14 & 15 \\ 2 & -12\end{smallmatrix}\bigr)$ gives maximum $381447541/7312728225 < 1/16$.
+\end{proposition}
+
+\begin{proposition}[Exact cyclotomic 3-point optima]\label{prop:cyclotomic}
+For the uniform harmonic systems $t_j = e^{2\pi\mathrm{i}j/n}$, $z_j = t_j^h$ with $(n,h) \in \{(5,2), (6,3), (7,3)\}$ and $x := 2\cos(2\pi/n)$, the exact squared-distance minima on all dihedral triangle types are listed in Table~\ref{tab:cyclotomic}. The overall three-point optima are $(3-\sqrt{5})/4$, $1/2$, and $1/4$ (attained on $\{0,1,3\}$ for $n=7$, sharpening the witness $2/7$ of~\cite{Zhang2026}).
+\end{proposition}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}rlll@{}}
+\toprule
+$n$ & Support representative & Exact squared distance & Minimal polynomial of $x$ \\
+\midrule
+5 & $\{0,1,2\}$ & $1 + x/2$ & $x^2 + x - 1$ \\
+5 & $\{0,1,3\}$ & $(1 - x)/2$ & $x^2 + x - 1$ \\
+6 & $\{0,1,2\}, \{0,1,3\}$ & $1/2$ & $x - 1$ \\
+6 & $\{0,2,4\}$ & $1$ & $x - 1$ \\
+7 & $\{0,1,2\}$ & $1 + x/2$ & $x^3 + x^2 - 2x - 1$ \\
+7 & $\{0,1,3\}$ & $1/4$ & $x^3 + x^2 - 2x - 1$ \\
+7 & $\{0,1,4\}$ & $2 - (x^2 + x)/2$ & $x^3 + x^2 - 2x - 1$ \\
+7 & $\{0,2,4\}$ & $x^2/2$ & $x^3 + x^2 - 2x - 1$ \\
+\bottomrule
+\end{tabular}
+\caption{Exact KKT-certified three-point optima for all dihedral triangle types ($x = 2\cos(2\pi/n)$).}\label{tab:cyclotomic}
+\end{table}
+
+\begin{proof}
+Each pair interpolant is $b_{ij} = \sum_{l=0}^{h-1} t_i^l t_j^{h-1-l}$, $a_{ij} = -t_i t_j \sum_{l=0}^{h-2} t_i^l t_j^{h-2-l}$.
+On a triangle $\{i,j,l\}$, Cramer's rule gives barycentric weights $\propto q_i q_j |t_i - t_j|^2$; any strictly positive target weights $(r_{ij}, r_{il}, r_{jl})$ are attained by $q_i \propto |t_j - t_l|^2 / r_{jl}$.
+Form the $3 \times 3$ real Gram matrix $G_{ef} = \operatorname{Re}(a_e \bar{a}_f + b_e \bar{b}_f)$ in terms of Chebyshev polynomials $T_m(x/2)$.
+Solving $G_{JJ} r_J = c\mathbf{1}$, $\mathbf{1}^\top r_J = 1$ on an active face $J \subseteq \{1,2,3\}$ and checking $r \ge 0$, $Gr \ge c\mathbf{1}$, $r^\top Gr = c$ certifies global optimality on that triangle.
+The script \texttt{explore.py} verifies all entries exactly in $\mathbb{Q}[x]/(\text{minpoly})$ with rational interval arithmetic on $[0.61803, 0.61804]$, $\{1\}$, and $[1.24697, 1.24698]$, covering all $10, 20, 35$ triangles by dihedral symmetry.
+\end{proof}
+
+\begin{proposition}[Dual-budget original-weight obstruction]\label{prop:orig-weight}
+There exists a $7$-atom moment system with distinct atoms for which every spanning support retaining its original relative weights has normalized cost $> 5/8$ at $k=3$ and $> 1/4$ at $k=4$, while equal selected weights on one cross pair beat both targets.
+\end{proposition}
+
+\begin{proof}
+Place a uniform centered equilateral triangle of squared radius $e := 20/21$ on one feature line of mass $1/2$, and on the perpendicular line (mass $1/2$) place $(-1, \pm s/100)$ and $(5/9, \pm s)$ with $s := 2\sqrt{14}/9$ and conditional weights $5/28, 5/28, 9/28, 9/28$.
+Both conditional means vanish; the second conditional energy is $e' = 1 + 1/40500$.
+Under original relative weights, the first-class costs for $1,2,3$ atoms are $e, e/4, 0$.
+In the second class, singles cost $\ge 1$, same-$x$-sign pairs cost $1$ and $25/81$, and an opposite-vertical-sign cross pair achieves minimum squared mean $d := ((9 - 5/100)s/14)^2 = 32041/113400 < 25/81$.
+Checking all spanning allocations gives exact restricted optima
+\[
+\frac{e + d}{e + e'} = \frac{700205}{1107014} > \frac{5}{8}, \qquad
+\frac{e/4 + d}{e + e'} = \frac{295205}{1107014} > \frac{1}{4}.
+\]
+Reweighting that cross pair to equal weights lowers its squared mean to $d' = ((4/9)^2 + (99s/100)^2)/4 = 88607/405000$, yielding ratios $3320249/5535070 < 5/8$ and $1295249/5535070 < 1/4$.
+\end{proof}
+
+\section{Reproducible Verification and Heuristic Search}
+
+Running \texttt{.venv/bin/python -B solutions/weighted\_data\_vector/explore.py} compiles \texttt{search.c} into a temporary directory and verifies Propositions~\ref{prop:dual-cert}--\ref{prop:orig-weight}, the polynomial identities of Theorems~\ref{thm:five-sixth} and~\ref{thm:6atom}, and reference sanity checks in exact rational/symbolic arithmetic.
+The optional \texttt{--suite} mode runs $84$ heuristic floating-point searches ($552{,}066$ differential-evolution evaluations with SLSQP refinement across all $22$ partitions of $5,6,7$ atoms among $\ge 3$ direction groups), recording largest heuristic witness costs $(0.527457, 0.200000)$, $(0.570584, 0.250000)$, and $(0.533421, 0.249988)$ for $N = 5, 6, 7$ at budgets $(3, 4)$; these are uncertified search records decoupled from all proofs above.
+
+\begin{thebibliography}{9}
+
+\bibitem{Rankin1955}
+R.~A.~Rankin.
+The closest packing of spherical caps in $n$ dimensions.
+\emph{Proceedings of the Glasgow Mathematical Association}, 2(3):139--144, 1955.
+
+\bibitem{Sion1958}
+M.~Sion.
+On general minimax theorems.
+\emph{Pacific Journal of Mathematics}, 8(1):171--176, 1958.
+
+\bibitem{Zhang2026}
+G.~Zhang.
+Exact recovery thresholds for weighted data selection in vector-valued linear regression.
+Preprint \href{https://arxiv.org/abs/2608.30254}{arXiv:2608.30254}, October 2026.
+
+\end{thebibliography}
+
+\end{document}

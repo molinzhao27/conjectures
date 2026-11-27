@@ -1,0 +1,249 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\spec}{spec}
+
+\title{\bfseries Contraction Bounds for Random-Permutation Coordinate Descent\\on General Quadratics}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: D.~Kim, J.~Lee, and C.~Yun, \emph{Provable Benefit of Random Permutations}\\
+\emph{over Uniform Sampling in Stochastic Coordinate Descent}, ICML~2025 (PMLR~267),\\
+\href{https://arxiv.org/abs/2505.23152}{arXiv:2505.23152}, Conjecture~4.1 (\texttt{conj:general})\\[0.35em]
+Companion scripts: \texttt{solutions/rpcd\_contraction/\{explore,\_certificate,\_groups\}.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We prove Conjecture~4.1 (\texttt{conj:general}) of Kim, Lee, and Yun (ICML~2025, \href{https://arxiv.org/abs/2505.23152}{arXiv:2505.23152}) across four general regimes:
+(1)~every normalized positive definite Hessian in dimension $n \le 3$, via an exact integer-arithmetic polynomial positivity certificate proving the stronger single-epoch energy contraction $L(A) \preceq (1 - s/2)^4 A$;
+(2)~every dimension $n \ge 1$ with $\lambda_{\max}(A) \le 2$, via operator convexity and the exact expected Gram identity $\mathbb{E}[\Gamma_p \Gamma_p^\top] = A + \frac{1}{3}F^2 + \frac{1}{6}\diag(F^2)$;
+(3)~every Hessian sign-conjugate to one with nonpositive off-diagonal entries, via a deterministic weighted-$\ell_\infty$ per-epoch bound; and
+(4)~arbitrary block-diagonal direct sums of covered Hessians.
+Unrestricted Conjecture~4.1 remains open for $n \ge 4$ with $\lambda_{\max}(A) > 2$, where single-epoch energy contraction cannot in general certify the target bound.
+We also report exhaustive-permutation searches across $8{,}079$ instances (up to $n = 258$) and exact algebraic spectral-radius certificates for four asymmetric rational examples in dimensions $3$--$6$, all strictly below $B_n(s)$.
+\end{abstract}
+
+\section{Setup and Spectral-Radius Equivalence}
+
+For a symmetric positive definite Hessian $A \succ 0$ with $D = \diag(A)$, changing variables to $D^{1/2} x$ conjugates every coordinate-descent step and preserves asymptotic squared-norm rates by norm equivalence~\cite[\S 2]{KimLeeYun2025}.
+We therefore assume $A \succ 0$ has unit diagonal and write $s := \sigma := \lambda_{\min}(A) \in (0, 1]$.
+Conjecture~4.1 (\texttt{conj:general}) of~\cite{KimLeeYun2025} proposes that the asymptotic per-epoch expected squared-norm contraction rate of random-permutation coordinate descent (RPCD) is at most
+\[
+B_n(s) := \max\!\left\{\left(1 - \frac{1}{n}\right)^{\!n},\; \left(1 - \frac{s}{n}\right)^{\!2n}\right\}.
+\]
+
+Put $U_i := I - e_i e_i^\top A$.
+Each epoch draws an independent uniform permutation $p \in S_n$ and applies $M_p := U_{p(n)} \cdots U_{p(1)}$.
+Let $\Gamma_p$ have unit diagonal and off-diagonal entry $a_{ij}$ in position $(i, j)$ if $j$ precedes $i$ in $p$ (and~$0$ otherwise).
+The coordinate decrements satisfy $\Gamma_p(x - M_p x) = Ax$, whence $M_p = I - \Gamma_p^{-1} A$.
+Define $L(X) := \mathbb{E}_p[M_p^\top X M_p]$, so $\mathbb{E}\|x_K\|_2^2 = x_0^\top L^K(I) x_0$.
+
+\begin{lemma}[Spectral radius and root limits]\label{lem:spectral}
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For every $K \ge 1$ and $X \in \mathbb{R}^{n \times n}$, $\|L^K(X)\| \le \|X\|\,\|L^K(I)\|$ in spectral norm, with equality at $X = I$. Consequently $\lim_{K \to \infty}(\tr L^K(I))^{1/K} = \rho(L)$, and restricting $L$ to any $L$-invariant real subspace containing $I$ preserves $\rho(L)$.
+\item For every deterministic $x_0 \neq 0$, the root limit $\lim_{K \to \infty}(\mathbb{E}\|x_K\|_2^2)^{1/K}$ exists, is at most $\rho(L)$, and is attained with equality by at least one standard basis vector $e_i$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(1) For a product $T$ of $K$ independent epochs, Cauchy--Schwarz on $\mathbb{E}[(Tu)^\top X(Tv)]$ gives $\|L^K(X)\| \le \|X\|\,\|L^K(I)\|$, attained at $X = I$.
+Since $L^K(I) \succeq 0$, $\|L^K(I)\| \le \tr L^K(I) \le n\|L^K(I)\|$, so Gelfand's formula gives $\lim_K (\tr L^K(I))^{1/K} = \rho(L)$, and the same holds on any invariant subspace containing $I$.
+
+(2) Conjugation by $A^{1/2}$ sends $U_i$ to the orthogonal projection $I - v_i v_i^\top$ ($v_i = A^{1/2} e_i$), so reversing $p$ transposes the conjugated epoch matrix.
+Uniform reversal invariance makes the conjugated operator self-adjoint in the Frobenius inner product.
+Hence $\mathbb{E}[x_{2k}^\top A x_{2k}]$ is a finite sum of real coefficients times nonnegative eigenvalue squares raised to the $k$th power; collecting equal bases ensures its $(2k)$th root converges (unless eventually zero).
+Since energy is nonincreasing at every coordinate step, successive even terms sandwich the intervening odd term, and norm equivalence transfers the root limit to $\mathbb{E}\|x_K\|_2^2$.
+Finally, $\tr L^K(I) = \sum_{i=1}^n e_i^\top L^K(I) e_i$ implies some $e_i$ attains $\rho(L)$.
+\end{proof}
+
+\section{All-Dimensional Contraction for \texorpdfstring{$\lambda_{\max}(A) \le 2$}{lambda\_max(A) <= 2}}
+
+Because $a_{ii} = 1$ and each update zeroes the updated gradient entry, a coordinate decrement $d_i$ reduces $x^\top A x$ by $d_i^2$.
+Summing over an epoch yields the exact energy identity
+\begin{equation}\label{eq:energy}
+A - L(A) = A H A, \qquad H := \mathbb{E}_p\bigl[\Gamma_p^{-\top}\Gamma_p^{-1}\bigr] = \mathbb{E}_p\bigl[(\Gamma_p \Gamma_p^\top)^{-1}\bigr].
+\end{equation}
+Hence $\lambda_{\min}(A^{1/2} H A^{1/2}) \ge 1 - q$ implies $L(A) \preceq q A$ and therefore $\rho(L) \le q$.
+
+\begin{theorem}[All dimensions with $\lambda_{\max}(A) \le 2$]\label{thm:lam2}
+For every $n \ge 1$ and every unit-diagonal $A \succ 0$ with $\lambda_{\max}(A) \le 2$, Conjecture~4.1 holds.
+\end{theorem}
+
+\begin{proof}
+The case $n = 1$ converges in one update; assume $n \ge 2$.
+Set $F := A - I$ (zero diagonal).
+For $i = j$, $(\mathbb{E}[\Gamma_p \Gamma_p^\top])_{ii} = 1 + \sum_{k \neq i}\Pr[k \prec i]F_{ik}^2 = 1 + \frac{1}{2}(F^2)_{ii}$.
+For $i \neq j$, $(\mathbb{E}[\Gamma_p \Gamma_p^\top])_{ij} = F_{ij} + \sum_{k \neq i, j}\Pr[k \prec i, j]F_{ik} F_{jk} = F_{ij} + \frac{1}{3}(F^2)_{ij}$.
+Thus
+\[
+\mathbb{E}_p[\Gamma_p \Gamma_p^\top] = A + J, \qquad J := \frac{1}{3}F^2 + \frac{1}{6}\diag(F^2).
+\]
+Taking expectations in $v^\top G^{-1} v = \max_z (2v^\top z - z^\top G z)$ for $G = \Gamma_p \Gamma_p^\top$ and maximizing over deterministic $z$ gives operator convexity $H = \mathbb{E}[G^{-1}] \succeq (A + J)^{-1}$.
+With $h := \lambda_{\max}(A^{-1/2} J A^{-1/2})$, we obtain $A^{1/2} H A^{1/2} \succeq (1 + h)^{-1} I$, so the single-epoch energy contraction factor is at most $h/(1 + h)$.
+
+Put $t := 1 - s \in [0, 1)$.
+Since $\spec(F) \subseteq [-t, 1]$, the scalar inequality $y^2 \le (1 - t)y + t$ on $[-t, 1]$ yields $F^2 \preceq (1 - t)F + t I$.
+Taking diagonals ($\diag(F) = 0$) gives $\diag(F^2) \preceq t I$, so
+\[
+h \;\le\; \max_{z \in [s, 2]} \frac{(z - 1)^2/3 + t/6}{z}.
+\]
+Because the scalar objective is convex on $z > 0$, it is bounded by its endpoint values
+\[
+h_s := \frac{t(3 - 2s)}{6s}, \qquad h_2 := \frac{2 + t}{12} \le \frac{1}{4}.
+\]
+At $z = 2$, $h_2/(1 + h_2) \le 1/5 < 1/4$.
+At $z = s$: for $s \ge 1/2$, $h_s \le 1/3$ gives $h_s/(1 + h_s) \le 1/4$; for $s \le 1/2$, $h_s/(1 + h_s) \le t^2$ since
+\[
+t^2(3 + s + 2s^2) - t(3 - 2s) = s^2(1 - s)(1 - 2s) \ge 0.
+\]
+Finally, $B_n(s) \ge (1 - 1/n)^n \ge 1/4$ (monotone in $n \ge 2$) and $B_n(s) \ge (1 - s/n)^{2n} \ge (1 - s)^2 = t^2$ (Bernoulli's inequality).
+Hence $h/(1 + h) \le \max\{1/4, (1 - s)^2\} \le B_n(s)$.
+(In particular, all $2 \times 2$ unit-diagonal Hessians have $\lambda_{\max}(A) < \tr(A) = 2$ and are covered.)
+\end{proof}
+
+\section{All Normalized Hessians in Dimension Three}
+
+\begin{theorem}[All $3 \times 3$ normalized Hessians]\label{thm:dim3}
+For every $3 \times 3$ unit-diagonal $A \succ 0$ with $s = \lambda_{\min}(A) \in (0, 1]$,
+\begin{equation}\label{eq:dim3}
+L(A) \;\preceq\; \left(1 - \frac{s}{2}\right)^{\!4} A.
+\end{equation}
+Since $(1 - s/3)^3 - (1 - s/2)^2 = s^2(\frac{1}{12} - \frac{s}{27}) \ge 0$ on $[0, 1]$, this implies $\rho(L) \le (1 - s/2)^4 \le (1 - s/3)^6 \le B_3(s)$ and proves Conjecture~4.1 for all $n \le 3$.
+\end{theorem}
+
+\begin{proof}
+The case $s = 1$ gives $A = I$ and $L(A) = 0$.
+Assume $s \in (0, 1)$, so $G := (A - s I)/(1 - s) \succeq 0$ has unit diagonal and rank at most~$2$.
+Represent $G$ as the Gram matrix of three unit vectors in $\mathbb{R}^2$.
+Their directions modulo sign lie on $\mathbb{R}/\pi\mathbb{Z}$; cutting the circle inside a largest gap $\gamma \ge \pi/3$ and ordering the remaining directions from left to right yields two consecutive gaps $\alpha, \beta \in [0, \pi/2]$ (each at most $\gamma$, including coincident directions).
+Choosing signs along this arc conjugates $A$ by a signed permutation (an orthogonal symmetry of RPCD), reducing to $G_{12} = \cos\alpha$, $G_{23} = \cos\beta$, $G_{13} = \cos(\alpha + \beta)$.
+
+By continuity of~\eqref{eq:dim3} in $(\alpha, \beta)$, it suffices to prove~\eqref{eq:dim3} on $(\alpha, \beta) \in [0, \pi/2)^2$ (with $\alpha = \pi/2$ or $\beta = \pi/2$ obtained as limits, and $s = 1$ handled separately above).
+Parameterize $(s, \alpha, \beta) \in (0, 1) \times [0, \pi/2)^2$ rationally by $u, v, w \ge 0$:
+\[
+s = \frac{u}{1 + u}, \qquad \tan\frac{\alpha}{2} = \frac{v}{1 + v}, \qquad \tan\frac{\beta}{2} = \frac{w}{1 + w}.
+\]
+Set $(b, c, d) := ((1 + v)^2 + v^2,\; 1 + 2v,\; 2v(1 + v))$, $(f, g, h) := ((1 + w)^2 + w^2,\; 1 + 2w,\; 2w(1 + w))$, and $D := (1 + u)bf$.
+Then $N := DA$ is an integer-coefficient matrix polynomial with diagonal $D$ and off-diagonals $N_{12} = cf$, $N_{23} = bg$, $N_{13} = cg - dh$.
+For each ordering $p = (i, j, k) \in S_3$, $V_p := D^2 \Gamma_p^{-1}$ has diagonal $D^2$ and off-diagonal entries $V_{ji} = -D N_{ji}$, $V_{kj} = -D N_{kj}$, $V_{ki} = N_{kj} N_{ji} - D N_{ki}$ (all others zero).
+With $q := (1 - s/2)^4$, define the integer-coefficient matrix polynomial
+\[
+P(u, v, w) := 16\!\left(\sum_{p \in S_3} V_p^\top V_p\right)\!N
+- 6\bigl([2(1 + u)]^4 - (2 + u)^4\bigr)(1 + u)(bf)^5 I
+= 96 D^5\bigl[HA - (1 - q)I\bigr].
+\]
+Since $HA$ is similar to the symmetric matrix $A^{1/2} H A^{1/2}$, all eigenvalues of $P$ are real.
+Write $\det(z I + P) = z^3 + e_1 z^2 + e_2 z + e_3$.
+If $e_1, e_2, e_3 \ge 0$ on $[0, \infty)^3$, then $\det(z I + P) > 0$ for all $z > 0$, so $P$ has no negative eigenvalues and~\eqref{eq:energy} yields~\eqref{eq:dim3}.
+
+From the displayed formulas, each entry of $P$ has degrees at most $(5, 10, 10)$ in $(u, v, w)$, so $e_k$ has degrees at most $(5k, 10k, 10k)$.
+Evaluating $e_1 = \tr P$, $e_2 = \frac{1}{2}[(\tr P)^2 - \tr(P^2)]$, and $e_3 = \det P$ on the integer lattice $\prod_{r=1}^3 \{0, \dots, d_r\}$ (using $(v, w)$-swap symmetry) and applying exact scaled integer Lagrange inversion along each axis (\texttt{\_certificate.py}, asserting every division by $d!$ is exact) recovers all monomial coefficients identically (Table~\ref{tab:cert}): every coefficient is nonnegative, proving $e_1, e_2, e_3 \ge 0$ throughout $[0, \infty)^3$.
+\end{proof}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Invariant & Degree box $(d_u, d_v, d_w)$ & Positive & Zero & Negative \\
+\midrule
+$e_1 = \tr P$ & $(5, 10, 10)$ & $726$ & $0$ & $0$ \\
+$e_2 = \frac{1}{2}[(\tr P)^2 - \tr(P^2)]$ & $(10, 20, 20)$ & $4{,}848$ & $3$ & $0$ \\
+$e_3 = \det P$ & $(15, 30, 30)$ & $14{,}412$ & $964$ & $0$ \\
+\bottomrule
+\end{tabular}
+\caption{Exact integer monomial coefficient counts for the $n = 3$ positivity certificate.}\label{tab:cert}
+\end{table}
+
+\section{Coordinate Comparison, Direct Sums, and Structural Scope}
+
+\begin{proposition}[Weighted-$\ell_\infty$ comparison and sign-conjugate M-matrices]\label{prop:mmat}
+Let $C := |I - A|$ entrywise.
+If $r := \rho(C) < 1$, then for every deterministic permutation sequence the per-epoch squared-norm rate is at most $r^2$.
+In particular, if $A$ is sign-conjugate to a matrix with all off-diagonal entries nonpositive (a symmetric M-matrix; cf.~\cite{Varga2000}), then $r = 1 - s$ and $\rho(L) \le (1 - s)^2 \le B_n(s)$.
+\end{proposition}
+
+\begin{proof}
+For any $r' \in (r, 1)$, the Neumann series gives $w := (I - C/r')^{-1}\mathbf{1} > 0$ with $Cw \le r' w$.
+If $|x_j| \le \alpha w_j$ for all $j$, each updated coordinate obeys $|x_i'| \le \sum_j C_{ij}\alpha w_j \le r'\alpha w_i$.
+Iterating in the weighted $\ell_\infty$ norm, passing to squared Euclidean norm, and letting $r' \downarrow r$ yields rate $\le r^2$ for every permutation order.
+If $DAD$ has nonpositive off-diagonal entries for a sign matrix $D$, then $C = I - DAD$ is orthogonally similar to $I - A$ and entrywise nonnegative, so Perron--Frobenius gives $r = \lambda_{\max}(I - A) = 1 - s$, whence $(1 - s)^2 \le B_n(s)$.
+\end{proof}
+
+\begin{proposition}[Block-diagonal direct sums]\label{prop:blocks}
+If $A = A_1 \oplus \cdots \oplus A_m$ is a block-diagonal direct sum of unit-diagonal blocks each satisfying Conjecture~4.1, then $A$ satisfies Conjecture~4.1.
+\end{proposition}
+
+\begin{proof}
+Restricting an i.i.d.\ uniform permutation of $\{1, \dots, n\}$ to block $j$ (size $n_j$) yields i.i.d.\ uniform permutations of that block.
+Expected squared norms add across blocks, so $\rho(L_A) = \max_j \rho(L_{A_j}) \le \max_j B_{n_j}(\lambda_{\min}(A_j)) \le B_n(s)$, using $\lambda_{\min}(A_j) \ge s$ and monotonicity of $B_n(s)$ (nondecreasing in $n$ since $(1 - a/n)^n$ increases in $n \ge a$ for $a \in [0, 1]$, and nonincreasing in $s$).
+\end{proof}
+
+\begin{remark}[Scope caveat and single-epoch barrier]
+Unrestricted Conjecture~4.1 remains open for $n \ge 4$ with $\lambda_{\max}(A) > 2$.
+In Appendix~E.2 of~\cite{KimLeeYun2025}, Kim, Lee, and Yun show that the single-epoch energy contraction factor $\|A^{-1/2} L(A) A^{-1/2}\|$ exceeds $B_n(\sigma)$ for large $n$ and $\sigma > 1/2$, explaining why single-epoch energy arguments (as in Theorems~\ref{thm:lam2} and~\ref{thm:dim3}) cannot settle the full conjecture without a multi-epoch analysis (see also~\cite{LeeWright2019,SunLuoYe2020,WrightLee2020}).
+\end{remark}
+
+\section{Exact Algebraic Certificates and Permutation Searches}
+
+Running \texttt{.venv/bin/python -B solutions/rpcd\_contraction/explore.py} verifies Table~\ref{tab:cert} and executes:
+\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
+\item \emph{Exact rational algebraic spectral-radius certificates ($n = 3, 4, 5, 6$):} For $A = (25I + WW^\top)/50$ ($s = 1/2$, $W$ formed from the first $n$ rows of $(5,0),(3,4),(4,-3),(0,5),(4,3),(3,-4)$), exact shifted characteristic polynomials of the symmetric-subspace operator $C_n$ (divisor $d_n = n!\,50^{2n}$) isolate $\rho(L)$ in $(0.146414221, 0.146414222)$ ($n = 3$), $(0.157833435, 0.157833436)$ ($n = 4$), $(0.187002136, 0.187002137)$ ($n = 5$), and $(0.198144651, 0.198144652)$ ($n = 6$), all strictly below $(1 - 1/(2n))^{2n}$.
+\item \emph{Exhaustive-permutation searches:} $2{,}415$ dense matrices ($n = 3, \dots, 8$; max $(\rho - B_n(s))/s = -0.169414$), $3{,}744$ differential-evolution planar-angle evaluations ($n = 3, \dots, 6$; max $-0.185616$), and $1{,}920$ two-group trials up to $n = 258$ via exact $5$-dimensional invariant-subspace dynamic programming in \texttt{\_groups.py} (matching full tensor enumeration within $10^{-11}$ on $9$ controls; max $-0.01292736$ at $(4, 150)$).
+\end{itemize}
+All assertions pass.
+
+\begin{thebibliography}{9}
+
+\bibitem{KimLeeYun2025}
+D.~Kim, J.~Lee, and C.~Yun.
+Provable benefit of random permutations over uniform sampling in stochastic coordinate descent.
+In \emph{Proceedings of the 42nd International Conference on Machine Learning (ICML)}, PMLR~267, 2025.
+Preprint \href{https://arxiv.org/abs/2505.23152}{arXiv:2505.23152}.
+
+\bibitem{LeeWright2019}
+C.-P.~Lee and S.~J.~Wright.
+Random permutations fix a worst case for cyclic coordinate descent.
+\emph{IMA Journal of Numerical Analysis}, 39(3):1246--1275, 2019.
+
+\bibitem{SunLuoYe2020}
+R.~Sun, Z.-Q.~Luo, and Y.~Ye.
+On the efficiency of random permutation for ADMM and coordinate descent.
+\emph{Mathematics of Operations Research}, 45(1):233--271, 2020.
+
+\bibitem{Varga2000}
+R.~S.~Varga.
+\emph{Matrix Iterative Analysis}.
+2nd edition, Springer, 2000.
+
+\bibitem{WrightLee2020}
+S.~J.~Wright and C.-P.~Lee.
+Analyzing random permutations for cyclic coordinate descent.
+\emph{Mathematics of Computation}, 89:2217--2248, 2020.
+
+\end{thebibliography}
+
+\end{document}

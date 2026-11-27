@@ -15,6 +15,10 @@ solutions/mallat_zeitouni_pca/
 solutions/ctln_target_free_clique/
 solutions/shallow_relu_rep_cost/
 solutions/adamw_heavy_tail/
+solutions/poly_nn_unimodal/
+solutions/one_bit_mean_est/
+solutions/linear_code_dist_ht/
+solutions/dca_tight_rates/
 solutions/**/REFEREE_REPORT.md
 
 # OS

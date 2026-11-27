@@ -1,0 +1,271 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Id}{Id}
+
+\title{\bfseries Proof of the KernelSHAP-IQ Inverse and Split-SII Conjectures}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: F.~Fumagalli, M.~Muschalik, P.~Kolpaczki, E.~H\"ullermeier, and B.~Hammer,\\
+\emph{KernelSHAP-IQ: Weighted Least Square Optimization for Shapley Interactions},\\
+ICML 2024, \href{https://arxiv.org/abs/2405.10852}{arXiv:2405.10852}, Section~3.3, Conjectures~\texttt{conj\_inverse} and~\texttt{conj\_sii}\\[0.35em]
+Companion verification script: \texttt{solutions/kernelshap\_iq\_inverse/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We prove Conjectures~3.8 (\texttt{conj\_inverse}) and~3.9 (\texttt{conj\_sii}) of Fumagalli et~al.\ (ICML~2024, \href{https://arxiv.org/abs/2405.10852}{arXiv:2405.10852}) for every interaction order $k \ge 1$ and player count $n \ge 2k$.
+Using Boolean M\"obius inversion and the harmonic decomposition of the Johnson scheme on $\binom{N}{k}$ (Gottlieb, 1966; Delsarte, 1973), we show that the boundary design rows span precisely the lower-order subspace $L$, while the weighted interior Gram matrix acts on its orthogonal complement $H = L^\perp$ as $(n - 2k + 1)\Id_H$ with no cross-block coupling.
+Consequently, the limiting precision matrix equals $A_k = P / (n - 2k + 1)$, where $P$ is the orthogonal projector onto $H$, yielding both the conjectured entry formula for $A_k$ and the single-column projection identity $w_t A_k x_T = q_T$ for every interior coalition $T$.
+This establishes the split weighted least-squares representation of the order-$k$ Shapley Interaction Index (SII) for arbitrary games $\nu : 2^N \to \mathbb{R}$ (even without requiring $\nu(\emptyset) = 0$).
+\end{abstract}
+
+\section{Setup and Conjectures}
+
+Let $N = \{1, \dots, n\}$ with integers $k \ge 1$ and $n \ge 2k$. We index vectors and matrices acting on order-$k$ interactions by the $\binom{n}{k}$-element family $\binom{N}{k}$ of $k$-subsets of $N$, with the standard Euclidean inner product $\langle u, v \rangle = \sum_{|S|=k} u(S)v(S)$.
+
+For each coalition $T \subseteq N$, put $t := |T|$ and let $x_T \in \mathbb{R}^{\binom{n}{k}}$ denote the transpose of row $T$ of the KernelSHAP-IQ design matrix $X_k \in \mathbb{R}^{2^n \times \binom{n}{k}}$. Using the Bernoulli number convention $B_0 = 1$, $B_1 = -1/2$ (and $B_{2m+1} = 0$ for $m \ge 1$), the entries of $X_k$ are
+\[
+x_T(S) := \lambda(k, |T \cap S|), \qquad
+\lambda(k, j) := \sum_{r=1}^j \binom{j}{r} B_{k-r} \qquad (0 \le j \le k),
+\]
+with $\lambda(k, 0) = 0$. Partition $2^N$ into the \emph{interior} and \emph{boundary} coalitions
+\[
+I := \{T \subseteq N : k \le |T| \le n - k\}, \qquad E := 2^N \setminus I.
+\]
+For $M = \mu_\infty > 0$, let $W_k \in \mathbb{R}^{2^n \times 2^n}$ be the diagonal matrix with diagonal entries
+\[
+(W_k)_{TT} := \begin{cases}
+w_t := \binom{n - 2k}{t - k}^{-1}, & T \in I, \\[4pt]
+M, & T \in E,
+\end{cases}
+\]
+and set $G(M) := X_k^\top W_k X_k$. For $0 \le a \le n - k$, define the SII weight function
+\[
+m_k(a) := \frac{a!\,(n - k - a)!}{(n - k + 1)!} = \frac{1}{(n - k + 1)\binom{n - k}{a}},
+\]
+and for each $T \subseteq N$ define the vector $q_T \in \mathbb{R}^{\binom{n}{k}}$ by
+\[
+q_T(S) := (-1)^{k - |T \cap S|}\, m_k\bigl(t - |T \cap S|\bigr) \qquad (|S| = k).
+\]
+Let $Q_k \in \mathbb{R}^{\binom{n}{k} \times 2^n}$ have column $q_T$ for $T \in E$ and zero for $T \in I$. For any game $\nu : 2^N \to \mathbb{R}$, set $y_1 := \nu$ and, for $k \ge 2$, $y_k := \nu - \hat{\nu}_{k-1}$, where $\hat{\nu}_{k-1}(T) = \sum_{R \subseteq T,\, 1 \le |R| < k} \Phi_{k-1}(R)$ is any lower-order approximation (such as the $k$-SII residual~\cite{Bordt2023}). Put $y_k^+ := \mathbf{1}_I \odot y_k$ and $y_k^- := \mathbf{1}_E \odot y_k$.
+
+\begin{quote}
+\textbf{Conjectures~3.8 (\texttt{conj\_inverse}) and~3.9 (\texttt{conj\_sii}) (\href{https://arxiv.org/abs/2405.10852}{arXiv:2405.10852}, \S 3.3).}
+\emph{For every $k \ge 1$ and $n \ge 2k$, the limiting precision matrix $A_k := \lim_{M \to \infty} G(M)^{-1}$ exists and satisfies
+\begin{equation}\label{eq:conj-inv}
+(A_k)_{S, U} = \frac{(-1)^{k - |S \cap U|}}{(n - k + 1)\binom{n - k}{k - |S \cap U|}} \qquad (|S| = |U| = k),
+\end{equation}
+and the order-$k$ Shapley Interaction Index~\cite{Grabisch1999} admits the split WLS representation
+\begin{equation}\label{eq:conj-sii}
+\phi_k^{\mathrm{SII}}(\nu) = Q_k y_k^- + \lim_{M \to \infty} \argmin_{b \in \mathbb{R}^{\binom{n}{k}}} \left\|W_k^{1/2}\bigl(y_k^+ - X_k b\bigr)\right\|_2^2.
+\end{equation}}
+\end{quote}
+
+Fumagalli et~al.~\cite{Fumagalli2024} proved~\eqref{eq:conj-inv}--\eqref{eq:conj-sii} for $k = 1, 2$ by direct matrix inversion and left $k > 2$ open. We prove both conjectures for all $k \ge 1$ and $n \ge 2k$ in three short steps.
+
+\section{Boundary Row Space and Harmonic Decomposition}
+
+For any $R \subseteq N$, define $v_R \in \mathbb{R}^{\binom{n}{k}}$ by $v_R(S) := \mathbf{1}_{R \subseteq S}$. Define the lower-order subspace and the top harmonic space of the Johnson scheme~\cite{Gottlieb1966,Delsarte1973} by
+\[
+L := \spn_{\mathbb{R}}\{v_R : |R| = k - 1\}, \qquad H := L^\perp,
+\]
+and let $P$ be the orthogonal projector onto $H$.
+
+\begin{lemma}[Exact boundary row span]\label{lem:boundary}
+For every $k \ge 1$ and $n \ge 2k$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Every $v_R$ with $|R| = r < k$ belongs to $L$.
+\item Defining $f_T(S) := \mathbf{1}_{S \subseteq T}$, every $T \subseteq N$ satisfies
+\begin{equation}\label{eq:xT-expand}
+x_T = \sum_{r=1}^k B_{k-r} \sum_{\substack{R \subseteq T \\ |R| = r}} v_R,
+\qquad x_T - f_T \in L.
+\end{equation}
+\item $\spn_{\mathbb{R}}\{x_T : T \in E\} = L$. Consequently, $D_E := \sum_{T \in E} x_T x_T^\top$ vanishes on $H$ and is strictly positive definite on $L$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(1) For $|R| = r < k$, every $k$-set $S \supseteq R$ contains exactly $k - r$ subsets $D$ of size $k - 1$ with $R \subseteq D \subseteq S$, so $\sum_{D \supseteq R,\, |D| = k-1} v_D = (k - r)v_R$. Since $k - r \ge 1$, $v_R \in L$.
+
+(2) Counting $r$-subsets $R \subseteq T \cap S$ yields $\binom{|T \cap S|}{r} = \sum_{R \subseteq T,\, |R|=r} v_R(S)$. Substituting into $x_T(S) = \sum_{r=1}^k B_{k-r}\binom{|T \cap S|}{r}$ gives the expansion in~\eqref{eq:xT-expand}. Its $r = k$ term is $B_0 \sum_{R \subseteq T,\, |R|=k} v_R = f_T$ (as $B_0 = 1$ and $v_R(S) = \mathbf{1}_{R=S}$ when $|R|=k$), while all $r < k$ terms lie in $L$ by~(1). Thus $x_T - f_T \in L$.
+
+(3) If $|T| < k$, then $f_T = 0$, so $x_T \in L$. If $|T| > n - k$, then $|N \setminus T| < k$, and inclusion--exclusion gives
+\[
+f_T(S) = \mathbf{1}_{S \cap (N \setminus T) = \emptyset} = \sum_{R \subseteq N \setminus T} (-1)^{|R|} v_R(S) \in L
+\]
+by~(1), so $x_T = (x_T - f_T) + f_T \in L$. Hence $\spn\{x_T : T \in E\} \subseteq L$.
+
+Conversely, if $k = 1$, then $L = \spn\{\mathbf{1}\}$, and since $n \ge 2$ we have $N \in E$ with $x_N = B_0 \mathbf{1} = \mathbf{1}$. If $k \ge 2$ and $|R| = k - 1$, every $D \subseteq R$ has $|D| < k$ and thus lies in $E$. Applying Boolean M\"obius inversion to~\eqref{eq:xT-expand} over subsets of $R$ yields
+\[
+\sum_{D \subseteq R} (-1)^{|R| - |D|} x_D
+= \sum_{r=1}^{k-1} B_{k-r} \sum_{\substack{U \subseteq R \\ |U| = r}} v_U \sum_{U \subseteq D \subseteq R} (-1)^{|R| - |D|}
+= B_1 v_R,
+\]
+because the inner alternating sum vanishes unless $U = R$ ($r = k - 1$). Since $B_1 = -1/2 \neq 0$, we obtain $v_R \in \spn\{x_T : T \in E\}$ for all $|R| = k - 1$. Hence $\spn\{x_T : T \in E\} = L$, so $D_E = \sum_{T \in E} x_T x_T^\top$ has kernel $L^\perp = H$ and is strictly positive definite on $L$.
+\end{proof}
+
+\section{Block-Diagonal Gram Action and Limiting Precision Matrix}
+
+Any matrix $M_0$ on $\binom{N}{k}$ whose entries depend only on $j = |S \cap U|$ is a linear combination of the symmetric Johnson incidence matrices
+\[
+K_r(S, U) := \binom{|S \cap U|}{r} = \sum_{|R| = r} v_R(S) v_R(U) \qquad (0 \le r \le k),
+\]
+because $\bigl\{\binom{j}{r}\bigr\}_{r=0}^k$ is a triangular basis of functions on $\{0, \dots, k\}$. For $r < k$, $K_r$ maps into $L$ and annihilates $H$; for $r = k$, $K_k = \Id$. Thus every $S_n$-equivariant matrix preserves the orthogonal decomposition $\mathbb{R}^{\binom{n}{k}} = H \oplus L$ and acts on $H$ by its top binomial coefficient.
+
+\begin{lemma}[Interior Gram action and limiting inverse]\label{lem:gram}
+Let $c := n - 2k + 1$ and $G_I := \sum_{T \in I} w_t x_T x_T^\top$. Then $G(M) = G_I + M D_E$ preserves $H \oplus L$, satisfies $G(M)|_H = c\,\Id_H$, and is strictly positive definite for all $M > 0$. Moreover, in operator norm,
+\begin{equation}\label{eq:lim-inv}
+A_k := \lim_{M \to \infty} G(M)^{-1} = \frac{1}{c}\,P.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For each interior size $t \in \{k, \dots, n - k\}$, set $G_t := \sum_{|T|=t} x_T x_T^\top$ and $C_t := \sum_{|T|=t} f_T f_T^\top$. Both are $S_n$-equivariant, hence preserve $H \oplus L$. By~\eqref{eq:xT-expand}, $P x_T = P f_T$, so $P G_t P = P C_t P$ and $G_t|_H = C_t|_H$. For $|S \cap U| = j$, we have $|S \cup U| = 2k - j$, and counting $t$-sets containing $S \cup U$ gives
+\[
+C_t(S, U) = \binom{n - 2k + j}{n - t} = \sum_{r=0}^k \binom{j}{r}\binom{n - 2k}{n - t - r}
+\]
+by Vandermonde's convolution (valid for all $0 \le j \le k$ and $k \le t \le n - k$, with out-of-range lower indices equal to $0$; when $t < 2k - j$, $n - t > n - 2k + j$ and both sides vanish). The $r = k$ coefficient is $\binom{n - 2k}{n - t - k} = \binom{n - 2k}{t - k} = w_t^{-1}$. Thus $w_t G_t|_H = \Id_H$ for each of the $c = n - 2k + 1$ interior sizes, so $G_I|_H = c\,\Id_H$. By Lemma~\ref{lem:boundary}(3), $D_E|_H = 0$, whence $G(M)|_H = c\,\Id_H$.
+
+On the invariant subspace $L$, $G_I|_L \succeq 0$ and $D_E|_L \succ 0$ yield
+\[
+G(M)|_L = G_I|_L + M D_E|_L \succeq M\,\lambda_{\min}(D_E|_L)\,\Id_L \succ 0.
+\]
+Hence $G(M)$ is invertible for every $M > 0$, with block inverse $G(M)^{-1} = \frac{1}{c} P + (G_I|_L + M D_E|_L)^{-1}(I - P)$, whose $L$-block has operator norm at most $\bigl(M\,\lambda_{\min}(D_E|_L)\bigr)^{-1} \to 0$ as $M \to \infty$.
+\end{proof}
+
+\section{Interior Column Projection and Proofs of Conjectures~3.8 and~3.9}
+
+\begin{theorem}[Interior column projection and Conjecture~3.8]\label{thm:proj}
+For every $k \ge 1$, $n \ge 2k$, and every interior coalition $T \in I$ with $|T| = t$,
+\begin{equation}\label{eq:col-proj}
+q_T = \frac{w_t}{c}\, P f_T = w_t A_k x_T.
+\end{equation}
+In particular, taking $T = U$ with $|U| = k$ yields Conjecture~3.8~\eqref{eq:conj-inv}, and $\rank(A_k) = \tr(P) = \binom{n}{k} - \binom{n}{k-1}$.
+\end{theorem}
+
+\begin{proof}
+Fix $T \in I$ ($k \le t \le n - k$). First we prove $q_T \in H = L^\perp$. For any $R \subseteq N$ with $|R| = k - 1$, let $b := |R \cap T|$ and $a := t - b$. Since $0 \le b \le k - 1$ and $k \le t \le n - k$, we have $1 \le a \le n - k$. Extending $R$ by one element outside $R$ produces $a = |T \setminus R|$ sets $S \supseteq R$ with $|T \cap S| = b + 1$ (so $t - |T \cap S| = a - 1 \ge 0$) and $(n - k + 1 - a)$ sets $S \supseteq R$ with $|T \cap S| = b$ (so $t - |T \cap S| = a \le n - k$). Therefore,
+\[
+\langle v_R, q_T \rangle = (-1)^{k - b - 1}\bigl[a\,m_k(a - 1) - (n - k + 1 - a)\,m_k(a)\bigr] = 0,
+\]
+as both products equal $a!\,(n - k + 1 - a)!/(n - k + 1)!$. Thus $q_T \in H$ and $P q_T = q_T$.
+
+Next expand $q(j) := (-1)^{k - j} m_k(t - j)$ ($0 \le j \le k$) in the basis $\bigl\{\binom{j}{r}\bigr\}_{r=0}^k$. Using the Beta-integral representation $m_k(u) = \int_0^1 x^u(1 - x)^{n - k - u}\,dx$ ($0 \le u \le n - k$), the $r = k$ coefficient is
+\begin{align*}
+\sum_{j=0}^k (-1)^{k - j} \binom{k}{j} q(j)
+&= \sum_{j=0}^k \binom{k}{j} m_k(t - j) \\
+&= \int_0^1 x^{t - k}(1 - x)^{n - k - t} \sum_{j=0}^k \binom{k}{j} x^{k - j}(1 - x)^j\,dx \\
+&= \int_0^1 x^{t - k}(1 - x)^{n - k - t}\,dx
+= \frac{(t - k)!\,(n - k - t)!}{(n - 2k + 1)!}
+= \frac{w_t}{c}.
+\end{align*}
+Evaluating the Newton expansion at $j = |S \cap T|$, each lower term ($0 \le r < k$) is $\sum_{R \subseteq T,\, |R|=r} v_R(S) \in L$ by Lemma~\ref{lem:boundary}(1), while the $r = k$ term is $(w_t / c) f_T(S)$. Hence $q_T - (w_t / c) f_T \in L$. Applying $P$ and invoking $P q_T = q_T$,~\eqref{eq:xT-expand}, and~\eqref{eq:lim-inv} gives
+\[
+q_T = P q_T = \frac{w_t}{c}\, P f_T = w_t A_k f_T = w_t A_k x_T.
+\]
+
+Specializing~\eqref{eq:col-proj} to $T = U$ with $|U| = k$ yields $w_k = 1$ and $f_U = e_U$ (the coordinate basis vector at $U$), so column $U$ of $A_k$ equals $A_k e_U = \frac{1}{c} P f_U = q_U$, proving~\eqref{eq:conj-inv}. Finally, each diagonal entry of $P = c A_k$ is $c\,m_k(0) = (n - 2k + 1)/(n - k + 1)$, so $\rank(A_k) = \tr(P) = \frac{n - 2k + 1}{n - k + 1}\binom{n}{k} = \binom{n}{k} - \binom{n}{k - 1}$.
+\end{proof}
+
+\begin{theorem}[Split WLS representation; Conjecture~3.9]\label{thm:split}
+For every $k \ge 1$, $n \ge 2k$, and every set function $\nu : 2^N \to \mathbb{R}$ (without requiring $\nu(\emptyset) = 0$), identity~\eqref{eq:conj-sii} holds.
+\end{theorem}
+
+\begin{proof}
+By Lemma~\ref{lem:gram}, $G(M)$ is positive definite for all $M > 0$, so the WLS problem in~\eqref{eq:conj-sii} has the unique minimizer
+\[
+b^*(M) = G(M)^{-1} X_k^\top W_k y_k^+ = G(M)^{-1} \sum_{T \in I} w_t x_T y_k(T),
+\]
+where the vector after $G(M)^{-1}$ is independent of $M$ because $y_k^+$ vanishes on $E$. Taking $M \to \infty$ via Lemma~\ref{lem:gram} and applying Theorem~\ref{thm:proj} yields
+\[
+\lim_{M \to \infty} b^*(M) = \sum_{T \in I} w_t A_k x_T\, y_k(T) = \sum_{T \in I} q_T\, y_k(T).
+\]
+Adding the boundary contribution $Q_k y_k^- = \sum_{T \in E} q_T\, y_k(T)$ gives $\sum_{T \subseteq N} q_T\, y_k(T)$.
+
+By definition of the order-$k$ Shapley Interaction Index~\cite{Grabisch1999}, for any game $g : 2^N \to \mathbb{R}$ and $|S| = k$,
+\[
+\phi_k^{\mathrm{SII}}(g)(S) = \sum_{V \subseteq N \setminus S} m_k(|V|) \sum_{J \subseteq S} (-1)^{k - |J|} g(V \cup J) = \sum_{T \subseteq N} q_T(S)\, g(T),
+\]
+via the bijection $T \leftrightarrow (T \setminus S,\, T \cap S)$. For $k = 1$, $y_1 = \nu$ completes the proof. For $k \ge 2$, $\hat{\nu}_{k-1}$ is a linear combination of unanimity games $u_R(T) := \mathbf{1}_{R \subseteq T}$ with $|R| < k$. For any such $R$ and any $|S| = k$, pick $i \in S \setminus R$; pairing $J \subseteq S$ with $J \triangle \{i\}$ cancels every term in $\sum_{J \subseteq S} (-1)^{k - |J|} u_R(V \cup J)$ because $R \subseteq V \cup J \iff R \subseteq V \cup (J \triangle \{i\})$. Thus $\phi_k^{\mathrm{SII}}(\hat{\nu}_{k-1}) = 0$, whence $\phi_k^{\mathrm{SII}}(y_k) = \phi_k^{\mathrm{SII}}(\nu)$.
+\end{proof}
+
+\begin{remark}[Boundary cases and unconstrained $\nu(\emptyset)$]
+At $n = 2k$, $I$ contains only the single layer $t = k$ with $c = w_k = 1$, and all factorials and proofs above hold verbatim (including $(n, k) = (2, 1)$, where $x_N = \mathbf{1}$ spans $L$). Although~\cite{Fumagalli2024} assumes $\nu(\emptyset) = 0$, the proof of Theorem~\ref{thm:split} makes no use of this normalization (indeed, even the constant unanimity game $u_\emptyset \equiv 1$ lies in $\ker \phi_k^{\mathrm{SII}}$ for all $k \ge 1$).
+\end{remark}
+
+\section{Exact Computational Verification}
+
+The script \texttt{solutions/kernelshap\_iq\_inverse/explore.py} verifies all identities in exact rational arithmetic via SymPy (using \texttt{bernoulli(k-r, 0)} so $B_1 = -1/2$, with parameter \texttt{d} denoting $n$):
+\begin{itemize}[leftmargin=*]
+\item \textbf{Full-matrix checks (16 cases, $2 \le n \le 8$, $1 \le k \le \lfloor n/2 \rfloor$):} Constructs $X_k$ directly, computes a basis $Z$ of $\ker(X_{k,E})$, verifies $\dim \ker(X_{k,E}) = \binom{n}{k} - \binom{n}{k-1}$ and $G_I Z = (n - 2k + 1) Z$, forms $A_k = Z(Z^\top G_I Z)^{-1} Z^\top$, verifies exact equality with~\eqref{eq:conj-inv}, checks every column of the split SII operator on all $2^n$ point-mass games, and confirms exact annihilation of all lower-order unanimity games.
+\item \textbf{Johnson-scheme checks (256 cases, $2 \le n \le 32$, $1 \le k \le \lfloor n/2 \rfloor$):} Verifies the $k$-th forward-difference eigenvalue $\binom{n - 2k}{t - k}$ and the projected interior column identity $w_t A_k f_T = q_T$ for every interior size $t$ and overlap $0 \le |S \cap T| \le k$, up to order $k = 16$.
+\end{itemize}
+All assertions pass with zero floating-point error.
+
+\begin{thebibliography}{9}
+
+\bibitem{Bordt2023}
+S.~Bordt and U.~von Luxburg.
+From Shapley values to generalized additive models and back.
+In \emph{Proceedings of AISTATS}, 2023.
+
+\bibitem{Covert2021}
+I.~Covert and S.-I.~Lee.
+Improving KernelSHAP: Practical Shapley value estimation via linear regression.
+In \emph{Proceedings of AISTATS}, 2021.
+
+\bibitem{Delsarte1973}
+P.~Delsarte.
+An algebraic approach to the association schemes of coding theory.
+\emph{Philips Research Reports Supplements}, 10, 1973.
+
+\bibitem{Fumagalli2024}
+F.~Fumagalli, M.~Muschalik, P.~Kolpaczki, E.~H\"ullermeier, and B.~Hammer.
+KernelSHAP-IQ: Weighted least square optimization for Shapley interactions.
+In \emph{Proceedings of ICML}, 2024. \href{https://arxiv.org/abs/2405.10852}{arXiv:2405.10852}.
+
+\bibitem{Gottlieb1966}
+D.~H.~Gottlieb.
+A certain class of incidence matrices.
+\emph{Proceedings of the American Mathematical Society}, 17(6):1233--1237, 1966.
+
+\bibitem{Grabisch1999}
+M.~Grabisch and M.~Roubens.
+An axiomatic approach to the concept of interaction among players in cooperative games.
+\emph{International Journal of Game Theory}, 28(4):547--565, 1999.
+
+\bibitem{Lundberg2017}
+S.~M.~Lundberg and S.-I.~Lee.
+A unified approach to interpreting model predictions.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2017.
+
+\end{thebibliography}
+
+\end{document}

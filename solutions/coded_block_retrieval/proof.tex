@@ -1,0 +1,235 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\cl}{cl}
+
+\title{\bfseries Counterexamples to Three Coded Block Retrieval Conjectures}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: D.~Bar-Lev, \emph{Coded Information Retrieval for Block-Structured DNA-Based Data Storage},\\
+\href{https://arxiv.org/abs/2603.17154}{arXiv:2603.17154} (March 2026), Conjectures~\texttt{conj:hyperbola}, \texttt{conj:monotone}, and \texttt{conj:limiting}\\[0.35em]
+Companion verification script: \texttt{solutions/coded\_block\_retrieval/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute all three open conjectures of Bar-Lev (\href{https://arxiv.org/abs/2603.17154}{arXiv:2603.17154}, March 2026) on coded information retrieval for two-file block-structured data whenever $\max\{s_1, s_2\} \ge 2$.
+First, for $(s_1, s_2) = (2, 1)$ over $\mathbb{F}_{11}$, an explicit rank-$3$ matrix of length $n = 22$ achieves $(E_1, E_2) = (937/210,\, 25/14)$, yielding $2/E_1 + 1/E_2 = 23618/23425 > 1$ and disproving the universal hyperbolic bound (\texttt{conj:hyperbola}); its $m$-fold block concatenations preserve $(E_1, E_2)$ at every length $22m$, disproving the conjectured limiting achievability region (\texttt{conj:limiting}).
+Second, for the balanced partition $(s_1, s_2) = (2, 2)$ over $\mathbb{F}_{83}$, an explicit rank-$4$ matrix of length $n = 40$ with $40$ pairwise non-collinear columns achieves $(E_1, E_2) = (30729/9139,\, 134404/27417)$ and $2/E_1 + 2/E_2 = 2070815149/2065050258 > 1$, showing that \texttt{conj:hyperbola} and \texttt{conj:limiting} fail even when duplicate or collinear columns are disallowed.
+Third, for $(s_1, s_2) = (2, 1)$ over every finite field $\mathbb{F}_q$, the length-$9$ matrix $[e_1, e_2, e_3^7]$ achieves $(27/2,\, 9/7)$, whereas no rank-$3$ matrix of length $10$ over any finite field dominates it coordinatewise, disproving the length-monotonicity conjecture (\texttt{conj:monotone}).
+\end{abstract}
+
+\section{Model and Conjectures}
+
+Fix a finite field $\mathbb{F}_q$, a dimension $k \ge 2$, and a partition $s_1 + s_2 = k$ with $s_1, s_2 \ge 1$.
+Identify the two files with the coordinate subspaces
+\[
+F_1 := \langle e_1, \dots, e_{s_1} \rangle, \qquad
+F_2 := \langle e_{s_1 + 1}, \dots, e_k \rangle
+\]
+of $\mathbb{F}_q^k$.
+Let $G \in \mathbb{F}_q^{k \times n}$ be a rank-$k$ generator matrix with columns $g_1, \dots, g_n \in \mathbb{F}_q^k$; repeated columns are explicitly permitted by the model of Bar-Lev~\cite{BarLev2026} (Section~II, Remarks~3--4, and Proposition~10).
+Sample column indices $I_1, I_2, \dots$ independently and uniformly from $\{1, \dots, n\}$ with replacement, and set $V_t := \spn\{g_{I_1}, \dots, g_{I_t}\}$.
+The retrieval times and expected retrieval times are
+\[
+\tau_i := \min\{t \ge 1 : F_i \subseteq V_t\}, \qquad
+E_i(G) := \mathbb{E}[\tau_i] \qquad (i \in \{1, 2\}).
+\]
+Denote by $\Lambda_{n,k}(s_1, s_2)$ the set of pairs $(E_1(G), E_2(G))$ achieved by rank-$k$ matrices $G \in \mathbb{F}_q^{k \times n}$.
+Whenever $\max\{s_1, s_2\} \ge 2$, Bar-Lev~\cite{BarLev2026} proposes three conjectures:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \textbf{Universal hyperbolic bound (\texttt{conj:hyperbola}):} Every rank-$k$ matrix $G \in \mathbb{F}_q^{k \times n}$ satisfies $s_1/E_1(G) + s_2/E_2(G) \le 1$.
+\item \textbf{Length monotonicity (\texttt{conj:monotone}):} For every $n \ge k$ and every $(E_1, E_2) \in \Lambda_{n,k}(s_1, s_2)$, there exists a rank-$k$ matrix $G'$ of length $n + 1$ with $E_i(G') \le E_i$ for both $i \in \{1, 2\}$.
+\item \textbf{Limiting achievability region (\texttt{conj:limiting}):}
+\[
+\cl\!\left(\bigcup_{n \ge k} \Lambda_{n,k}(s_1, s_2)\right)
+= \left\{(E_1, E_2) \in \mathbb{R}_{>0}^2 : \frac{s_1}{E_1} + \frac{s_2}{E_2} \le 1,\; E_i \ge s_i\right\}.
+\]
+\end{enumerate}
+We refute all three conjectures below.
+
+\section{Refutation of \texttt{conj:hyperbola} and \texttt{conj:limiting} at \texorpdfstring{$(2,1)$}{(2,1)}}
+
+\begin{theorem}[Rank-$3$ counterexample over $\mathbb{F}_{11}$]\label{thm:gf11}
+Let $(s_1, s_2) = (2, 1)$ over $\mathbb{F}_{11}$, and let $G \in \mathbb{F}_{11}^{3 \times 22}$ consist of $11$ copies of $z := e_3 = (0,0,1)^\top$ together with one copy of each column
+\[
+v_t := (1, t, t^2)^\top \qquad (t \in \mathbb{F}_{11}).
+\]
+Then $\rank(G) = 3$ and
+\[
+E_1(G) = \frac{937}{210}, \qquad
+E_2(G) = \frac{25}{14}, \qquad
+\frac{2}{E_1(G)} + \frac{1}{E_2(G)} = \frac{23618}{23425} = 1 + \frac{193}{23425} > 1.
+\]
+Furthermore, for every integer $m \ge 1$, the $m$-fold concatenation $G^{(m)} = [G \mid \cdots \mid G] \in \mathbb{F}_{11}^{3 \times 22m}$ achieves the same pair $(937/210,\, 25/14)$, refuting both \texttt{conj:hyperbola} and \texttt{conj:limiting}.
+\end{theorem}
+
+\begin{proof}
+Call $v_0, \dots, v_{10}$ the \emph{ordinary} column types and $z$ the \emph{special} column type.
+Any three distinct ordinary columns $v_{t_1}, v_{t_2}, v_{t_3}$ have Vandermonde determinant $\prod_{1 \le r < s \le 3}(t_s - t_r) \neq 0$ in $\mathbb{F}_{11}$, hence are linearly independent.
+Any two distinct ordinary columns $v_{t_1}, v_{t_2}$ together with $z = e_3$ have determinant $t_2 - t_1 \neq 0$ and are likewise linearly independent.
+Thus any three distinct column types span $\mathbb{F}_{11}^3$.
+
+We characterize recovery of each file:
+\begin{itemize}[leftmargin=1.6em]
+\item \emph{File $F_1 = \langle e_1, e_2 \rangle$:} Only $v_0 = (1,0,0)^\top$ lies in $F_1$. A span of two distinct types that includes $z$ projects to a $1$-dimensional subspace of $\mathbb{F}_{11}^3 / F_2$ and hence cannot contain $F_1$. A span of two distinct ordinary columns $v_{t_1}, v_{t_2}$ has dimension~$2$ and cannot equal $F_1$ because $t_1^2, t_2^2$ cannot both vanish. Hence $F_1$ is recovered if and only if full rank~$3$ is reached.
+\item \emph{File $F_2 = \langle e_3 \rangle$:} For any two distinct ordinary columns $v_{t_1}, v_{t_2}$, the projections $(1, t_1)$ and $(1, t_2)$ onto the first two coordinates are linearly independent, so $\spn\{v_{t_1}, v_{t_2}\} \cap F_2 = \{0\}$. Hence $F_2$ is recovered if and only if $z$ is drawn or full rank~$3$ is reached.
+\end{itemize}
+
+Let $W_i(j, h)$ be the expected remaining number of draws to recover $F_i$ after seeing $j$ distinct ordinary types and indicator $h \in \{0, 1\}$ for whether $z$ has appeared.
+Then $W_i(j, h) = 0$ whenever $j + h = 3$, and $W_2(j, 1) = 0$.
+At every other reachable state, $a := 11(1 - h)$ columns flip $h$ from $0$ to $1$, $b := 11 - j$ columns increase $j$ by $1$, and the remaining $22 - a - b$ columns leave the state unchanged.
+Conditioning on the next draw and isolating the self-loop term yields
+\[
+W_i(j, h) = \frac{22 + a\,W_i(j, 1) + b\,W_i(j + 1, h)}{a + b},
+\]
+with the $a$-term omitted when $a = 0$.
+Exact back substitution produces Table~\ref{tab:gf11}, giving $E_1(G) = W_1(0,0) = 937/210$, $E_2(G) = W_2(0,0) = 25/14$, and
+\[
+\frac{2}{E_1(G)} + \frac{1}{E_2(G)} = \frac{420}{937} + \frac{14}{25} = \frac{23618}{23425} > 1.
+\]
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+State $(j, h)$ & $a$ & $b$ & $W_1(j, h)$ & $W_2(j, h)$ \\
+\midrule
+$(1, 1)$ & $0$  & $10$ & $11/5$    & $0$ \\
+$(2, 0)$ & $11$ & $9$  & $11/10$   & $11/10$ \\
+$(0, 1)$ & $0$  & $11$ & $21/5$    & $0$ \\
+$(1, 0)$ & $11$ & $10$ & $286/105$ & $11/7$ \\
+$(0, 0)$ & $11$ & $11$ & $937/210$ & $25/14$ \\
+\bottomrule
+\end{tabular}
+\caption{Exact expected remaining retrieval times for the $\mathbb{F}_{11}$, $n = 22$ matrix in Theorem~\ref{thm:gf11}.}\label{tab:gf11}
+\end{table}
+
+Finally, concatenating $m \ge 1$ copies of $G$ gives $G^{(m)} \in \mathbb{F}_{11}^{3 \times 22m}$ in which every column type retains the same sampling probability ($1/2$ for $z$ and $1/22$ for each $v_t$), so $(\tau_1, \tau_2)$ retains its entire joint distribution and $(937/210,\, 25/14) \in \Lambda_{22m, 3}(2, 1)$ for all $m \ge 1$ (cf.\ Proposition~10 of~\cite{BarLev2026}).
+Hence $(937/210,\, 25/14)$ lies in $\cl\!\bigl(\bigcup_{n \ge 3}\Lambda_{n,3}(2,1)\bigr)$ and strictly outside the conjectured limiting region.
+\end{proof}
+
+\section{Refutation of \texttt{conj:monotone} Over Every Finite Field}
+
+Remark~4 of~\cite{BarLev2026} notes that $\Lambda_{3,2}(1,1) \not\subseteq \Lambda_{4,2}(1,1)$ and conjectures that requiring $\max\{s_1, s_2\} \ge 2$ eliminates all such obstructions. We show that length monotonicity still fails over every finite field.
+
+\begin{theorem}[Universal length $9 \to 10$ obstruction]\label{thm:monotone}
+For $(s_1, s_2) = (2, 1)$ and every finite field $\mathbb{F}_q$, the rank-$3$ matrix $G = [e_1, e_2, e_3, \dots, e_3] \in \mathbb{F}_q^{3 \times 9}$ (with seven copies of $e_3$) satisfies
+\[
+E_1(G) = \frac{27}{2}, \qquad E_2(G) = \frac{9}{7}.
+\]
+No rank-$3$ matrix $G' \in \mathbb{F}_q^{3 \times 10}$ satisfies both $E_1(G') \le 27/2$ and $E_2(G') \le 9/7$.
+\end{theorem}
+
+\begin{proof}
+For $G$, file $F_2 = \langle e_3 \rangle$ is recovered on the first draw of any of the $7$ copies of $e_3$, so $E_2(G) = 9/7$.
+File $F_1 = \langle e_1, e_2 \rangle$ requires drawing both $e_1$ and $e_2$, with expected wait $9/2$ for the first of the two and $9$ for the second, giving $E_1(G) = 9/2 + 9 = 27/2$.
+
+Let $G' \in \mathbb{F}_q^{3 \times 10}$ be any rank-$3$ matrix over any finite field $\mathbb{F}_q$, and let $m$ count the columns of $G'$ that are \emph{not} nonzero scalar multiples of $e_3$ (this counts all columns outside $F_2$ as well as any zero columns).
+Then $\mathbb{P}(\tau_2 > 1) = m/10$, so $\tau_2 \ge 1 + \mathbf{1}_{\{\tau_2 > 1\}}$ implies
+\[
+E_2(G') \ge 1 + \frac{m}{10}.
+\]
+If $E_2(G') \le 9/7$, then $m/10 \le 2/7$, forcing $m \le 2$.
+On the other hand, since $\rank(G') = 3$, the column images of $G'$ must span the $2$-dimensional quotient $\mathbb{F}_q^3 / F_2$.
+Every multiple of $e_3$ (including the zero vector) maps to $0$ in this quotient, so at least $2$ columns must have nonzero, linearly independent quotient images.
+Hence $m = 2$, both exceptional columns have linearly independent images in $\mathbb{F}_q^3 / F_2$, and the other $8$ columns are nonzero multiples of $e_3$.
+
+Because $F_1$ projects isomorphically onto $\mathbb{F}_q^3 / F_2$, any collection of columns spanning $F_1$ must contain both exceptional indices.
+The expected wait to draw both of two fixed indices uniformly from $10$ columns is $10/2 + 10 = 15$, so
+\[
+E_1(G') \ge 15 > \frac{27}{2} = E_1(G). \qedhere
+\]
+\end{proof}
+
+\section{A Projectively Distinct Balanced Counterexample at \texorpdfstring{$(2,2)$}{(2,2)}}
+
+While Theorem~\ref{thm:gf11} repeats the column $e_3$ (which is explicitly permitted in~\cite{BarLev2026}), the next construction shows that both \texttt{conj:hyperbola} and \texttt{conj:limiting} also fail for balanced files $(s_1, s_2) = (2, 2)$ with pairwise non-collinear columns.
+
+\begin{theorem}[Projectively distinct rank-$4$ counterexample over $\mathbb{F}_{83}$]\label{thm:gf83}
+Let $(s_1, s_2) = (2, 2)$ over $\mathbb{F}_{83}$, and let $G \in \mathbb{F}_{83}^{4 \times 40}$ have the $40$ columns
+\[
+A_u := (1, u, 0, 0)^\top \quad (61 \le u \le 80), \qquad
+B_t := (t^2, t^3, 1, t)^\top \quad (1 \le t \le 20).
+\]
+Then all $40$ columns are pairwise non-collinear, $\rank(G) = 4$, and
+\[
+E_1(G) = \frac{30729}{9139}, \qquad
+E_2(G) = \frac{134404}{27417}, \qquad
+\frac{2}{E_1(G)} + \frac{2}{E_2(G)} = \frac{2070815149}{2065050258} > 1.
+\]
+\end{theorem}
+
+\begin{proof}
+We first verify linear independence of every $4$-column subset containing at most two $A$-columns:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item \emph{Four distinct $B$-columns:} Permuting coordinates to $(1, t, t^2, t^3)^\top$ gives a nonzero $4 \times 4$ Vandermonde determinant in $\mathbb{F}_{83}$.
+\item \emph{Two distinct $A$-columns and two distinct $B$-columns:} The $4 \times 4$ matrix is block triangular with $2 \times 2$ diagonal blocks of determinants $u_2 - u_1 \neq 0$ and $t_2 - t_1 \neq 0$ in $\mathbb{F}_{83}$.
+\item \emph{One $A$-column $A_u$ and three distinct $B$-columns $B_{t_1}, B_{t_2}, B_{t_3}$:} A linear functional $\varphi(x) = c_2 x_1 + c_3 x_2 + c_0 x_3 + c_1 x_4$ evaluates on $B_t$ as $p(t) = c_0 + c_1 t + c_2 t^2 + c_3 t^3$. If $\varphi \neq 0$ vanishes on $B_{t_1}, B_{t_2}, B_{t_3}$, then $p(t)$ is a nonzero scalar multiple of $(t - t_1)(t - t_2)(t - t_3)$, so $c_3 \neq 0$ and $c_2 = -(t_1 + t_2 + t_3)c_3$. Hence
+\[
+\varphi(A_u) = c_2 + u c_3 = c_3\bigl(u - (t_1 + t_2 + t_3)\bigr).
+\]
+Since $1 \le t_1 < t_2 < t_3 \le 20$, the integer sum $t_1 + t_2 + t_3$ lies in $[6, 57]$, whereas $u \in [61, 80]$; because $57 < 61$ and $80 < 83 + 6 = 89$, we have $u \not\equiv t_1 + t_2 + t_3 \pmod{83}$, so $\varphi(A_u) \neq 0$.
+\end{enumerate}
+
+Every choice of $i \in \{0, 1, 2\}$ distinct $A$-columns and $j$ distinct $B$-columns with $i + j \le 4$ extends to one of these bases and thus has rank $i + j$, while any two distinct $A$-columns already span $F_1 = \langle e_1, e_2 \rangle$ and hence all $20$ $A$-columns.
+Projecting all $40$ columns onto the first two coordinates yields $(1, u)$ ($61 \le u \le 80$) and $t^2(1, t)$ ($1 \le t \le 20$), which are nonzero with pairwise distinct slopes in $[1, 20] \sqcup [61, 80] \subset \mathbb{F}_{83}$; hence all $40$ columns are pairwise non-collinear.
+
+Write $i \in \{0, 1, 2\}$ for the number of distinct $A$-types drawn (capped at $2$), $j$ for the number of distinct $B$-types drawn, and $V$ for the collected span.
+\begin{itemize}[leftmargin=1.6em]
+\item \emph{File $F_1 = \langle e_1, e_2 \rangle$:} Recovered if and only if $i = 2$ or $i + j = 4$. Indeed, whenever $i < 2$ and $i + j \le 3$, the projection of $V$ onto the last two coordinates has rank $\min(j, 2)$, so rank-nullity yields $\dim(V \cap F_1) = (i + j) - \min(j, 2) \le 1 < 2$.
+\item \emph{File $F_2 = \langle e_3, e_4 \rangle$:} Recovered if and only if $i + j = 4$. If $\dim V \in \{2, 3\}$, then $V$ contains at least two distinct column types whose projections onto $F_1$ have distinct slopes, so the projection onto $F_1$ has rank~$2$ and $\dim(V \cap F_2) = \dim V - 2 \le 1 < 2$.
+\end{itemize}
+
+For either file, let $T(i, j)$ be the expected remaining draws until recovery, with $T(i, j) = 0$ at recovery states.
+At every other state, $a := (20 - i)\mathbf{1}_{\{i < 2\}}$ columns advance $i$ and $b := 20 - j$ columns advance $j$, so
+\[
+T(i, j) = \frac{40 + a\,T(i + 1, j) + b\,T(i, j + 1)}{a + b},
+\]
+omitting the $a$-term when $a = 0$.
+Exact rational back substitution from the boundary yields $E_1(G) = 30729/9139$ and $E_2(G) = 134404/27417$, so
+\[
+\frac{2}{E_1(G)} + \frac{2}{E_2(G)} = \frac{18278}{30729} + \frac{54834}{134404} = \frac{2070815149}{2065050258} > 1.
+\]
+Block repetition $G^{(m)}$ ($m \ge 1$) likewise places this point in $\Lambda_{40m, 4}(2, 2)$ for every $m \ge 1$.
+\end{proof}
+
+\section{Exact Computational Verification}
+
+The script \texttt{solutions/coded\_block\_retrieval/explore.py} verifies Theorems~\ref{thm:gf11}--\ref{thm:gf83} directly from the generator matrices using exact rational arithmetic (\texttt{fractions.Fraction}) over canonical reduced row-echelon spans, independently of the reduced $(j, h)$ and $(i, j)$ recurrences.
+It cross-checks the span solver against an independent uniform-subset average across $81$ seeded full-rank matrices over $\mathbb{F}_2, \mathbb{F}_3, \mathbb{F}_5$ for partitions $(2,1), (2,2), (3,2)$; certifies both hyperbolic counterexamples, block-repetition invariance for $m \in \{2, 3, 7\}$, and the length $9 \to 10$ monotonicity obstruction over $\mathbb{F}_2, \mathbb{F}_3, \mathbb{F}_5$. All assertions pass.
+
+\begin{thebibliography}{9}
+
+\bibitem{BarLev2026}
+D.~Bar-Lev.
+\emph{Coded Information Retrieval for Block-Structured DNA-Based Data Storage}.
+Preprint \href{https://arxiv.org/abs/2603.17154}{arXiv:2603.17154}, March 2026.
+
+\end{thebibliography}
+
+\end{document}

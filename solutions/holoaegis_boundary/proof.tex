@@ -1,0 +1,167 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Shift}{Shift}
+\DeclareMathOperator{\Unif}{Unif}
+
+\title{\bfseries Refutation of Reference-Noise Boundary Stability in HoloAegis}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: T.~H.~A.~Li, K.~Liu, L.-H.~Lee, K.~C.~Ho, P.~Shum, and M.~K.~Ng,\\
+\emph{HoloAegis: Frozen Representation, Topological Inference},\\
+\href{https://arxiv.org/abs/2608.08485}{arXiv:2608.08485} (v2, September 2026), Section~3.4, Conjecture~\texttt{conj:main}\\[0.35em]
+Companion verification script: \texttt{solutions/holoaegis\_boundary/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~\texttt{conj:main} (Reference-Noise Boundary Stability; v2 restatement) of Li et~al.\ (\href{https://arxiv.org/abs/2608.08485}{arXiv:2608.08485}~v2, September~2026) at the paper's exact default hyperparameters ($N = 30{,}000$, $K \in \{30, 100, 300\}$, $k = 10$, $\tau = 0.05$, unit embeddings in $\mathbb{R}^{384}$, and unit queries $5.7^\circ$ apart).
+Because \texttt{conj:main} leaves the reference-noise law and centroid renormalization unspecified, we establish three counterexample families covering \emph{all} standard realizations (independent spherical noise, ordinary i.i.d.\ corpus bootstrap, raw and unit-normalized centroids, and globally optimal $K$-means partitions):
+(1)~under independent spherical perturbations, the ratio $\mathbb{E}S(A_K)/\mathbb{E}S(X_N)$ with $\mathbb{E}S(X_N) > 0$ sweeps out the exact half-line $[0, \infty)$ (plus a positive numerator over zero denominator);
+(2)~under uniform i.i.d.\ sampling with replacement from one balanced $300$-site corpus, the expectation ratio exceeds $1.36 \times 10^{16}$; and
+(3)~with a single merger $K = N - 1$ in fixed dimension~$4$, the ratio diverges to $+\infty$ uniformly in $N$, refuting uniform approach to~$1$ as $K/N \to 1$.
+\end{abstract}
+
+\section{Setup and Auxiliary Lemma}
+
+Following Li et~al.~\cite{Li2026} (\S 3.2 and \S 3.4), for a query $q \in \mathbb{S}^{d-1}$ and an indexed reference bank $R = \{r_1, \dots, r_m\}$ (repeated observations counted separately), one tower's top-$k$ Gibbs--Boltzmann potential is
+\begin{equation}\label{eq:potential}
+U(q; R) := 1 - \tau \log\!\left(\frac{1}{k} \sum_{i \in I_k(q; R)} \exp\!\left(\frac{q \cdot r_i}{\tau}\right)\right)
+= -\tau \log\!\left(\frac{1}{k} \sum_{i \in I_k(q; R)} \exp\!\left(\frac{q \cdot r_i - 1}{\tau}\right)\right),
+\end{equation}
+where $I_k(q; R)$ selects the $k$ nearest references by cosine similarity. For a query perturbation $\delta$ with $q, q + \delta \in \mathbb{S}^{d-1}$, the one-tower boundary shift is $S(R) := \Shift(q, \delta; R) := |U(q + \delta; R) - U(q; R)|$.
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:main} (Reference-Noise Boundary Stability; \href{https://arxiv.org/abs/2608.08485}{arXiv:2608.08485}~v2, \S 3.4).}
+\emph{For anchor banks $A_K$ obtained as $K$-means centroids of $N$ noisy samples $X_N$ with $K \ll N$,
+\[
+\mathbb{E}_\eta\bigl[\Shift(q, \delta; A_K)\bigr]
+\;<\;
+\mathbb{E}_\eta\bigl[\Shift(q, \delta; X_N)\bigr],
+\]
+with ratio $\approx 0.44 + 0.23\sqrt{k/K}$ on $K/N \in [10^{-3}, 10^{-2}]$ ($k = 10$, $\tau = 0.05$, $N = 3 \times 10^4$), approaching~$1$ as $K \to N$.}
+\end{quote}
+
+Because~\texttt{conj:main} specifies neither a data/noise law nor whether arithmetic $K$-means centroids are unit-normalized before evaluating $q \cdot r_i$ in~\eqref{eq:potential}, we prove every theorem below for \emph{both} raw centroids (cosine-ranked) and unit-normalized centroids, with certified globally optimal $K$-means partitions under squared Euclidean distortion ($K$ nonempty clusters).
+
+\begin{lemma}[Log-sum-exp shift and Lipschitz bound]\label{lem:lse}
+For $\tau > 0$ and vectors $x, y \in \mathbb{R}^k$ with $u \le y_i - x_i \le v$ for all $i = 1, \dots, k$,
+\[
+u \;\le\; \tau\log\!\left(\frac{1}{k}\sum_{i=1}^k e^{y_i/\tau}\right) - \tau\log\!\left(\frac{1}{k}\sum_{i=1}^k e^{x_i/\tau}\right) \;\le\; v.
+\]
+Consequently, for every unit bank $R \subset \mathbb{S}^{d-1}$ and every query perturbation $\delta$, $S(R) \le \|\delta\|_2$.
+\end{lemma}
+
+\begin{proof}
+Multiplying $e^{u/\tau} \le e^{(y_i - x_i)/\tau} \le e^{v/\tau}$ by $e^{x_i/\tau}/k$, summing over $i$, and taking $\tau\log$ yields the first claim. For $R \subset \mathbb{S}^{d-1}$, $|(q + \delta)\cdot r_i - q \cdot r_i| \le \|\delta\|_2$ for all $i$; hence the sorted dot products (in particular the top~$k$) change by at most $\|\delta\|_2$ coordinatewise, and the first claim gives $S(R) \le \|\delta\|_2$.
+\end{proof}
+
+\section{Exact Range \texorpdfstring{$[0, \infty)$}{[0, infinity)} Under Independent Spherical Noise}
+
+\begin{theorem}[Surjectivity onto $[0, \infty)$ at default parameters]\label{thm:paired}
+Fix $N = 30{,}000$, $K \in \{30, 100, 300\}$, $1 \le k \le K$, $\tau > 0$, $d = 384$, and unit queries $5.7^\circ$ apart. Under either raw or unit-normalized centroid scoring, every finite $r \ge 0$ is realized as $\mathbb{E}S(A_K)/\mathbb{E}S(X_N)$ with $\mathbb{E}S(X_N) > 0$, using nonconstant independent spherical noise, an almost surely distinct sample bank, equal cluster sizes, and a unique global $K$-means optimum on every noise realization. The same family also realizes $\mathbb{E}S(A_K) > 0$ with $\mathbb{E}S(X_N) = 0$.
+\end{theorem}
+
+\begin{proof}
+Let $h := 2.85^\circ$, $q_\pm := \cos h\, e_1 \pm \sin h\, e_2$, $q := q_-$, and $\delta := q_+ - q_-$. Set $a := 0.600$, $b := 0.599$, $s := 0.001$, and $t \in [-s, 0]$. Write $n := N / K \in \{1000, 300, 100\}$ (always even) and $(x, y) := x e_1 + y e_2$. For each $j = 1, \dots, K$, take $n/2$ copies of each of two unit sites
+\[
+v_j := (a, t) + r_v\, e_{j+2}, \qquad w_j := (b, s) + r_w\, e_{j+2},
+\]
+where $r_v := \sqrt{1 - a^2 - t^2}$ and $r_w := \sqrt{1 - b^2 - s^2}$. Independently for each observation, replace $e_{j+2}$ by $\cos\phi\, e_{j+2} + \sin\phi\, e_{K+3}$ with $\phi \sim \Unif[-0.001, 0.001]$ (radians). Since $K + 3 \le 303 \le 384$, all samples lie on $\mathbb{S}^{d-1}$ and are almost surely distinct. (The same proof holds for $\phi \equiv 0$.)
+
+\emph{Global $K$-means certificate.} Since $r_v, r_w > 0.7999$,
+\[
+|r_w - r_v| = \frac{|(a^2 - b^2) + (t^2 - s^2)|}{r_w + r_v} \le \frac{0.0012}{1.5998} < 0.000751 < 0.001,
+\]
+so $\|w_j - v_j\|_2 < \sqrt{0.001^2 + 0.002^2 + 0.001^2} < 0.003$. Angular noise displaces each sample by at most $r_w |\phi| < 0.001$, so every sample in cluster~$j$ lies in $B(v_j, 0.004)$. For $j \neq \ell$, $\|v_j - v_\ell\|_2 = \sqrt{2}\,r_v > 1.131$, making the balls $B(v_j, 0.25)$ pairwise disjoint. Using $\{v_j\}_{j=1}^K$ as centers costs at most $N(0.004)^2$. Omitting a center from $B(v_j, 0.25)$ costs at least $n(0.25 - 0.004)^2 = 0.060516\,n > 300(0.004)^2 n \ge N(0.004)^2$ in cluster~$j$ alone (since $K \le 300$). Hence every global optimum places exactly one center in each $B(v_j, 0.25)$. Each sample in cluster~$j$ then lies within $0.254$ of its local center and at distance $> 1.131 - 0.25 - 0.004 = 0.877$ from every other center, forcing exact cluster assignments and uniqueness of the arithmetic-mean centers for every noise realization.
+
+\emph{Full-bank shift.} Because $(a - b)\cos h > 0.000998 > 0.002\sin h \ge |s - t|\sin h$, every type-$v$ sample strictly beats every type-$w$ sample at both $q_\pm$. Since $N/2 \ge K \ge k$, all $k$ selected samples have dot product $a\cos h \pm t\sin h$, giving
+\[
+S(X_N) = 2|t|\sin h.
+\]
+
+\emph{Anchor shift.} Every cluster centroid $c_j$ has first two coordinates $C := (a + b)/2 = 0.5995$ and $D := (t + s)/2 \ge 0$, and norm $L_j := \|c_j\|_2 \in [0.996, 1]$ since $\|c_j - v_j\|_2 \le 0.004$. For raw scoring, all $K$ dot products coincide at each query, so $S(A_K) = 2D\sin h$ identically (giving ratio $4.5$ at $t = -s/10$). For unit-normalized scoring, the scores at $q_\pm$ are $(C\cos h \pm D\sin h)/L_j$ with strictly positive numerators, so both queries select the same $k$ smallest norms $L_{(1)} \le \cdots \le L_{(k)}$ (with identical multiset even at ties). Each selected score increases by $2D\sin h / L_{(i)} \in [2D\sin h,\, 2D\sin h / 0.996]$, so Lemma~\ref{lem:lse} yields
+\begin{equation}\label{eq:unit-bracket}
+2D\sin h \;\le\; S(A_K) \;\le\; \frac{2D\sin h}{0.996}.
+\end{equation}
+
+\emph{Attainment of $[0, \infty)$.} Coupling all $t \in [-s, 0]$ with the same angles $\phi$, the ordered norms $L_{(1)}(t), \dots, L_{(k)}(t)$ vary continuously in $t$, so $S(A_K)(t)$ is continuous and uniformly bounded by $2s\sin h / 0.996$. Dominated convergence makes $t \mapsto \mathbb{E}S(A_K)(t)$ continuous on $[-s, 0]$. Under either convention, the ratio $R(t) := \mathbb{E}S(A_K)(t)/(2|t|\sin h)$ is continuous on $[-s, 0)$ with $R(-s) = 0$ and $\lim_{t \uparrow 0} R(t) = +\infty$. By the intermediate value theorem, $R([-s, 0)) = [0, \infty)$. At $t = 0$, $\mathbb{E}S(A_K) \ge s\sin h > 0$ while $S(X_N) \equiv 0$.
+\end{proof}
+
+\section{Ordinary Paired i.i.d.\ Bootstrap From One Corpus}
+
+\begin{theorem}[Extreme ratio under ordinary i.i.d.\ bootstrap]\label{thm:bootstrap}
+At the paper's defaults ($N = 30{,}000$, $K = 300$, $k = 10$, $\tau = 0.05$, $d = 384$, queries $q_\pm$ at angle $5.7^\circ$), form a balanced corpus of $100$ copies of each of $300$ distinct unit sites: site~$0$ is $e_1$, and sites $j = 1, \dots, 299$ are $(0.99, 0.04) + \sqrt{1 - 0.99^2 - 0.04^2}\, e_{j+2} \in \mathbb{R}^{302} \subseteq \mathbb{R}^{384}$. Drawing $X_N$ i.i.d.\ uniformly with replacement gives $\mathbb{E}S(X_N) > 0$ and
+\[
+\frac{\mathbb{E}S(A_K)}{\mathbb{E}S(X_N)} \;>\; 1.36 \times 10^{16}
+\]
+for both raw and unit-normalized centroids.
+\end{theorem}
+
+\begin{proof}
+Since $1 - 0.99^2 - 0.04^2 = 0.0183 > 0$, all $300$ sites are valid unit vectors. On the event $E_{\mathrm{all}}$ that every site appears at least once in $X_N$, the unique zero-cost $K$-means bank $A_K$ consists of the $300$ distinct unit sites themselves (so raw and unit scoring coincide). Because $0.01\cos h > 0.04\sin h$, site~$0$ ranks first at both $q_\pm$, and the other $9$ selected sites share coordinates $(0.99, 0.04)$. Factoring out $\exp(\cos h / \tau)$ gives the exact shift on $E_{\mathrm{all}}$:
+\[
+S(A_K) = L_0 := \tau\log\!\left(\frac{1 + 9\exp\bigl((-0.01\cos h + 0.04\sin h)/\tau\bigr)}{1 + 9\exp\bigl((-0.01\cos h - 0.04\sin h)/\tau\bigr)}\right) = 0.003502414473\ldots
+\]
+By a union bound, $\mathbb{P}(E_{\mathrm{all}}^c) \le 300(1 - 1/300)^{30000} \le 300 e^{-100}$, so $\mathbb{E}S(A_K) \ge (1 - 300 e^{-100}) L_0$.
+
+Let $M \sim \mathrm{Binomial}(30000, 1/300)$ (mean $100$) count copies of site~$0$ in $X_N$. Whenever $M \ge 10$, all $k = 10$ nearest samples in $X_N$ at both $q_\pm$ equal $e_1$, so $S(X_N) = 0$. The Chernoff lower-tail bound yields $\mathbb{P}(M < 10) \le e^{-100(1 - 0.1)^2/2} = e^{-40.5}$ (and Markov's inequality on $e^{-uM}$ at $u = \log 10$ yields $\mathbb{P}(M \le 10) \le \exp(10\log 10 - 90) < e^{-66.97}$). By Lemma~\ref{lem:lse}, $S(X_N) \le \|\delta\|_2 = 2\sin h$ pointwise, so $\mathbb{E}S(X_N) \le 2\sin h\, e^{-40.5}$, while $\mathbb{P}(M = 0) > 0$ ensures $\mathbb{E}S(X_N) > 0$ (on $\{M = 0\}$, $S(X_N) = 0.08\sin h > 0$). Dividing gives
+\[
+\frac{\mathbb{E}S(A_K)}{\mathbb{E}S(X_N)} \;\ge\; \frac{(1 - 300 e^{-100}) L_0}{2\sin h\, e^{-40.5}} \;>\; 1.367 \times 10^{16}. \qedhere
+\]
+\end{proof}
+
+\section{Non-Uniform Behavior as \texorpdfstring{$K / N \to 1$}{K/N -> 1}}
+
+At $K = N$, nonempty $K$-means clusters are singletons and the shift ratio equals~$1$ whenever defined. Yet there is no uniform approach to~$1$ as $K/N \to 1$:
+
+\begin{theorem}[Single-merger divergence at $K = N - 1$]\label{thm:single-merge}
+Fix $k = 10$, $\tau = 0.05$, queries $q_\pm$ at angle $5.7^\circ$, and ambient dimension $d = 4$. For every $N \ge k + 1$ and $K = N - 1$, there is a deterministic family $X_N(t) \subset \mathbb{S}^3$ ($t \in [-s, 0)$) with unique zero-cost $K$-means bank $A_{N-1}(t)$ such that $\lim_{t \uparrow 0} S(A_{N-1}(t))/S(X_N(t)) = +\infty$ independently of $N$.
+\end{theorem}
+
+\begin{proof}
+With $a = 0.600$, $b = 0.599$, $s = 0.001$, and $t \in [-s, 0]$, choose $k - 1$ distinct unit sites with first two coordinates $(a, t)$ on the transverse circle in $\operatorname{span}(e_3, e_4)$, duplicate one once, add one unit site with coordinates $(b, s)$, and add $N - k - 1$ distinct unit fillers with coordinates $(-a, 0)$ on their transverse circle. There are $N - 1 = K$ distinct support sites, forming the unique zero-cost $K$-means bank $A_{N-1}$. In $X_N$, all $k$ nearest observations are of type $(a, t)$, so $S(X_N) = 2|t|\sin h$. In $A_{N-1}$, the top~$k$ consist of the $k - 1$ anchors of type $(a, t)$ and the single $(b, s)$ anchor. At $t = 0$, only the $(b, s)$ anchor's dot product changes (strictly increasing by $2s\sin h$), so $S(A_{N-1}(0)) > 0$ independently of $N$. By continuity, $S(A_{N-1}(t))/(2|t|\sin h) \to +\infty$ as $t \uparrow 0$ uniformly in $N$.
+\end{proof}
+
+\section{Reproducible Numerical Verification}
+
+The script \texttt{solutions/holoaegis\_boundary/explore.py} verifies all three constructions using~\eqref{eq:potential} under both raw (cosine-ranked) and unit-normalized centroid scoring:
+\begin{itemize}[leftmargin=*]
+\item \textbf{Paired family (72 configurations):} Tests $K \in \{30, 100, 300\}$, $k \in \{1, 10, K\}$, and $t \in \{-s,\allowbreak -s/10,\allowbreak -s/10000,\allowbreak 0\}$, both noiseless and noisy, verifying the ball radius $< 0.004$, $K$-means uniqueness, $S(X_N) = 2|t|\sin h$, exact raw $S(A_K) = (t + s)\sin h$ (ratio $4.5$ at $t = -s/10$), and~\eqref{eq:unit-bracket}.
+\item \textbf{Ordinary bootstrap:} Verifies $L_0 = 0.003502414473$, checks $128$ seeded multinomial draws (all achieving $M \ge 10$ and $S(X_N) = 0$), and certifies the proved ratio bound $> 1.367 \times 10^{16}$.
+\item \textbf{Single-merger family ($K = N - 1$):} Verifies $N \in \{100, 1000, 30{,}000\}$ at $t = 0$ and $t = -10^{-7}$ (ratio $> 900$).
+\end{itemize}
+All assertions pass.
+
+\begin{thebibliography}{9}
+
+\bibitem{Li2026}
+T.~H.~A.~Li, K.~Liu, L.-H.~Lee, K.~C.~Ho, P.~Shum, and M.~K.~Ng.
+\emph{HoloAegis: Frozen Representation, Topological Inference --- Minimally Parametric Safety Manifolds and Their Capability Boundaries for LLM Guardrails}.
+Preprint \href{https://arxiv.org/abs/2608.08485}{arXiv:2608.08485} (v2), September 2026.
+
+\end{thebibliography}
+
+\end{document}

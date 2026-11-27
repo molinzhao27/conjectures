@@ -1,0 +1,255 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\KL}{KL}
+
+\title{\bfseries Global Last-Iterate Convergence of Cumulative-Average Matrix GARIP}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: C.~Savc\i, \emph{GARIP: A Running-Average Moving Reference for Last-Iterate}\\
+\emph{Self-Play in Two-Player Zero-Sum Games}, \href{https://arxiv.org/abs/2606.22688}{arXiv:2606.22688} (June 2026), Section~4, \texttt{conj:li}\\[0.35em]
+Companion verification script: \texttt{solutions/garip\_last\_iterate/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We settle Conjecture~\texttt{conj:li} of Savc\i{} (\href{https://arxiv.org/abs/2606.22688}{arXiv:2606.22688}, June~2026) for cumulative-average matrix GARIP.
+First, we prove that for every finite two-player zero-sum matrix game (including games with non-unique or boundary-only equilibria), there exists an explicit rectangle of positive constant stepsizes $(\beta, \eta)$ on which both the last iterate $z_t$ and the cumulative average $a_t$ converge to the same Nash equilibrium from every interior initialization $z_0 > 0$.
+The proof treats the anchor blend as an implicit payoff correction inside an optimistic Lyapunov potential on the harmonic time scale, establishes anchor convergence via strict complementarity and harmonic Ces\`aro decay, rules out profitable outside actions via a finite-window invasion lemma, and lifts anchor convergence to ordinary last-iterate convergence.
+Second, we refute the proposed asymptotic premature-consensus plateau for all $\beta \in (0, 1)$ and $\eta > 0$: whenever a game admits a fully mixed Nash pair and $\|z_t - a_t\| \to 0$, necessarily $\liminf_{t \to \infty} \mathrm{gap}(z_t) = 0$.
+Sharp stepsize thresholds, quantitative rates, finite-horizon transient durations ($\beta^\star(d)$), unconditional convergence outside our rectangle, and fixed-rate EMA deep-RL dynamics remain open.
+\end{abstract}
+
+\section{Algorithm, Strict Complementarity, and Certified Rectangle}
+
+Following Algorithm~1 and Section~4 of Savc\i~\cite{Savci2026}, write a strategy pair as $z = (x, y) \in \Delta_m \times \Delta_n$, its ascent payoffs as $g(z) := (Ay, -A^\top x)$, and the cumulative average as $a_t := (t+1)^{-1}\sum_{j=0}^t z_j$. Initialize $a_0 = z_0 > 0$ (strictly positive on all actions) and $g_{-1} = 0$. With $g_t := g(z_t)$, $\alpha_t := 1/(t+2)$, and multiplicative normalization within each player's simplex,
+\[
+h_t \propto z_t \exp\bigl(\eta(2g_t - g_{t-1})\bigr), \qquad
+z_{t+1} = (1 - \beta)h_t + \beta a_t, \qquad
+a_{t+1} = (1 - \alpha_t)a_t + \alpha_t z_{t+1}.
+\]
+
+\begin{remark}[Failure of bare half-step KL monotonicity]
+Conjecture~\texttt{conj:li} suggests reducing convergence to $\bar{x}_t \to \text{Nash}$ via a potential-non-increasing half-step $\KL(p \| h_t) \le \KL(p \| z_t)$. Already in matching pennies at $t = 0$ with $g_{-1} = 0$, the summed linear payoff term against the uniform Nash pair $p$ vanishes, while strict Jensen's inequality forces the sum of the two log-normalizers to strictly exceed $2\eta\langle z_0, g(z_0)\rangle = 0$ at every nonequilibrium interior $z_0$. We instead combine an optimistic OMWU energy (cf.\ \cite{Daskalakis2019,Wei2021}) with the exact coordinate representation of the anchor.
+\end{remark}
+
+Let $S$ denote the union of supports of all Nash equilibria across both player blocks, $v$ the game value, and $M := \max(1, \max_{i,j}|A_{ij}|)$. By Goldman--Tucker strict complementarity~\cite{GoldmanTucker1956} (for any row $i \notin S$, maximizing $x_i$ over $x \ge 0$, $\mathbf{1}^\top x = 1$, $A^\top x \ge v\mathbf{1}$ has optimum~$0$, so finite LP duality yields $q \ge 0, \lambda \in \mathbb{R}$ with $\lambda\mathbf{1} - Aq \ge e_i$ and $\lambda = v\mathbf{1}^\top q$, whence $q \neq 0$ and $q/(\mathbf{1}^\top q)$ is an optimal column strategy with strictly positive slack at~$i$; averaging across all outside actions and support witnesses), there exists a Nash pair $p^0$ positive throughout $S$ with strictly positive payoff slack on every action outside $S$. Put
+\[
+\mu := \min_{i \in S} p_i^0 > 0, \qquad
+\gamma := \min\bigl(\{v - (Ap_y^0)_i : i \notin S\} \cup \{((p_x^0)^\top A)_j - v : j \notin S\}\bigr) \in (0, \infty],
+\]
+taking $\gamma = +\infty$ when $S$ is full. Our certified stepsize rectangle is
+\begin{equation}\label{eq:rect}
+0 < c := \frac{\beta}{1 - \beta} \le \frac{\mu}{8}, \qquad
+0 < \eta \le \min\!\left(\frac{1}{64M},\, \frac{\gamma}{1200 M^2}\right).
+\end{equation}
+Throughout, $p$ ranges over Nash pairs sufficiently close to $p^0$ that $p_i \ge \mu/2$ on $S$ and every outside slack is at least $\gamma/2$. Writing $m(z) := \sum_{i \notin S} z_i$ (omitting $\gamma m$ terms when $S$ is full), skew-symmetry $\langle g(z), z\rangle = 0$ and optimality of $p$ yield
+\begin{equation}\label{eq:slack}
+\langle g(z), z - p \rangle = \langle g(p), z - p \rangle \le -\frac{\gamma}{2} m(z).
+\end{equation}
+
+\section{Implicit Anchor Correction and Harmonic-Scale Potential}
+
+For a single step, abbreviate $z = z_t$, $w = z_{t+1}$, $a = a_t$, $a' = a_{t+1}$, $\alpha = \alpha_t$. Setting $s_i := c(1 - a_i/w_i)$ and $L_i := \log(1 + s_i)$ yields $h_i = w_i(1 + s_i)$, $\sum_i w_i s_i = 0$ on each player block, and
+\begin{equation}\label{eq:log-step}
+\log\frac{w_i}{z_i} = \eta(2g_t - g_{t-1})_i - L_i - \log Z,
+\end{equation}
+with the block normalizer $Z$.
+
+\begin{lemma}[Uniform ratio and correction bounds]\label{lem:ratios}
+Under~\eqref{eq:rect}, set $K := e^{6\eta M}$, $k := K^{-1}$, and $l := \beta/[1 - (1-\beta)k]$. For every $t \ge 0$ and coordinate $i$,
+\[
+\frac{z_{t,i}}{a_{t,i}} \ge l, \qquad |s_{t,i}| \le 12\eta M \le \frac{3}{16} < \frac{1}{2}, \qquad w_{t,i} \le 2 z_{t,i}.
+\]
+\end{lemma}
+
+\begin{proof}
+Since $\|2g_t - g_{t-1}\|_\infty \le 3M$, we have $k \le h_i/z_i \le K$. Initially $z_0/a_0 = 1 \ge l$. Inductively, $w_i/a_i = (1-\beta)(h_i/z_i)(z_i/a_i) + \beta \ge (1-\beta)kl + \beta = l$, and convex blending $a'_i = (1-\alpha)a_i + \alpha w_i$ preserves $w_i/a'_i \ge l$, which gives $s_i \ge k - 1$. If $(1-\beta)K < 1$, the same induction yields $w_i/a_i \le \beta/[1 - (1-\beta)K]$, hence $s_i \le K - 1$; otherwise $(1-\beta)K \ge 1$ gives $s_i \le c \le K - 1$ directly. Also $w_i/z_i \le (1-\beta)K + \beta/l = 1 + (1-\beta)(K-k)$. Since $6\eta M \le 3/32$, $K - 1 \le 12\eta M \le 3/16$ and $1 + (1-\beta)(K-k) < 2$.
+\end{proof}
+
+\begin{lemma}[Anchor KL dissipation]\label{lem:anchor-diss}
+Let $D(p \| z)$ sum the two block KL divergences and put $H_t := D(p \| a_t)$. Under~\eqref{eq:rect},
+\begin{equation}\label{eq:anchor-diss}
+-\langle L, w - p \rangle
+\;\le\; \frac{c}{\alpha}(H_t - H_{t+1}) - c(1-\alpha)\sum_i \frac{p_i(w_i - a_i)^2}{w_i a'_i} + \sum_i w_i s_i^2.
+\end{equation}
+On $S$, the last two sums retain dissipation at least $\frac{c\mu}{8}\sum_{i \in S}(w_i - a_i)^2/w_i$; off $S$, $\sum_{i \notin S} w_i s_i^2 \le 288\eta^2 M^2 m(z) \le \frac{\eta\gamma}{4}m(z)$.
+\end{lemma}
+
+\begin{proof}
+For $r := w_i/a_i > 0$, applying $\log u \ge 1 - 1/u$ to $u = 1 + \alpha(r-1) = a'_i/a_i$ yields
+\[
+\frac{1}{\alpha}\log\bigl(1 + \alpha(r-1)\bigr) - \Bigl(1 - \frac{1}{r}\Bigr)
+\;\ge\; \frac{r - 1}{1 + \alpha(r-1)} - \frac{r - 1}{r}
+\;=\; \frac{(1-\alpha)(w_i - a_i)^2}{w_i a'_i}.
+\]
+Combining $L_i \le s_i$ on the $p$-terms, $L_i \ge s_i - s_i^2$ (valid for $s_i \ge -1/2$) on the $w$-terms, $\sum_i w_i s_i = 0$, and $H_t - H_{t+1} = \sum_i p_i \log(a'_i/a_i)$ proves~\eqref{eq:anchor-diss}. On $S$, $w_i s_i^2 = c^2(w_i - a_i)^2/w_i$, while $p_i \ge \mu/2$, $1-\alpha \ge 1/2$, $a'_i \le 1$, and $c \le \mu/8$ leave at least $c(\mu/4 - c)(w_i - a_i)^2/w_i \ge \frac{c\mu}{8}(w_i - a_i)^2/w_i$. Off $S$, Lemma~\ref{lem:ratios} gives $\sum_{i \notin S} w_i s_i^2 \le 2(12\eta M)^2 m(z) = 288\eta^2 M^2 m(z) \le 0.24\eta\gamma m(z) < \frac{\eta\gamma}{4}m(z)$ by~\eqref{eq:rect}.
+\end{proof}
+
+Write $\|z\| := \sum_i |z_i|$ across both blocks and $d_t := \|z_t - z_{t-1}\|$. For $t \ge 1$, define
+\[
+E_t(p) := D(p \| z_t) - \eta\langle g_{t-1}, z_t - p \rangle + \frac{d_t^2}{16}.
+\]
+Blockwise Pinsker's inequality $D(p \| z) \ge \|z - p\|^2/4$, $\|g(z) - g(z')\|_\infty \le M\|z - z'\|$, \eqref{eq:slack}, and Young's inequality on $\eta M d_t\|z_t - p\|$ (using $2\eta^2 M^2 < 1/32$) give, for every Nash pair $p$,
+\begin{equation}\label{eq:coercive}
+E_t(p) \;\ge\; \frac{1}{8}\|z_t - p\|^2 + \frac{1}{32}d_t^2.
+\end{equation}
+
+\begin{proposition}[Harmonic-scale Lyapunov decay]\label{prop:lyap}
+Under~\eqref{eq:rect}, for every $t \ge 1$ and every Nash pair $p$ in the specified neighborhood of $p^0$,
+\begin{equation}\label{eq:step-decay}
+E_{t+1}(p) - E_t(p) \;\le\; \frac{c}{\alpha_t}(H_t - H_{t+1}) - R_t,
+\quad
+R_t := \frac{d_t^2 + d_{t+1}^2}{32} + \frac{c\mu}{8}\sum_{i \in S}(w_i - a_i)^2 + \frac{\eta\gamma}{4} m(z_t).
+\end{equation}
+Consequently, $V_t(p) := H_t(p) + (\alpha_t/c) E_t(p)$ satisfies $V_{t+1}(p) \le V_t(p) - (\alpha_t/c) R_t$, $\sum_{t=1}^\infty \alpha_t R_t < \infty$, $a_{t,i}$ and $z_{t,i}$ are uniformly bounded below on $S$, and $\lim_{t \to \infty} H_t(p)$ exists for every $p$ in that neighborhood of $p^0$.
+\end{proposition}
+
+\begin{proof}
+From~\eqref{eq:log-step}, the exact KL step identity is
+\[
+D(p \| w) - D(p \| z) = \eta\langle 2g_t - g_{t-1}, w - p \rangle - D(w \| z) - \langle L, w - p \rangle.
+\]
+Subtracting $\eta\langle g_t, w - p\rangle - \eta\langle g_{t-1}, z - p\rangle$ leaves $\eta\langle g_t, z - p\rangle + \eta\langle g_t - g_{t-1}, w - z\rangle$. The second term is at most $\frac{\eta M}{2}(d_t^2 + d_{t+1}^2) \le \frac{1}{128}(d_t^2 + d_{t+1}^2)$, while $-D(w \| z) \le -d_{t+1}^2/4$, so the lag terms yield at most $-(d_t^2 + d_{t+1}^2)/32$. Combining with~\eqref{eq:slack}, Lemma~\ref{lem:anchor-diss}, and $w_i \le 1$ proves~\eqref{eq:step-decay}. Multiplying by $\alpha_t/c$ and using $\alpha_{t+1} \le \alpha_t$ and $E_{t+1} \ge 0$ gives $V_{t+1} - V_t \le -(\alpha_t/c) R_t$, whence $V_t$ converges and $\sum \alpha_t R_t < \infty$. Boundedness of $H_t(p^0)$ keeps $a_{t,i}$ bounded away from zero on $S$; Lemma~\ref{lem:ratios} then keeps $z_{t,i} \ge l a_{t,i}$ bounded away from zero on $S$, so $E_t(p)$ is bounded, $(\alpha_t/c)E_t(p) \to 0$, and $H_t(p)$ converges.
+\end{proof}
+
+\section{Anchor Limit, Invasion Lemma, and Last-Iterate Convergence}
+
+\begin{theorem}[Global last-iterate convergence on the certified rectangle]\label{thm:main}
+Under~\eqref{eq:rect}, from every interior initialization $z_0 > 0$, there exists a Nash equilibrium $u$ such that $\lim_{t \to \infty} a_t = \lim_{t \to \infty} z_t = u$.
+\end{theorem}
+
+\begin{proof}
+\emph{Step~1 (Identification of anchor cluster points).}
+If $b_t \ge 0$ is bounded and $\sum_{t=0}^\infty b_t/(t+2) < \infty$, then $\frac{1}{T+1}\sum_{t=0}^T b_t \to 0$ (discard a prefix so the series tail is below $\varepsilon$, then bound the remaining Ces\`aro mean by $\frac{T+2}{T+1}$ times the tail). By~\eqref{eq:step-decay}, $a_t$ loses all mass outside $S$, and for every $\varepsilon > 0$ the set $\{t : R_t > \varepsilon\}$ has finite harmonic mass and natural density~$0$.
+
+Let $u$ be any cluster point of $\{a_t\}$. Since $\|a_{t+1} - a_t\| \le 4\alpha_t$, every neighborhood of $u$ is visited for infinite harmonic mass (each exit across an annulus costs fixed positive harmonic mass). Thus there exists a subsequence with $a_t \to u$ and $R_t \to 0$. Along it, $w, z_t, z_{t-1} \to u$ by~\eqref{eq:step-decay}, and continuity of the exponential update yields $h = u$. Hence supported row payoffs are constant, supported column payoffs are constant, and $\supp(u) = S$ (since $a_{t,i}$ is bounded below on $S$ and vanishes off $S$). Because $u_y$ is supported on optimal columns, all of which bind against $p_x^0$, $(p_x^0)^\top A u_y = v$; thus the supported payoff constants are $v$ and $-v$.
+
+\emph{Step~2 (Uniqueness of the anchor limit).}
+Every cluster point lies in the affine space $B$ of normalized pairs supported on $S$ with $(Ay)_i = v$ on supported rows and $(x^\top A)_j = v$ on supported columns. By positivity of $p^0$ on $S$ and strict slack off $S$, a relative neighborhood of $p^0$ in $B$ consists of Nash pairs. If $u, v' \in B$ are two cluster points, convergence of $H_t(p)$ gives $\sum_{i \in S} p_i(\log u_i - \log v'_i) = 0$ throughout that neighborhood. Subtracting its values at $p^0$ and $p^0 + \delta(u - v')$ (small $\delta > 0$) yields $\sum_{i \in S}(u_i - v'_i)(\log u_i - \log v'_i) = 0$, forcing $u = v'$. Thus $a_t \to u$. By~\eqref{eq:step-decay}, $z_t \to u$ in natural density (and similarly for any finite set of shifts).
+
+\emph{Step~3 (Invasion lemma: $u$ is Nash).}
+Suppose an outside action $i \notin S$ earns strictly more than the common supported ascent payoff against $u$. At $(z_t, z_{t-1}) = (u, u)$, the continuous exponential factor $h_{t,i}/z_{t,i}$ exceeds~$1$, so it is at least $1 + \delta$ ($\delta > 0$) on a fixed neighborhood of $(u, u)$. Call steps in that neighborhood \emph{good}; every fixed-length window of $J$ steps is all-good with natural density~$1$.
+
+Set $r_t := z_{t,i}/a_{t,i}$. A good step satisfies $W_t := z_{t+1,i}/a_{t,i} \ge F(r_t) := \beta + (1-\beta)(1+\delta)r_t$, and $r_{t+1} = W_t/[1 + \alpha_t(W_t - 1)]$ (increasing in $W_t$). Iterating $F$ from $0$ strictly crosses~$1$ in some finite number $J$ of steps (since $F(1) > 1$). As $t \to \infty$, the intermediate denominators $1 + \alpha(W-1)$ tend uniformly to~$1$ along the finite lower recursion from~$0$, so for all sufficiently late all-good $J$-windows the terminal ratio satisfies $W_t \ge 1 + e$ for some fixed $e > 0$. At such endpoints $\log(a_{t+1,i}/a_{t,i}) \ge \log(1 + e\alpha_t) \ge \frac{e}{2}\alpha_t$, while at all other steps $\log(a_{t+1,i}/a_{t,i}) \ge \log(1 - \alpha_t) \ge -2\alpha_t$. By partial summation, any density-$0$ set has harmonic mass $o(\log T)$ through time $T$. Summing gives $\log a_{T,i} \to +\infty$, contradicting $a_{T,i} \le 1$. Thus $u$ is a Nash equilibrium.
+
+\emph{Step~4 (Ordinary last-iterate convergence $z_t \to u$).}
+Evaluate~\eqref{eq:coercive} at $p = u$ and split the anchor term in~\eqref{eq:log-step} as
+\[
+-\langle L, w - u \rangle = -\langle L, w - a \rangle - \langle L, a - u \rangle.
+\]
+By Lemma~\ref{lem:ratios} and $a_t \to u$, $-\langle L, a - u\rangle \to 0$. In the first term, $L_i$ has the sign of $w_i - a_i$ and $|L_i| \ge |s_i|/2 = c|w_i - a_i|/(2w_i) \ge \frac{c}{2}|w_i - a_i|$. Using $\langle g_t, z - u\rangle \le 0$ and the KL/lag bounds of Proposition~\ref{prop:lyap} gives
+\[
+E_{t+1}(u) \le E_t(u) - Q_t + o(1), \qquad Q_t := \frac{d_t^2 + d_{t+1}^2}{32} + \frac{c}{2}\sum_i (w_i - a_i)^2.
+\]
+Whenever $Q_{t_k} \to 0$, we have $z_{t_k} \to u$ and $d_{t_k} \to 0$, whence $E_{t_k}(u) \to 0$ (as $u_i > 0$ only on $S$, where $z_{t,i}$ is bounded below). Thus for each $\varepsilon > 0$, at all sufficiently late $t$ with $E_t(u) \ge \varepsilon$, $Q_t \ge q(\varepsilon) > 0$. Nonnegativity of $E_t(u)$ then forces $\limsup_{t \to \infty} E_t(u) \le \varepsilon$. Letting $\varepsilon \downarrow 0$ and applying~\eqref{eq:coercive} yields $z_t \to u$.
+\end{proof}
+
+\begin{remark}[No converged non-Nash limit at any stepsize]
+Step~3 applies at \emph{every} $\beta \in (0, 1)$ and $\eta > 0$ whenever $z_t \to u$ from an interior start, since $a_t \to u$ and every late step is good; thus a converged non-Nash point cannot occur.
+\end{remark}
+
+\section{Refutation of Asymptotic Premature-Consensus Plateaus}
+
+\begin{theorem}[Incompatibility of asymptotic consensus and positive exploitability]\label{thm:plateau}
+Fix any $\beta \in (0, 1)$ and $\eta > 0$, and suppose the game admits a fully mixed Nash pair $p > 0$. If $\|z_t - a_t\| \to 0$ from an interior start $z_0 > 0$, then
+\[
+\liminf_{t \to \infty}\Bigl[\max_i (Ay_t)_i - \min_j (x_t^\top A)_j\Bigr] = 0.
+\]
+\end{theorem}
+
+\begin{proof}
+Let $D_i(z)$ be action $i$'s ascent payoff minus its player's mean ascent payoff at $z$, and set $q := 1 - \beta$. Skew-symmetry and full mixing of $p$ yield $\sum_i p_i D_i(z) = 0$ for all $z$. Consensus $\|z_t - a_t\| \to 0$ implies $z_{t+1} - z_t \to 0$ and $h_t - z_t \to 0$. On every cluster point $z$ of $\{z_t\}$, the exponential update fixes $z$, so supported payoffs equal each block's mean. By compactness and continuity of the exponential formula,
+\[
+\frac{h_{t,i}}{z_{t,i}} = \exp\bigl(\eta D_i(z_t)\bigr) + o(1)
+\]
+uniformly across all coordinates (including vanishing ones).
+
+For fixed $J \ge 2$, comparing the $J$-step ratio recursion against the monotone lower recursion started at ratio~$0$ (which stays bounded, has intermediate denominators tending uniformly to~$1$, and sees $o(1)$ variation in $D_i$) gives
+\[
+\frac{z_{t+1,i}}{a_{t,i}} \;\ge\; W_{t,i}^{\mathrm{lb}} := \beta \sum_{k=0}^{J-1} q^k \exp\bigl(k\eta D_i(z_t)\bigr) - o(1).
+\]
+Assume for contradiction that the Nash gap stays eventually at least $e > 0$; then at every late $t$, some action satisfies $D_i(z_t) \ge e/2$. Using $\sum_i p_i = 2$, $\sum_i p_i D_i = 0$, and $e^s \ge 1 + s$, we have $\sum_i p_i \exp(k\eta D_i) \ge 2$ for every $k \ge 0$, with strict excess at $k = 1$ at least $b := (\min_i p_i)(e^{\eta e/2} - 1 - \eta e/2) > 0$. Choosing $J \ge 2$ such that $2q^J < \beta q b / 2$,
+\[
+\sum_i p_i (W_{t,i}^{\mathrm{lb}} - 1)
+\;\ge\; \beta \sum_{k=0}^{J-1} 2q^k + \beta q b - 2 - o(1)
+\;=\; \beta q b - 2q^J - o(1) \;>\; \frac{\beta q b}{2} - o(1).
+\]
+Since $W_{t,i}^{\mathrm{lb}}$ is uniformly bounded, substituting it into $\log(1 + \alpha_t(W - 1))$ and Taylor expanding yields $\sum_i p_i \log(a_{t+1,i}/a_{t,i}) \ge \frac{\beta q b}{4}\alpha_t$ eventually. Summing over $t$ gives $\sum_i p_i \log a_{t,i} \to +\infty$, contradicting $a_{t,i} \le 1$.
+\end{proof}
+
+\begin{remark}[Scope and open questions]
+Full support of $z_0$ is essential (an initially absent action remains absent); at $\beta = 1$ or $\eta = 0$ the iterate is frozen; at $\beta = 0$ the update reduces to OMWU. Theorems~\ref{thm:main} and~\ref{thm:plateau} settle global small-$(\beta, \eta)$ convergence and rule out \emph{asymptotic} positive-exploitability consensus plateaus for cumulative-average matrix GARIP, while sharp stepsize boundaries, quantitative convergence rates, finite-horizon transient durations ($\beta^\star(d)$), unconditional convergence outside~\eqref{eq:rect}, and fixed-rate EMA deep-RL dynamics remain open.
+\end{remark}
+
+\section{Reproducible Numerical Verification}
+
+The script \texttt{solutions/garip\_last\_iterate/explore.py} checks $7$ games $\times$ $2$ interior starts $\times$ $6$ parameter pairs ($84$ trajectories of $7{,}000$ updates each, including $56$ inside~\eqref{eq:rect}). At every step it confirms Lemma~\texttt{lem:klconv} and~\eqref{eq:step-decay} (worst positive scaled residual $5.6 \times 10^{-17}$), as well as the raw matching-pennies half-step KL increase ($0.0002957693$). Table~\ref{tab:garip} summarizes the runs; all assertions pass.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Game & Practical gaps ($\beta=0.015, \eta=0.18/M$) & Large-anchor gaps & Max scaled resid. \\
+\midrule
+Matching pennies & $[0.6914, 1.1896] \to [0.0000465, 0.0001455]$ & $[0.6581, 1.2440]$ & $-3.8 \times 10^{-19}$ \\
+Rock--paper--scissors & $[0.8772, 1.4701] \to [0.0002607, 0.0006858]$ & $[0.8653, 1.5108]$ & $-3.5 \times 10^{-19}$ \\
+Asymmetric & $[2.7715, 2.6426] \to [0.0004590, 0.0004276]$ & $[2.7691, 2.6495]$ & $-4.9 \times 10^{-18}$ \\
+Duplicate actions & $[1.2239, 1.1133] \to [0.0002489, 0.0003616]$ & $[1.1211, 1.2181]$ & $-1.9 \times 10^{-18}$ \\
+Dominated actions & $[2.3498, 2.4967] \to [0.0012715, 0.0007127]$ & $[2.3060, 2.4151]$ & $-1.3 \times 10^{-11}$ \\
+Weak boundary & $[0.8000, 0.9687] \to [0.0025485, 0.0004371]$ & $[0.8000, 0.9672]$ & $1.1 \times 10^{-17}$ \\
+Zero game & $[0, 0] \to [0, 0]$ & $[0, 0]$ & $5.6 \times 10^{-17}$ \\
+\bottomrule
+\end{tabular}
+\caption{Summary of 84 trajectories (7,000 updates each) verified in \texttt{explore.py}.}\label{tab:garip}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Daskalakis2019}
+C.~Daskalakis and I.~Panageas.
+Last-iterate convergence: zero-sum games and constrained min-max optimization.
+In \emph{Proceedings of ITCS 2019}, 2019.
+
+\bibitem{GoldmanTucker1956}
+A.~J.~Goldman and A.~W.~Tucker.
+Theory of linear programming.
+In \emph{Linear Inequalities and Related Systems}, Annals of Mathematics Studies \textbf{38}, pages 53--97. Princeton University Press, 1956.
+
+\bibitem{Savci2026}
+C.~Savc\i.
+\emph{GARIP: A Running-Average Moving Reference for Last-Iterate Self-Play in Two-Player Zero-Sum Games}.
+Preprint \href{https://arxiv.org/abs/2606.22688}{arXiv:2606.22688}, June 2026.
+
+\bibitem{Wei2021}
+C.-Y.~Wei, C.-W.~Lee, M.~Zhang, and H.~Luo.
+Linear last-iterate convergence in constrained saddle-point optimization.
+In \emph{Proceedings of ICLR 2021}, 2021.
+
+\end{thebibliography}
+
+\end{document}

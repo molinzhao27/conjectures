@@ -1,0 +1,188 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\UB}{\mathrm{UB}}
+\newcommand{\ILB}{\mathrm{ILB}}
+\newcommand{\LB}{\mathrm{LB}}
+
+\title{\bfseries Unbounded Separation Between \texorpdfstring{$\UB$}{UB} and \texorpdfstring{$\ILB$}{ILB} for Temporal Feedback Graphs}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: K.~Gatmiry and J.~Schneider, \emph{Adversarial Online Learning with Temporal Feedback Graphs},\\
+COLT 2024 (PMLR v247, Conjecture~12) / \href{https://arxiv.org/abs/2407.00571}{arXiv:2407.00571} (July 2024, Conjecture~1, \texttt{conj:tight})\\[0.35em]
+Companion verification script: \texttt{solutions/temporal\_feedback\_regret/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~12 of Gatmiry and Schneider (COLT 2024, PMLR v247; numbered Conjecture~1, \texttt{conj:tight}, in \href{https://arxiv.org/abs/2407.00571}{arXiv:2407.00571}, July 2024), which conjectures a universal constant upper bound on $\UB(\mathcal{S})/\ILB(\mathcal{S})$ across all temporal feedback graphs $\mathcal{S}$.
+For every integer $k \ge 1$, the $k$-fold lexicographic power $\mathcal{S}_k$ of the directed triangle $C_3$ on $T = 3^k$ vertices is a regular vertex-transitive tournament satisfying
+\[
+\UB(\mathcal{S}_k) = \frac{3^k}{\sqrt{2^k}}, \quad
+\ILB(\mathcal{S}_k) = \frac{3^k}{\sqrt{(3^k - 1)/2}}, \quad
+\frac{\UB(\mathcal{S}_k)}{\ILB(\mathcal{S}_k)} = \sqrt{\frac{3^k - 1}{2^{k+1}}} = \Theta\!\left(T^{(1 - \log_3 2)/2}\right),
+\]
+which diverges as $k \to \infty$.
+We also record exact rational orbit formulas for $\UB^2$ and $\ILB^2$ on arbitrary vertex-transitive directed graphs and note the remaining open scope for non-transitive acyclic graphs and minimax regret.
+\end{abstract}
+
+\section{Definitions and Convex Programs}
+
+Following Gatmiry and Schneider~\cite{GatmirySchneider2024} (Sections~2--4), a \emph{temporal feedback graph} $\mathcal{S}$ on $T$ rounds assigns to each $t \in [T]$ a visible set $S_t \subseteq [T] \setminus \{t\}$; write $s \to t$ when $s \in S_t$.
+The model explicitly allows directed cycles and feedback from future rounds.
+An \emph{order} is a sequence $(t_1, \dots, t_m)$ of distinct vertices such that $t_i \to t_j$ for every $1 \le i < j \le m$, and $\mathcal{C}$ denotes the collection of maximal orders under subsequence extension.
+
+\begin{itemize}[leftmargin=1.6em]
+\item \textbf{Upper-bound program $\UB(\mathcal{S})$:} Minimize $\sum_{C \in \mathcal{C}} \|\lambda_C\|_2$ over nonnegative weights $\lambda_{C, t} \ge 0$ supported on $t \in C$ satisfying $\sum_{C \in \mathcal{C}} \lambda_{C, t} = 1$ for every $t \in [T]$.
+\item \textbf{Independent-set lower-bound program $\ILB(\mathcal{S})$:} Let $\mathcal{I}(\mathcal{S})$ denote the collection of nonempty independent sets of the underlying undirected graph of $\mathcal{S}$ (the empty set contributes to neither objective nor constraints). Putting $z_I := w_I^2 \ge 0$,
+\begin{align*}
+\ILB(\mathcal{S}) := \max_{z \ge 0}\; &\sum_{t=1}^T \sqrt{\sum_{I \in \mathcal{I}(\mathcal{S}) :\, t \in I} z_I} \\
+\text{subject to}\quad &\sum_{I \in \mathcal{I}(\mathcal{S}) :\, I \cap S_t \neq \varnothing} z_I \le 1 \qquad (\forall t \in [T]).
+\end{align*}
+\end{itemize}
+
+Conjecture~12 of COLT~2024 (Conjecture~1, \texttt{conj:tight}, in \href{https://arxiv.org/abs/2407.00571}{arXiv:2407.00571}) asks whether a universal constant $\gamma$ satisfies $\UB(\mathcal{S}) / \ILB(\mathcal{S}) \le \gamma$ for every temporal feedback graph $\mathcal{S}$.
+
+\section{Lexicographic Triangle Powers and Polynomial Separation}
+
+For each integer $k \ge 1$, define $\mathcal{S}_k$ on the vertex set $V_k := (\mathbb{Z}/3\mathbb{Z})^k$ of size $T = 3^k$ by putting $x \to y$ ($x \neq y$) if and only if, at the first coordinate $j \in \{1, \dots, k\}$ where $x_j \neq y_j$, we have $y_j - x_j \equiv 1 \pmod 3$.
+(This iterated $C_3$ blow-up is classical in tournament theory; see Stearns~\cite{Stearns1959} and Erd\H{o}s--Moser~\cite{ErdosMoser1964}.)
+
+\begin{lemma}[Tournament structure and maximum order length]\label{lem:tri}
+For every integer $k \ge 1$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $\mathcal{S}_k$ is a vertex-transitive tournament in which every vertex has common indegree and outdegree $d_k := (3^k - 1)/2$.
+\item The maximum length of an order (transitive subtournament) in $\mathcal{S}_k$ is $a_k := 2^k$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+For distinct $x, y \in V_k$, at the first differing coordinate $j$ we have $y_j - x_j \in \{1, 2\} \pmod 3$, so exactly one of $x \to y$ and $y \to x$ holds; hence $\mathcal{S}_k$ is a tournament.
+Coordinatewise translations $x \mapsto x + c$ ($c \in V_k$) preserve the first differing coordinate and its difference, forming a transitive automorphism group. Hence all vertices share the same indegree and outdegree, and counting the $T(T - 1)/2$ directed edges by either endpoint yields $d_k = (T - 1)/2 = (3^k - 1)/2$.
+
+Set $a_0 := 1$ for the one-vertex graph $V_0$. Partition $V_k$ into three blocks $B_0, B_1, B_2$ according to the first coordinate. Each $B_r$ induces an isomorphic copy of $\mathcal{S}_{k-1}$, and all cross-block edges run $B_0 \to B_1 \to B_2 \to B_0$. Any order meeting all three blocks would contain three vertices forming a directed $3$-cycle, contradicting the forward-edge requirement of an order. Hence any order meets at most two blocks and has length at most $2 a_{k-1}$. Conversely, concatenating a maximum order of $B_0$ followed by a maximum order of $B_1$ yields a valid order of length $2 a_{k-1}$. Induction gives $a_k = 2^k$.
+\end{proof}
+
+\begin{theorem}[Refutation of Conjecture~12 / Conjecture~\texttt{conj:tight}]\label{thm:sep}
+For every integer $k \ge 1$,
+\[
+\UB(\mathcal{S}_k) = \frac{3^k}{\sqrt{2^k}}, \qquad
+\ILB(\mathcal{S}_k) = \frac{3^k}{\sqrt{(3^k - 1)/2}}, \qquad
+\frac{\UB(\mathcal{S}_k)}{\ILB(\mathcal{S}_k)} = \sqrt{\frac{3^k - 1}{2^{k+1}}}.
+\]
+In particular, $\UB(\mathcal{S}_k) / \ILB(\mathcal{S}_k) \sim \frac{1}{\sqrt{2}}(3/2)^{k/2} = \Theta\!\bigl(T^{(1 - \log_3 2)/2}\bigr) \to \infty$ as $k \to \infty$, so no universal constant $\gamma$ satisfies $\UB(\mathcal{S}) / \ILB(\mathcal{S}) \le \gamma$.
+\end{theorem}
+
+\begin{proof}
+Write $T = 3^k$, $a = a_k = 2^k$, and $d = d_k = (3^k - 1)/2$.
+
+\emph{Value of $\UB(\mathcal{S}_k)$.}
+For every feasible weight assignment $\lambda$, Cauchy--Schwarz on each $C \in \mathcal{C}$ gives
+\[
+T = \sum_{C \in \mathcal{C}} \sum_{t \in C} \lambda_{C, t}
+\le \sum_{C \in \mathcal{C}} \sqrt{|C|}\,\|\lambda_C\|_2
+\le \sqrt{a} \sum_{C \in \mathcal{C}} \|\lambda_C\|_2,
+\]
+whence $\UB(\mathcal{S}_k) \ge T/\sqrt{a}$.
+To attain equality, let $\mathcal{O}$ be the orbit of a maximum order $C^*$ (of length $a$) under translations in $V_k$. Every $C \in \mathcal{O}$ has length $a$ and is therefore maximal ($C \in \mathcal{C}$). Put $m := |\mathcal{O}|$. By vertex transitivity, every vertex belongs to the same number $r$ of orders in $\mathcal{O}$, and counting incidences gives $T r = m a$. Setting $\lambda_{C, t} := 1/r$ for $C \in \mathcal{O}, t \in C$ and $0$ otherwise is feasible and has cost $m\sqrt{a}/r = T/\sqrt{a}$.
+
+\emph{Value of $\ILB(\mathcal{S}_k)$.}
+Because $\mathcal{S}_k$ is a tournament, its underlying undirected graph is $K_T$, so every nonempty independent set is a singleton $\{s\}$ (thus $\ILB(\mathcal{S}_k) = \LB(\mathcal{S}_k)$). Writing $z_s := z_{\{s\}}$, the constraint at $t$ is $\sum_{s \in S_t} z_s \le 1$. Since each $s$ has outdegree $d$, summing over all $t \in V_k$ yields $d \sum_{s \in V_k} z_s \le T$. Cauchy--Schwarz gives
+\[
+\sum_{s \in V_k} \sqrt{z_s} \le \sqrt{T \sum_{s \in V_k} z_s} \le \frac{T}{\sqrt{d}}.
+\]
+Setting $z_s := 1/d$ for all $s \in V_k$ satisfies $\sum_{s \in S_t} z_s = |S_t|/d = 1$ for every $t$ and attains $T/\sqrt{d}$. Dividing $\UB(\mathcal{S}_k)$ by $\ILB(\mathcal{S}_k)$ yields $\sqrt{(3^k - 1)/2^{k+1}} \to \infty$.
+\end{proof}
+
+\begin{remark}[Scope: minimax regret, acyclic graphs, and closed neighborhoods]
+Three points clarify the scope of Theorem~\ref{thm:sep}:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item Theorem~\ref{thm:sep} separates the two convex programs $\UB$ and $\ILB$ without determining the true minimax regret on $\mathcal{S}_k$.
+\item The construction $\mathcal{S}_k$ contains directed cycles, which is explicitly permitted by the model of~\cite{GatmirySchneider2024} (Sections~1--2); whether $\UB/\ILB$ is uniformly bounded across all non-transitive \emph{acyclic} (causal / past-only) feedback graphs remains open.
+\item Even if the $\ILB$ constraints were tightened from open visible sets $S_t$ to closed neighborhoods $S_t \cup \{t\}$, the feasible set would shrink and $\ILB$ could only decrease, so the divergence persists.
+\end{enumerate}
+\end{remark}
+
+\section{General Vertex-Transitive Orbit Formulas and Verification}
+
+\begin{proposition}[Vertex-transitive directed graphs]\label{prop:vt}
+Let $\mathcal{S}$ be a vertex-transitive directed graph on $T$ vertices with maximum order length $a$, and assume every vertex has at least one observer (so $B(I) := \{t \in [T] : I \cap S_t \neq \varnothing\} \neq \varnothing$ for every $I \in \mathcal{I}(\mathcal{S})$). Then
+\[
+\UB(\mathcal{S})^2 = \frac{T^2}{a}, \qquad
+\ILB(\mathcal{S})^2 = T^2 \max_{I \in \mathcal{I}(\mathcal{S})} \frac{|I|}{|B(I)|}.
+\]
+\end{proposition}
+
+\begin{proof}
+The orbit argument in Theorem~\ref{thm:sep} (applied to the orbit of a maximum sequence under $\mathrm{Aut}(\mathcal{S})$, which remains valid even in the presence of bidirectional edges) gives $\UB(\mathcal{S}) = T/\sqrt{a}$.
+For $\ILB(\mathcal{S})$, put $h := \max_{I \in \mathcal{I}(\mathcal{S})} |I|/|B(I)|$. Summing the $T$ constraints gives $\sum_I |B(I)| z_I \le T$, so Cauchy--Schwarz yields
+\[
+\left(\sum_{t=1}^T \sqrt{\sum_{I \ni t} z_I}\right)^2
+\le T \sum_{t=1}^T \sum_{I \ni t} z_I
+= T \sum_I |I| z_I
+\le T h \sum_I |B(I)| z_I
+\le T^2 h.
+\]
+Distributing total weight $T / |B(I^*)|$ uniformly across the distinct images of a maximizer $I^*$ under $\mathrm{Aut}(\mathcal{S})$ gives equal constraint load~$1$ and equal objective summand at every vertex by transitivity, attaining $T\sqrt{h}$.
+\end{proof}
+
+The script \texttt{solutions/temporal\_feedback\_regret/explore.py} evaluates Proposition~\ref{prop:vt} in exact rational arithmetic across $246$ nonempty circulant step sets ($n = 3, \dots, 8$), $4$ seeded random circulant tournaments ($n = 11, 13, 17, 19$), the Kneser graph $KG(5, 2)$, a $3$-layer graph, a complete bipartite graph, the wrapped butterfly graph, and the triangle powers $\mathcal{S}_k$ ($k = 1, \dots, 5$; Table~\ref{tab:tri}). All assertions pass.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}rrrrrrr@{}}
+\toprule
+$k$ & $T = 3^k$ & $a_k = 2^k$ & $d_k = (3^k-1)/2$ & $\UB^2$ & $\ILB^2$ & $(\UB/\ILB)^2$ \\
+\midrule
+$1$ & $3$   & $2$  & $1$   & $9/2$      & $9$        & $1/2$ \\
+$2$ & $9$   & $4$  & $4$   & $81/4$     & $81/4$     & $1$ \\
+$3$ & $27$  & $8$  & $13$  & $729/8$    & $729/13$   & $13/8$ \\
+$4$ & $81$  & $16$ & $40$  & $6561/16$  & $6561/40$  & $5/2$ \\
+$5$ & $243$ & $32$ & $121$ & $59049/32$ & $59049/121$ & $121/32$ \\
+\bottomrule
+\end{tabular}
+\caption{Exact squared program values and separation ratios for the lexicographic triangle powers $\mathcal{S}_k$.}\label{tab:tri}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{ErdosMoser1964}
+P.~Erd\H{o}s and L.~Moser.
+On the representation of directed graphs as unions of orderings.
+\emph{Magyar Tud.\ Akad.\ Mat.\ Kutat\'o Int.\ K\"ozl.}, 9:125--132, 1964.
+
+\bibitem{GatmirySchneider2024}
+K.~Gatmiry and J.~Schneider.
+Adversarial online learning with temporal feedback graphs.
+In \emph{Proceedings of the 37th Annual Conference on Learning Theory (COLT 2024)}, PMLR 247:1866--1896, 2024; preprint \href{https://arxiv.org/abs/2407.00571}{arXiv:2407.00571}.
+
+\bibitem{Stearns1959}
+R.~Stearns.
+The voting problem.
+\emph{American Mathematical Monthly}, 66(9):761--763, 1959.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,194 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\dFR}{d_{\mathrm{FR}}}
+
+\title{\bfseries Characterization of Neyman--Pearson Optimality\\ for Fisher--Rao Neutral Zones}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: S.~Das, N.~Dasgupta, and P.~Dutta,\\
+\emph{Geometric Calibration and Neutral Zones for Uncertainty-Aware Multi-Class Classification},\\
+\href{https://arxiv.org/abs/2511.20960}{arXiv:2511.20960} (v2, November 2025), Section~3, Conjecture~1 (\texttt{conj:np})\\[0.35em]
+Companion verification script: \texttt{solutions/fisher\_rao\_neutral/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve Conjecture~1 (\texttt{conj:np}) of Das, Dasgupta, and Dutta (\href{https://arxiv.org/abs/2511.20960}{arXiv:2511.20960}~v2, November~2025).
+First, substituting the predicted simplex vertex $e_J$ into the Fisher--Rao distance shows that the geometric reliability score $R(P) = \exp(-2\lambda\arccos\sqrt{S})$ is a strictly increasing bijection of the maximum class probability (MSP) $S = \max_j P_j$; thus Fisher--Rao geometry plays no decision-theoretic role beyond reparameterizing~$S$.
+Consequently, under perfect calibration, the strict posterior-odds ordering (in $[0, \infty]$) and Neyman--Pearson / reject-option optimality of thresholding $R$ hold by direct reduction to classical MSP thresholding (Chow, 1970; Lehmann and Romano, 2005; El-Yaniv and Wiener, 2010; Franc, Pru\v{s}a, and Vor\'a\v{c}ek, 2023).
+Without a population calibration hypothesis, however, Conjecture~\texttt{conj:np} is \emph{false}, even when the predicted label is Bayes-optimal everywhere, and affine ALR recalibration does not enforce the required population identity.
+We establish sharp necessary-and-sufficient conditions for all-size Neyman--Pearson optimality and all-budget deferral/coverage optimality across three information levels ($Z = R, P, X$), and separate every regime with minimal exact-rational counterexamples.
+\end{abstract}
+
+\section{Reduction of the Fisher--Rao Score to Maximum Class Probability}
+
+Let $P = f(X) \in \Delta^{c-1}$ ($c \ge 2$) be the classifier's probability vector, let $J = J(P) \in \argmax_j P_j$ be the predicted class under a fixed measurable tie-breaking rule, let $S := P_J = \max_{1 \le j \le c} P_j \in [1/c, 1]$, and let $C := \mathbf{1}_{\{Y = J\}}$ indicate correctness. All conditional identities hold almost surely, and pointwise comparisons of conditional probabilities use a regular version on a set of full score measure.
+
+\begin{quote}
+\textbf{Conjecture~1 (\texttt{conj:np}; \href{https://arxiv.org/abs/2511.20960}{arXiv:2511.20960}~v2, \S 3).}\\
+\emph{The reliability score $R = \exp(-\lambda\,\dFR(P, e_J))$ induces a monotone likelihood ratio ordering: for $R_1 > R_2$,
+\[
+\frac{\mathbb{P}(\text{correct} \mid R_1)}{\mathbb{P}(\text{error} \mid R_1)}
+\;>\;
+\frac{\mathbb{P}(\text{correct} \mid R_2)}{\mathbb{P}(\text{error} \mid R_2)}.
+\]
+Consequently, threshold tests on $R$ are Neyman--Pearson optimal for $H_0$: error vs.\ $H_1$: correct.}
+\end{quote}
+
+\begin{proposition}[Bijection with MSP and calibration odds]\label{prop:bijection}
+For every $c \ge 2$ and $\lambda > 0$,
+\begin{equation}\label{eq:bijection}
+\dFR(P, e_J) = 2\arccos\sqrt{S}, \quad
+R = h(S) := \exp\bigl(-2\lambda\arccos\sqrt{S}\bigr), \quad
+s(r) := h^{-1}(r) = \cos^2\!\left(\frac{-\log r}{2\lambda}\right),
+\end{equation}
+where $h : [1/c, 1] \to [h(1/c), 1]$ is a strictly increasing bijection. Setting $\eta_j(p) := \mathbb{P}(Y = j \mid P = p)$, $u(p) := \eta_{J(p)}(p)$, and $m(s) := \mathbb{E}[u(P) \mid S = s]$,
+\begin{equation}\label{eq:score-curve}
+\mathbb{P}(C = 1 \mid R = r) = m(s(r)).
+\end{equation}
+Under perfect calibration ($\eta_j(P) = P_j$ for all $j$), or more weakly under confidence calibration ($\mathbb{E}[C \mid S] = S$),
+\begin{equation}\label{eq:cal-odds}
+\mathbb{P}(C = 1 \mid R = r) = s(r), \qquad
+\frac{\mathbb{P}(C = 1 \mid R = r)}{\mathbb{P}(C = 0 \mid R = r)}
+= \frac{s(r)}{1 - s(r)}
+= \cot^2\!\left(\frac{-\log r}{2\lambda}\right),
+\end{equation}
+which is strictly increasing on $[h(1/c), 1]$ in the extended half-line $[0, \infty]$ (taking $+\infty$ at $r = 1$).
+\end{proposition}
+
+\begin{proof}
+Since $e_J$ has $1$ in coordinate $J$ and $0$ elsewhere, the Bhattacharyya coefficient is $\sum_j \sqrt{P_j (e_J)_j} = \sqrt{S}$, yielding~\eqref{eq:bijection}. Because $\sqrt{\cdot}$, $-\arccos(\cdot)$, and $\exp(\cdot)$ are strictly increasing, $h$ is a strictly increasing bijection; thus $R$ and $S$ generate the exact same $\sigma$-algebra, ties, and rankings, and changing $\lambda > 0$ only rescales numerical cutoffs. Conditioning $C$ on $P$ gives $u(P)$, and conditioning again on $S$ yields $m(S)$, proving~\eqref{eq:score-curve}. Under confidence calibration, $m(s) = s$, and substituting $s(r) = \cos^2(-\log r / (2\lambda))$ gives $s(r)/(1 - s(r)) = \cot^2(-\log r / (2\lambda))$, which strictly increases on $[h(1/c), 1]$ in $[0, \infty]$.
+\end{proof}
+
+\begin{remark}[Absence of distribution-free guarantees and sharper range bound]
+For \emph{any} law of $P$ and \emph{any} measurable $v : \Delta^{c-1} \to [0, 1]$, assigning label $J(p)$ with probability $v(p)$ and another label with probability $1 - v(p)$ realizes $u = v$ (and any score curve $m$ via $v = m \circ S$). Fitting the paper's affine ALR map enforces neither $u(P) = S$ nor $\mathbb{E}[C \mid S] = S$ in population. Note also that $S \ge 1/c$ restricts $R$ to $[\exp(-2\lambda\arccos(1/\sqrt{c})), 1]$, tightening the diameter range bound $[e^{-\lambda\pi}, 1]$ in Theorem~2 of~\cite{Das2025}.
+\end{remark}
+
+\section{Exact Criteria for Neyman--Pearson and Reject-Option Optimality}
+
+Let $Z$ be an observation from which $S$ (equivalently $R$) is measurable ($Z = R$, $Z = P$, or $Z = X$). Put $U := \mathbb{P}(C = 1 \mid Z)$ and assume $\pi := \mathbb{P}(C = 1) \in (0, 1)$ so both hypotheses $H_0 : C = 0$ and $H_1 : C = 1$ have positive mass. Let $Q$ be the marginal law of $Z$ and $Q_i$ its conditional law given $C = i$ ($i \in \{0, 1\}$). By Bayes' rule,
+\[
+\frac{dQ_1}{dQ} = \frac{U}{\pi}, \qquad
+\frac{dQ_0}{dQ} = \frac{1 - U}{1 - \pi}, \qquad
+L := \frac{dQ_1 / dQ}{dQ_0 / dQ} = \frac{1 - \pi}{\pi}\,\frac{U}{1 - U} \in [0, \infty],
+\]
+taking $+\infty$ on $\{U = 1\}$. A randomized test $\phi : Z \mapsto [0, 1]$ accepts the prediction (rejects $H_0$) with probability $\phi(Z)$, with size $\mathbb{E}_0[\phi] = \mathbb{E}[(1 - U)\phi]/(1 - \pi)$ and power $\mathbb{E}_1[\phi] = \mathbb{E}[U\phi]/\pi$. A \emph{score-threshold rule} takes the form $\phi(Z) = \mathbf{1}_{\{S > \tau\}} + \gamma\,\mathbf{1}_{\{S = \tau\}}$ (including constant rules $0$ and $1$) for $\tau \in [1/c, 1]$ and $\gamma \in [0, 1]$; by Proposition~\ref{prop:bijection}, these coincide with threshold rules on~$R$.
+
+\begin{theorem}[All-sizes Neyman--Pearson criterion]\label{thm:np-iff}
+With $\pi \in (0, 1)$, score-threshold rules on $R$ (equivalently $S$) achieve maximum power among all $Z$-measurable tests at every size $\alpha \in [0, 1]$ \textbf{if and only if} there exists a nondecreasing function $g : [1/c, 1] \to [0, 1]$ such that
+\begin{equation}\label{eq:monotone-post}
+U = \mathbb{P}(C = 1 \mid Z) = g(S) \qquad \text{almost surely.}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+For every $q \in (0, 1)$ and measurable $\phi : Z \mapsto [0, 1]$,
+\begin{equation}\label{eq:linear-id}
+\mathbb{E}\bigl[(U - q)\phi\bigr]
+= (1 - q)\mathbb{E}[U\phi] - q\,\mathbb{E}[(1 - U)\phi]
+= (1 - q)\pi\,\mathbb{E}_1[\phi] - q(1 - \pi)\,\mathbb{E}_0[\phi].
+\end{equation}
+
+\emph{Sufficiency ($\Leftarrow$).} Suppose $U = g(S)$ a.s.\ with $g$ nondecreasing. Given $\alpha \in [0, 1]$, choose a score-threshold rule $\phi^*$ of exact size $\alpha$ via the $Q_0$-quantile of $S$, including the entire $Q_0$-null region $\{U = 1\}$ even at $\alpha = 0$, and setting $\phi^* \equiv 1$ at $\alpha = 1$. Let $\tau$ be its cutoff and put $q := g(\tau)$. If $q = 1$, then $\alpha = 0$ and $\phi^*$ accepts all of $\{U = 1\}$, which is optimal since any size-$0$ test vanishes $Q$-a.s.\ on $\{U < 1\}$. If $q = 0$, then $U = 0$ on $\{\phi^* < 1\}$, so $\phi^*$ attains power~$1$. If $0 < q < 1$, monotonicity of $g$ implies $U \ge q$ on $\{\phi^* > 0\}$ and $U \le q$ on $\{\phi^* < 1\}$, so $\phi^*$ maximizes $\mathbb{E}[(U - q)\phi]$ pointwise over all $0 \le \phi \le 1$. By~\eqref{eq:linear-id}, any test $\phi$ with $\mathbb{E}_0[\phi] \le \alpha$ satisfies $\mathbb{E}_1[\phi] \le \mathbb{E}_1[\phi^*]$.
+
+\emph{Necessity ($\Rightarrow$).} Assume every size $\alpha \in [0, 1]$ admits an optimal score-threshold rule. Since $U$ has at most countably many atoms, there exists a countable dense set $D_0 \subset (0, 1)$ such that $\mathbb{P}(U = q) = 0$ for every $q \in D_0$. For each $q \in D_0$, the rule $\phi_q := \mathbf{1}_{\{U > q\}}$ is the $Q$-a.s.\ unique maximizer of $\mathbb{E}[(U - q)\phi]$ over $0 \le \phi \le 1$ by its strict pointwise sign. Let $\psi_q(S)$ be an optimal score-threshold rule at size $\alpha_q := \mathbb{E}_0[\phi_q]$. Since $\mathbb{E}_1[\psi_q] \ge \mathbb{E}_1[\phi_q]$ and $\mathbb{E}_0[\psi_q] \le \mathbb{E}_0[\phi_q]$,~\eqref{eq:linear-id} forces $\mathbb{E}[(U - q)\psi_q] \ge \mathbb{E}[(U - q)\phi_q]$, hence $\psi_q(S) = \phi_q$ $Q$-a.s. Define
+\[
+g(s) := \sup\bigl(\{0\} \cup \{q \in D_0 : \psi_q(s) > 1/2\}\bigr) \qquad (s \in [1/c, 1]).
+\]
+Because each $\psi_q$ is nondecreasing in $s$, $g$ is nondecreasing. On the full-measure event $\bigcap_{q \in D_0} \{\psi_q(S) = \mathbf{1}_{\{U > q\}}\}$, we have $\psi_q(S) > 1/2 \iff U > q$ for all $q \in D_0$, so density of $D_0$ yields $U = g(S)$ almost surely.
+\end{proof}
+
+\begin{corollary}[Three information levels and classical reduction]\label{cor:levels}
+Specializing Theorem~\ref{thm:np-iff} to the three observation models yields:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{Score-only ($Z = R$):} Strict posterior-odds ordering holds iff $m$ is strictly increasing on a full-measure set; threshold rules on $R$ are NP-optimal at all sizes iff $m$ is nondecreasing there (weak MLR; flat odds permit optimal thresholds without strict ordering).
+\item \emph{Full probability vector ($Z = P$):} Threshold rules on $R$ are NP-optimal among all vector-based tests at all sizes iff $u(P) = g(S)$ a.s.\ for a nondecreasing $g$, i.e., $m$ is nondecreasing and $C \perp\!\!\!\perp P \mid S$. Under perfect calibration ($u(P) = S$), this holds immediately, reducing the positive direction of~\texttt{conj:np} to classical MSP thresholding~\cite{Chow1970,Lehmann2005,Franc2023}.
+\item \emph{Full input ($Z = X$):} Under perfect vector calibration, threshold rules on $R$ are NP-optimal among all $X$-measurable tests iff $\mathbb{P}(C = 1 \mid X) = S$ a.s.\ (e.g., when $P$ is the true class posterior given~$X$).
+\end{enumerate}
+\end{corollary}
+
+In addition to NP size,~\cite{Das2025} considers a cap $b \in [0, 1]$ on total deferral $\mathbb{E}[D] \le b$ maximizing captured error mass $\mathbb{E}[(1 - U)D]$, and a selective-risk cap $\mathbb{P}(C = 0 \mid \text{accept}) \le \alpha$ maximizing coverage $a = \mathbb{E}[A]$ ($A = 1 - D$). Connecting with classical reject-option theory~\cite{Chow1970,ElYaniv2010,Franc2023}:
+
+\begin{theorem}[All-budget deferral and coverage criterion]\label{thm:budget-iff}
+Score-threshold rules on $R$ maximize captured error mass at every deferral budget $b \in [0, 1]$ (equivalently, minimize selective error at every coverage $a \in (0, 1]$) \textbf{if and only if}~\eqref{eq:monotone-post} holds for a nondecreasing $g$.
+\end{theorem}
+
+\begin{proof}
+For sufficiency, deferring on $\{1 - U > k\}$ maximizes $\mathbb{E}[(1 - U - k)D]$, and accepting on $\{U > q\}$ maximizes $\mathbb{E}[(U - q)A]$; when $U = g(S)$ is nondecreasing, randomized score-threshold rules attain every budget $b$ and coverage $a$ optimally. For selective-risk-capped coverage, the risk at coverage $a > 0$ is $1 - \mathbb{E}[UA]/a$, and the maximal captured correctness mass is $1$-Lipschitz in $a$, so the supremum of feasible coverages is attained whenever positive coverage is feasible. (Under perfect calibration, $S \ge 1 - \alpha$ guarantees risk $\le \alpha$ when nonempty, though optimal coverage may include lower scores.)
+
+For necessity, take any $q \in D_0$ as in Theorem~\ref{thm:np-iff} and fix coverage $a_q := \mathbb{P}(U > q)$. On $\{\mathbb{E}[A] = a_q\}$, maximizing $\mathbb{E}[UA]$ is equivalent to maximizing $\mathbb{E}[(U - q)A]$, whose unique maximizer is $\phi_q = \mathbf{1}_{\{U > q\}}$. Thus an optimal score-threshold rule $\psi_q(S)$ at coverage $a_q$ equals $\phi_q$ a.s., and the same supremum reconstruction gives $U = g(S)$ a.s.\ with $g$ nondecreasing. Setting $D = 1 - A$ yields the deferral claim.
+\end{proof}
+
+\section{Minimal Exact-Rational Counterexamples}
+
+Each example below defines an exact finite population law that separates the regimes of Theorems~\ref{thm:np-iff}--\ref{thm:budget-iff} and Corollary~\ref{cor:levels}:
+
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=*]
+\item \textbf{Odds reversal despite Bayes-optimal predicted labels.} Report $(3/5, 2/5)$ and $(9/10, 1/10)$ with probability $1/2$ each, with true class-$1$ probabilities $9/10$ and $3/5$, respectively. Class~$1$ is Bayes-optimal everywhere, yet correctness odds drop from $9$ to $3/2$ as $S$ rises from $3/5$ to $9/10$. At deferral budget $1/2$, low-score deferral captures $1/5$ of errors while high-score deferral captures $4/5$. In the NP test, accepting only the low-score state achieves size $1/5$ and power $3/5$, whereas the upper score threshold of size $1/5$ accepts $1/4$ of the high-score state for power only $1/10$. (Conversely, true probabilities $7/10, 4/5$ give strict MLR despite miscalibration; $7/10, 7/10$ give optimal thresholds with flat odds.)
+\item \textbf{Confidence calibration and strict score MLR lose to the full vector.} Report $(3/5, 2/5)$, $(2/5, 3/5)$, and $(4/5, 1/5)$ with masses $1/4, 1/4, 1/2$ and conditional correctness probabilities $3/10, 9/10, 4/5$. Then $m(3/5) = 3/5$ and $m(4/5) = 4/5$ (exact confidence calibration and strict score MLR), yet accepting only $(2/5, 3/5)$ yields correct mass $9/40$ at error mass $1/40$, strictly dominating the upper score threshold's correct mass $1/10$ at error mass $1/40$.
+\item \textbf{Side information $X$ beats a perfectly calibrated score.} Always report $(3/4, 1/4)$, while $X$ identifies two equally likely groups with true class-$1$ probabilities $1$ and $1/2$. The report is perfectly calibrated, yet accepting only the first group achieves NP size $0$ and power $2/3$, whereas every score-only test of size $0$ has power $0$.
+\item \textbf{Predicted-class vs.\ true-class conditioning.} Under perfect calibration, conditioning on the \emph{predicted} class preserves $\mathbb{P}(C = 1 \mid S, J) = S$ by the tower property. Conditioning on the \emph{true} class $Y = y$ satisfies
+\[
+\mathbb{P}(C = 1 \mid S, Y = y) = \frac{\mathbb{E}[\mathbf{1}_{\{J = y\}} P_y \mid S]}{\mathbb{E}[P_y \mid S]}
+\]
+wherever the denominator is positive, which can reverse even for true posteriors: report $(3/5, 2/5)$ and $(1/10, 9/10)$ with probability $1/2$ each and draw $Y \sim P$. Within $Y = 1$, both scores have positive probability, yet $\mathbb{P}(C = 1 \mid S = 3/5, Y = 1) = 1 > 0 = \mathbb{P}(C = 1 \mid S = 9/10, Y = 1)$ (class-conditional Bayes errors $1/7$ and $4/13$, while pooled correctness increases from $3/5$ to $9/10$).
+\end{enumerate}
+
+\section{Reproducible Exact Verification}
+
+Using exact rational arithmetic via Python's \texttt{fractions.Fraction} module, the verification script \texttt{solutions/fisher\_rao\_neutral/explore.py} confirms: (i)~441 geometric bijection checks across $c \in \{2, \dots, 8\}$, $\lambda \in \{0.1, 0.75, 2.0\}$, and 21 confidence levels each; (ii)~62 exhaustive exact-rational finite experiments matching the iff conditions of Theorems~\ref{thm:np-iff} and~\ref{thm:budget-iff} under both NP error-cost and coverage-cost budgets; and (iii)~all exact rational fractions in the four counterexamples above. All assertions pass.
+
+\begin{thebibliography}{9}
+
+\bibitem{Chow1970}
+C.~K.~Chow.
+On optimum recognition error and reject tradeoff.
+\emph{IEEE Transactions on Information Theory}, 16(1):41--46, 1970.
+
+\bibitem{Das2025}
+S.~Das, N.~Dasgupta, and P.~Dutta.
+Geometric calibration and neutral zones for uncertainty-aware multi-class classification.
+Preprint \href{https://arxiv.org/abs/2511.20960}{arXiv:2511.20960} (v2), November 2025.
+
+\bibitem{ElYaniv2010}
+R.~El-Yaniv and Y.~Wiener.
+On the foundations of noise-free selective classification.
+\emph{Journal of Machine Learning Research}, 11:1605--1641, 2010.
+
+\bibitem{Franc2023}
+V.~Franc, D.~Pru\v{s}a, and V.~Vor\'a\v{c}ek.
+Optimal strategies for reject option classifiers.
+\emph{Journal of Machine Learning Research}, 24(11):1--49, 2023.
+
+\bibitem{Lehmann2005}
+E.~L.~Lehmann and J.~P.~Romano.
+\emph{Testing Statistical Hypotheses}.
+Springer, 3rd edition, 2005.
+
+\end{thebibliography}
+
+\end{document}

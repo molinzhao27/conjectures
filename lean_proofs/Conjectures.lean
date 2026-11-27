@@ -35,6 +35,32 @@ import Conjectures.SymTensorUnfolding
 import Conjectures.ExtensiveMatrixDenoise
 import Conjectures.MuonAssocMemory
 import Conjectures.NeuralCodeOrientedMatroid
+import Conjectures.KernelSHAPIQInverse
+import Conjectures.QuasiHomogCascade
+import Conjectures.FisherRaoNeutral
+import Conjectures.HoloAegisBoundary
+import Conjectures.CrossTaskLinearity
+import Conjectures.PAdicDNNCritical
+import Conjectures.BDCOrbitSymmetry
+import Conjectures.CodedBlockRetrieval
+import Conjectures.NonaddKernelIdent
+import Conjectures.IntervalLittlestone
+import Conjectures.NashIProjSelection
+import Conjectures.TemporalFeedbackRegret
+import Conjectures.BitnetRicciQuant
+import Conjectures.GroupSpectralEst
+import Conjectures.GARIPLastIterate
+import Conjectures.DPPCACoherence
+import Conjectures.NeuralCodeHomological
+import Conjectures.FiniteFreePStam
+import Conjectures.ActiveMQComplexity
+import Conjectures.KeyAgreementIneq
+import Conjectures.RademacherFourthMoment
+import Conjectures.WeightedDataScalar
+import Conjectures.RPCDContraction
+import Conjectures.PatternInclusionDepth
+import Conjectures.PWLProductTriang
+import Conjectures.WeightedDataVector
 
 #print axioms BeshkovReluTopology.continuous_P_net
 #print axioms BeshkovReluTopology.beshkov_part_A
@@ -574,3 +600,438 @@ import Conjectures.NeuralCodeOrientedMatroid
 #print axioms NeuralCodeOrientedMatroid.C5_not_open_convex
 #print axioms NeuralCodeOrientedMatroid.C6_oriented_matroid_realization
 #print axioms NeuralCodeOrientedMatroid.C6_not_closed_convex
+
+#print axioms KernelSHAPIQInverse.matA_eq_div_matP
+#print axioms KernelSHAPIQInverse.vVec_mem_lowerSubspace_of_lt
+#print axioms KernelSHAPIQInverse.xVec_sub_fVec_mem_lowerSubspace
+#print axioms KernelSHAPIQInverse.boundary_row_mem_lowerSubspace
+#print axioms KernelSHAPIQInverse.boolean_mobius_recovery
+#print axioms KernelSHAPIQInverse.mWeight_binomial_sum
+#print axioms KernelSHAPIQInverse.qVec_orthog_vVec
+#print axioms KernelSHAPIQInverse.qVec_sub_scaled_fVec_mem_lower
+#print axioms KernelSHAPIQInverse.matP_is_orthog_projector
+#print axioms KernelSHAPIQInverse.interior_column_projection
+#print axioms KernelSHAPIQInverse.interior_gram_acts_on_H
+#print axioms KernelSHAPIQInverse.siiOperator_annihilates_lower_unanimity
+#print axioms KernelSHAPIQInverse.verify_n2_k1
+#print axioms KernelSHAPIQInverse.verify_n4_k2
+
+#print axioms QuasiHomogCascade.quasi_homog_unique_rates
+#print axioms QuasiHomogCascade.cascade_infeasible_of_q1_nonpos
+#print axioms QuasiHomogCascade.expLoss_neg_grad
+#print axioms QuasiHomogCascade.descent_diff_sq_invariant
+#print axioms QuasiHomogCascade.descent_diverge_and_loss_zero
+#print axioms QuasiHomogCascade.descent_ratio_tendsto_one
+#print axioms QuasiHomogCascade.descent_normalized_limit_and_refutation
+#print axioms QuasiHomogCascade.literal_A4_sign_refutation
+
+#print axioms FisherRaoNeutral.bhattacharyya_simplex_vertex
+#print axioms FisherRaoNeutral.max_prob_bounds
+#print axioms FisherRaoNeutral.frScore_strictMonoOn
+#print axioms FisherRaoNeutral.frInv_frScore
+#print axioms FisherRaoNeutral.frScore_frInv
+#print axioms FisherRaoNeutral.frScore_sharper_lower_bound
+#print axioms FisherRaoNeutral.calibrated_odds_eq_cot_sq
+#print axioms FisherRaoNeutral.calibrated_odds_strictMonoOn
+#print axioms FisherRaoNeutral.np_linear_identity
+#print axioms FisherRaoNeutral.np_threshold_optimal_of_monotone
+#print axioms FisherRaoNeutral.counterexample1_bayes_optimal_miscalibrated
+#print axioms FisherRaoNeutral.counterexample2_confidence_calibrated_loses_to_vector
+#print axioms FisherRaoNeutral.counterexample3_side_info_beats_calibrated
+#print axioms FisherRaoNeutral.counterexample4_class_conditional_reversal
+
+#print axioms HoloAegisBoundary.lseAvg_shift_bounds
+#print axioms HoloAegisBoundary.lseAvg_lipschitz
+#print axioms HoloAegisBoundary.descOrderStat_linf_contraction
+#print axioms HoloAegisBoundary.gibbsPotential_lipschitz
+#print axioms HoloAegisBoundary.kmeans_cluster_variance_identity
+#print axioms HoloAegisBoundary.kmeans_separated_balls_unique
+#print axioms HoloAegisBoundary.theorem1_ball_params_certified
+#print axioms HoloAegisBoundary.paired_full_bank_shift
+#print axioms HoloAegisBoundary.paired_raw_shift_ratio_and_surj
+#print axioms HoloAegisBoundary.paired_normalized_shift_bracket
+#print axioms HoloAegisBoundary.paired_ratio_surjective_Ici
+#print axioms HoloAegisBoundary.single_merger_divergence
+
+#print axioms CrossTaskLinearity.collinear_ctl_AB
+#print axioms CrossTaskLinearity.collinear_ctl_BC
+#print axioms CrossTaskLinearity.collinear_AC_midpoint_diagnostics
+#print axioms CrossTaskLinearity.collinear_AC_midpoint_error_unit_M
+#print axioms CrossTaskLinearity.collinear_AC_asymptotics
+#print axioms CrossTaskLinearity.pretrain_unique_global_min
+#print axioms CrossTaskLinearity.downstream_gradients_at_P
+#print axioms CrossTaskLinearity.gd_step_and_task_opt
+#print axioms CrossTaskLinearity.relu_chord_max_gap
+#print axioms CrossTaskLinearity.relu_chord_iff
+#print axioms CrossTaskLinearity.one_layer_transitivity_failure_iff
+#print axioms CrossTaskLinearity.two_layer_strictly_active_conv
+#print axioms CrossTaskLinearity.two_layer_strictly_active_counterexample
+#print axioms CrossTaskLinearity.two_layer_pos_ctl_iff
+
+#print axioms PAdicDNNCritical.branchFn_monotonicity_and_foldHeight
+#print axioms PAdicDNNCritical.branchPattern_card
+#print axioms PAdicDNNCritical.branchPattern_index_card
+#print axioms PAdicDNNCritical.branchFn_three_roots
+#print axioms PAdicDNNCritical.weighted_gershgorin_posDef
+#print axioms PAdicDNNCritical.midpoint_deriv_gt_foldHeight
+#print axioms PAdicDNNCritical.outer_equilibrium_linear_stability
+#print axioms PAdicDNNCritical.det_two_by_two_block
+#print axioms PAdicDNNCritical.two_by_two_three_equilibria
+#print axioms PAdicDNNCritical.parity_prob_formula
+#print axioms PAdicDNNCritical.parity_prob_tendsto_half
+#print axioms PAdicDNNCritical.profile_mass_budget_le_one_div_64
+
+#print axioms BDCOrbitSymmetry.channelGroup_output_length_preserving
+#print axioms BDCOrbitSymmetry.channelGroup_output_eq_inv
+#print axioms BDCOrbitSymmetry.inChannelGroup_iff_subseqCount
+#print axioms BDCOrbitSymmetry.single_deletion_moment_identity
+#print axioms BDCOrbitSymmetry.single_deletion_deck_unique
+#print axioms BDCOrbitSymmetry.channelGroup_classification
+#print axioms BDCOrbitSymmetry.channelGroupEquivV4
+#print axioms BDCOrbitSymmetry.orbit_card_dichotomy
+#print axioms BDCOrbitSymmetry.orbit_card_le_four
+#print axioms BDCOrbitSymmetry.orbit_card_eq_two_of_len_le_two
+#print axioms BDCOrbitSymmetry.orbit_card_attains_four
+
+#print axioms CodedBlockRetrieval.expectedWait_bellman
+#print axioms CodedBlockRetrieval.expectedWait_unique
+#print axioms CodedBlockRetrieval.tailProb_hasSum_expectedWait
+#print axioms CodedBlockRetrieval.expectedWait_repeat
+#print axioms CodedBlockRetrieval.G22_full_rank
+#print axioms CodedBlockRetrieval.G22_rec_F1_iff
+#print axioms CodedBlockRetrieval.G22_rec_F2_iff
+#print axioms CodedBlockRetrieval.G22_E1
+#print axioms CodedBlockRetrieval.G22_E2
+#print axioms CodedBlockRetrieval.refute_conj_hyperbola
+#print axioms CodedBlockRetrieval.refute_conj_limiting
+#print axioms CodedBlockRetrieval.G9_full_rank
+#print axioms CodedBlockRetrieval.G9_expectations
+#print axioms CodedBlockRetrieval.refute_conj_monotone
+
+#print axioms NonaddKernelIdent.tail_params_identifiable
+#print axioms NonaddKernelIdent.ell_identifies_theta
+#print axioms NonaddKernelIdent.kernel_regularity_A2_A3_A5
+#print axioms NonaddKernelIdent.kernel_regularity_A4
+#print axioms NonaddKernelIdent.kernel_regularity_A6
+#print axioms NonaddKernelIdent.dyadic_mixture_identity
+#print axioms NonaddKernelIdent.refute_conj_dichotomy_converse
+#print axioms NonaddKernelIdent.refute_conj_dichotomy_half
+#print axioms NonaddKernelIdent.counterexample_local_inversion
+#print axioms NonaddKernelIdent.counterexample_identifies_p_tau
+#print axioms NonaddKernelIdent.exact_kernel_invisible_criterion
+
+#print axioms IntervalLittlestone.h_eq_Q_sub
+#print axioms IntervalLittlestone.sum_h_eq_lamTilde
+#print axioms IntervalLittlestone.sum_Q_eq
+#print axioms IntervalLittlestone.cutReward_canon
+#print axioms IntervalLittlestone.rearrangement_cons
+#print axioms IntervalLittlestone.greedy_layer_decomp
+#print axioms IntervalLittlestone.finite_abel_sum
+#print axioms IntervalLittlestone.single_rod_packed
+#print axioms IntervalLittlestone.per_layer_split_comparison
+#print axioms IntervalLittlestone.packed_majorization
+#print axioms IntervalLittlestone.greedy_optimal
+#print axioms IntervalLittlestone.D_eq_HCurve_of_packed
+#print axioms IntervalLittlestone.single_rod_eq_R
+#print axioms IntervalLittlestone.bellman_single_interval
+
+#print axioms NashIProjSelection.isNash2x2_iff
+#print axioms NashIProjSelection.iproj_of_ge_third
+#print axioms NashIProjSelection.uniform_iproj_eq_half
+#print axioms NashIProjSelection.qreStep_exists_unique
+#print axioms NashIProjSelection.qre_converges_away
+#print axioms NashIProjSelection.qre_temperature_dependence
+#print axioms NashIProjSelection.mmd_converges_away
+#print axioms NashIProjSelection.periodic_ode_converges_away
+#print axioms NashIProjSelection.continuous_reset_first_integral
+#print axioms NashIProjSelection.continuous_reset_converges_away
+#print axioms NashIProjSelection.cubic_root_unique
+#print axioms NashIProjSelection.tangent_orthogonality_invariant
+
+#print axioms TemporalFeedbackRegret.lexEdge_indeg_eq
+#print axioms TemporalFeedbackRegret.lexEdge_outdeg_eq
+#print axioms TemporalFeedbackRegret.order_length_le_two_pow
+#print axioms TemporalFeedbackRegret.maxOrder_isMaximal
+#print axioms TemporalFeedbackRegret.exists_maximal_order_two_pow
+#print axioms TemporalFeedbackRegret.ubCost_ge
+#print axioms TemporalFeedbackRegret.ub_achieved
+#print axioms TemporalFeedbackRegret.ub_isLeast
+#print axioms TemporalFeedbackRegret.UB_eq
+#print axioms TemporalFeedbackRegret.indepSet_card_eq_one
+#print axioms TemporalFeedbackRegret.ilbObj_le
+#print axioms TemporalFeedbackRegret.ilb_achieved
+#print axioms TemporalFeedbackRegret.ilb_isGreatest
+#print axioms TemporalFeedbackRegret.ILB_eq
+#print axioms TemporalFeedbackRegret.ub_div_ilb_eq
+#print axioms TemporalFeedbackRegret.refute_conj_tight
+
+#print axioms BitnetRicciQuant.multi_warped_curvature_identity
+#print axioms BitnetRicciQuant.edge_leaf_curvature_eq
+#print axioms BitnetRicciQuant.fiveNodeTree_curvature_formula
+#print axioms BitnetRicciQuant.betaIntegral_half_int
+#print axioms BitnetRicciQuant.fiveNodeTree_avgCurvature
+#print axioms BitnetRicciQuant.fourteen_elevenths_not_half_int
+#print axioms BitnetRicciQuant.cov_simplex_identity
+#print axioms BitnetRicciQuant.dirichlet_edge_moments
+#print axioms BitnetRicciQuant.sixNodeTree_avgCurvature
+#print axioms BitnetRicciQuant.twentyfive_fourteenths_not_half_int
+#print axioms BitnetRicciQuant.sevenNodeOneLoop_avgCurvature
+#print axioms BitnetRicciQuant.twentyfour_fifths_not_half_int
+#print axioms BitnetRicciQuant.sharedRootCollider_avgCurvature
+#print axioms BitnetRicciQuant.doubleCollider_D4_avgCurvature
+#print axioms BitnetRicciQuant.fork_E3_avgCurvature
+#print axioms BitnetRicciQuant.collapsingStar_C6_avgCurvature
+
+#print axioms GroupSpectralEst.blind_Z4_vs_V4_counterexample
+#print axioms GroupSpectralEst.blind_conjugate_cyclic_C4
+#print axioms GroupSpectralEst.blind_population_twirl_oracle
+#print axioms GroupSpectralEst.unitary_cyclic_conjugate_fixes_vector
+#print axioms GroupSpectralEst.exists_unitary_cyclic_score_one
+#print axioms GroupSpectralEst.sunlet_S3_automorphisms_and_spectrum
+#print axioms GroupSpectralEst.sunlet_S3_strict_score_lt_one
+#print axioms GroupSpectralEst.gaat_exp_half_finite_mean
+#print axioms GroupSpectralEst.gaat_exp_half_infinite_variance
+#print axioms GroupSpectralEst.gaat_noise_scaling_unbounded
+#print axioms GroupSpectralEst.gaat_nonlinear_involution_counterexample
+#print axioms GroupSpectralEst.gaat_z2_zero_variance_defect
+#print axioms GroupSpectralEst.unitary_group_average_projector
+#print axioms GroupSpectralEst.equivariant_average_eq_proj
+#print axioms GroupSpectralEst.outer_product_variance_bound
+
+#print axioms GARIPLastIterate.certified_beta_equiv
+#print axioms GARIPLastIterate.zeroSum_skew_symmetry
+#print axioms GARIPLastIterate.nash_slack_bound
+#print axioms GARIPLastIterate.matchingPennies_raw_halfstep_kl_increase
+#print axioms GARIPLastIterate.correction_bounds_certified
+#print axioms GARIPLastIterate.ratio_lower_step_invariant
+#print axioms GARIPLastIterate.anchor_kl_dissipation
+#print axioms GARIPLastIterate.anchor_support_split_bounds
+#print axioms GARIPLastIterate.kl_step_exact_identity
+#print axioms GARIPLastIterate.optimistic_energy_coercive
+#print axioms GARIPLastIterate.lyapunov_one_step_and_harmonic_descent
+#print axioms GARIPLastIterate.telescoping_dissipation_bound
+#print axioms GARIPLastIterate.fullyMixed_weighted_exp_drift
+#print axioms GARIPLastIterate.harmonic_drift_contradicts_bounded_anchor
+
+#print axioms DPPCACoherence.B_input_invertible
+#print axioms DPPCACoherence.input_projector_coherence
+#print axioms DPPCACoherence.critical_det_collapse
+#print axioms DPPCACoherence.quotient_block_orthogonal_reduction
+#print axioms DPPCACoherence.L3_charpoly_exact
+#print axioms DPPCACoherence.gap_coeff_identities
+#print axioms DPPCACoherence.gap_coeff_raw_and_normalized
+#print axioms DPPCACoherence.difference_block_det
+#print axioms DPPCACoherence.strict_eighth_ninth_gap_and_isolate_mass
+#print axioms DPPCACoherence.projector_diag_ge_sq_entry
+#print axioms DPPCACoherence.pigeonhole_isolate_max_sq
+#print axioms DPPCACoherence.perturbation_isolate_mass_lower
+#print axioms DPPCACoherence.output_coherence_omega_n_quarter
+
+#print axioms NeuralCodeHomological.trace_sharing_dichotomy
+#print axioms NeuralCodeHomological.bdry1_comp_bdry2
+#print axioms NeuralCodeHomological.h1_strand_dim_formula
+#print axioms NeuralCodeHomological.fullSupport_disconnected_iff_antipodal
+#print axioms NeuralCodeHomological.max_pdim_classification
+#print axioms NeuralCodeHomological.alexander_duality_criterion
+#print axioms NeuralCodeHomological.n4_non_duality_witness
+#print axioms NeuralCodeHomological.privateLiterals_family_properties
+#print axioms NeuralCodeHomological.achievable_region_le_2n_coverage
+
+#print axioms FiniteFreePStam.ffConv_xn_left
+#print axioms FiniteFreePStam.conj_strict_boundary_refutation
+#print axioms FiniteFreePStam.cubic_convolution_rule
+#print axioms FiniteFreePStam.cubic_trig_score_identity
+#print axioms FiniteFreePStam.cubic_slope_wedge_bound
+#print axioms FiniteFreePStam.cubic_L_convex_neg
+#print axioms FiniteFreePStam.cubic_l1_endpoint_curvature_neg
+#print axioms FiniteFreePStam.cubic_superadditivity_and_pstam
+#print axioms FiniteFreePStam.cubic_extremizer_exponent_bound
+#print axioms FiniteFreePStam.cubic_equal_variance_hermite_unique_min
+#print axioms FiniteFreePStam.supercritical_hermite_deficit_neg
+#print axioms FiniteFreePStam.symmetric_score_projection_contraction
+#print axioms FiniteFreePStam.holder_variational_pstam_boost
+#print axioms FiniteFreePStam.centered_jacobian_obstruction_64
+
+#print axioms ActiveMQComplexity.primal_growth_of_aic
+#print axioms ActiveMQComplexity.exists_vc_bound_of_aic
+#print axioms ActiveMQComplexity.assouad_dual_vc_bound
+#print axioms ActiveMQComplexity.sauer_shelah
+#print axioms ActiveMQComplexity.sum_choose_le_succ_pow
+#print axioms ActiveMQComplexity.finite_epsilon_net_bound
+#print axioms ActiveMQComplexity.conjunction_pair_mass_ge
+#print axioms ActiveMQComplexity.conjunction_pair_range_growth
+#print axioms ActiveMQComplexity.heavy_pair_exists_in_transversal
+#print axioms ActiveMQComplexity.small_N_halving
+#print axioms ActiveMQComplexity.active_mq_shd_bounded
+
+#print axioms KeyAgreementIneq.CMI_eq_kl_sum
+#print axioms KeyAgreementIneq.CMI_nonneg
+#print axioms KeyAgreementIneq.CMI_eq_zero_of_condIndep
+#print axioms KeyAgreementIneq.MI_nonneg
+#print axioms KeyAgreementIneq.MI_eq_zero_of_indep
+#print axioms KeyAgreementIneq.entropy_identity_11_terms
+#print axioms KeyAgreementIneq.xorLiftP_isProb
+#print axioms KeyAgreementIneq.xorLiftP_marg_AB
+#print axioms KeyAgreementIneq.xorLiftP_CMI_AB_T
+#print axioms KeyAgreementIneq.xorLiftP_MI_T_E
+#print axioms KeyAgreementIneq.xorLiftP_CMI_TE_AB
+#print axioms KeyAgreementIneq.xorLiftP_Hcond_AB_TE
+#print axioms KeyAgreementIneq.conj1_gap_identity
+#print axioms KeyAgreementIneq.conj1_forces_S_eq_MI
+#print axioms KeyAgreementIneq.conj1_implies_not_conj2
+#print axioms KeyAgreementIneq.chain_rule_psi_bound
+#print axioms KeyAgreementIneq.psi_delta_channel_ge_MI
+#print axioms KeyAgreementIneq.psi_delta_const_channel_le_MI
+#print axioms KeyAgreementIneq.psi_delta_eq_MI
+#print axioms KeyAgreementIneq.intrinsic_info_ge_MI
+#print axioms KeyAgreementIneq.triangle_source_MI
+#print axioms KeyAgreementIneq.triangle_source_rate_gap
+
+#print axioms RademacherFourthMoment.M_one
+#print axioms RademacherFourthMoment.M_two
+#print axioms RademacherFourthMoment.M_three
+#print axioms RademacherFourthMoment.M_four
+#print axioms RademacherFourthMoment.M_five
+#print axioms RademacherFourthMoment.sharp_n3_unit
+#print axioms RademacherFourthMoment.sharp_n3_moment
+#print axioms RademacherFourthMoment.sharp_n3_deficit
+#print axioms RademacherFourthMoment.sharp_n3_delta
+#print axioms RademacherFourthMoment.sharp_n3_equality
+#print axioms RademacherFourthMoment.sharp_n3_ratio
+#print axioms RademacherFourthMoment.secant_C_2_1
+#print axioms RademacherFourthMoment.secant_C_4_2
+#print axioms RademacherFourthMoment.secant_C_5_4
+#print axioms RademacherFourthMoment.C_opt_lt_seven_fortieths
+#print axioms RademacherFourthMoment.C_2_1_gt_seven_fortieths
+#print axioms RademacherFourthMoment.C_4_2_gt_seven_fortieths
+#print axioms RademacherFourthMoment.C_5_4_gt_seven_fortieths
+#print axioms RademacherFourthMoment.four_div_pi_curv_gt
+#print axioms RademacherFourthMoment.sqrt_eight_div_pi_bounds
+#print axioms RademacherFourthMoment.sqrt_two_div_pi_gt
+#print axioms RademacherFourthMoment.fourier_recurrence_telescope
+#print axioms RademacherFourthMoment.cos_prod_le_weighted_rpow
+#print axioms RademacherFourthMoment.L0_strictAntiOn
+#print axioms RademacherFourthMoment.T6_gt_c
+#print axioms RademacherFourthMoment.T7_gt_02219
+#print axioms RademacherFourthMoment.far_odd_D_ge_6
+#print axioms RademacherFourthMoment.deltaUb_strictAnti
+#print axioms RademacherFourthMoment.deltaUb_7
+#print axioms RademacherFourthMoment.deltaUb_9
+#print axioms RademacherFourthMoment.deltaUb_11
+#print axioms RademacherFourthMoment.deltaUb_ge_11
+#print axioms RademacherFourthMoment.psiFar_second_deriv_neg
+#print axioms RademacherFourthMoment.far_odd_six_endpoints
+#print axioms RademacherFourthMoment.K_nonneg
+#print axioms RademacherFourthMoment.K_antitoneOn
+#print axioms RademacherFourthMoment.K_sqrt_convexOn
+#print axioms RademacherFourthMoment.centralP_sqrt_succ_strictAnti
+#print axioms RademacherFourthMoment.centralP_sqrt_strictMono
+#print axioms RademacherFourthMoment.equalization_quotient_strictMono
+#print axioms RademacherFourthMoment.secant_factor_strictAnti
+#print axioms RademacherFourthMoment.secant_slope_strictMono
+#print axioms RademacherFourthMoment.secant_slope_at_one
+
+#print axioms WeightedDataScalar.gamma_eq_sub_div
+#print axioms WeightedDataScalar.one_add_gamma_upper_half
+#print axioms WeightedDataScalar.shiftedAxis_fullLoss
+#print axioms WeightedDataScalar.shiftedAxis_optLoss
+#print axioms WeightedDataScalar.shiftedAxis_lower_bound
+#print axioms WeightedDataScalar.shiftedAxis_attains
+#print axioms WeightedDataScalar.whitened_loss_decomp
+#print axioms WeightedDataScalar.closest_hyperplane_exists
+#print axioms WeightedDataScalar.closest_hyperplane_ratio
+#print axioms WeightedDataScalar.orthogonal_lines_excess
+#print axioms WeightedDataScalar.anchor_bound_le
+#print axioms WeightedDataScalar.circuit_bound_le
+#print axioms WeightedDataScalar.rank_deficient_bound_le
+#print axioms WeightedDataScalar.upper_half_inductive_bound
+#print axioms WeightedDataScalar.odd_base_d3_line
+#print axioms WeightedDataScalar.odd_heavy_triangle
+#print axioms WeightedDataScalar.odd_light_line
+#print axioms WeightedDataScalar.odd_two_lines
+#print axioms WeightedDataScalar.odd_packing_quadratic
+#print axioms WeightedDataScalar.odd_all_triangles_bound
+#print axioms WeightedDataScalar.odd_single_line_complement
+#print axioms WeightedDataScalar.odd_boundary_inductive_bound
+#print axioms WeightedDataScalar.fw_5_7_and_5_8_values
+#print axioms WeightedDataScalar.simplex56_loss_decomp
+#print axioms WeightedDataScalar.simplex56_optLoss
+#print axioms WeightedDataScalar.simplex56_lower_bound
+#print axioms WeightedDataScalar.fw_5_6_upper_factor
+
+#print axioms RPCDContraction.gamma_add_transpose
+#print axioms RPCDContraction.gamma_det_one
+#print axioms RPCDContraction.rpcd_triangular_system
+#print axioms RPCDContraction.rpcd_energy_identity
+#print axioms RPCDContraction.rpcd_energy_identity_inv
+#print axioms RPCDContraction.card_perm_lt
+#print axioms RPCDContraction.card_perm_lt_lt
+#print axioms RPCDContraction.expected_gamma_gram
+#print axioms RPCDContraction.variational_epoch_bound
+#print axioms RPCDContraction.spectral_J_le_h_A
+#print axioms RPCDContraction.h_div_one_add_h_le_B
+#print axioms RPCDContraction.all_dim_lambda_max_le_two
+#print axioms RPCDContraction.dim3_sq_le_cube
+#print axioms RPCDContraction.dim3_contraction_le_B3
+#print axioms RPCDContraction.cubic_no_neg_root
+#print axioms RPCDContraction.weighted_linf_step
+#print axioms RPCDContraction.weighted_linf_epoch
+#print axioms RPCDContraction.weighted_linf_iter
+#print axioms RPCDContraction.B_mono_n
+#print axioms RPCDContraction.B_anti_s
+#print axioms RPCDContraction.direct_sum_closure
+
+#print axioms PatternInclusionDepth.termOcc_le_of_langSubsetNE
+#print axioms PatternInclusionDepth.termCount_le_of_langSubsetNE
+#print axioms PatternInclusionDepth.erasing_measure_eq
+#print axioms PatternInclusionDepth.erasing_inclusion_strict
+#print axioms PatternInclusionDepth.unary_nonerasing_counterexample
+#print axioms PatternInclusionDepth.binary_surjection_descent
+#print axioms PatternInclusionDepth.binary_surjection_strict_of_len_gt
+#print axioms PatternInclusionDepth.morphic_measure_mono
+#print axioms PatternInclusionDepth.morphic_measure_strict_of_len_gt
+#print axioms PatternInclusionDepth.min_varOcc_le_of_langSubsetNE
+#print axioms PatternInclusionDepth.multiplicity_excess_ineq
+#print axioms PatternInclusionDepth.strict_mono_of_small_excess
+#print axioms PatternInclusionDepth.strict_mono_of_const_mult
+#print axioms PatternInclusionDepth.rado_linear_independent_representatives
+#print axioms PatternInclusionDepth.gap_one_theorem
+
+#print axioms PWLProductTriang.exact_face_error_formula
+#print axioms PWLProductTriang.edgeError_abs_le_iff
+#print axioms PWLProductTriang.faceError_abs_le_of_edges
+#print axioms PWLProductTriang.four_area_sq_eq
+#print axioms PWLProductTriang.one_sign_triangle_area_le
+#print axioms PWLProductTriang.alternating_walk_sum_le
+#print axioms PWLProductTriang.four_spoke_equal_product_impossible
+#print axioms PWLProductTriang.null_edge_flanking_opposite_signs
+#print axioms PWLProductTriang.mixed_sign_area_le_eight_div_sqrt3
+#print axioms PWLProductTriang.uniform_edge_product_density_lower_bound
+#print axioms PWLProductTriang.sharp_parallelogram_tiling_face
+#print axioms PWLProductTriang.periodic_mesh_boundary_continuity
+#print axioms PWLProductTriang.periodic_mesh_total_area
+#print axioms PWLProductTriang.periodic_mesh_oversized_face
+#print axioms PWLProductTriang.periodic_mesh_global_error_le
+#print axioms PWLProductTriang.large_triangle_stability
+#print axioms PWLProductTriang.large_vertex_four_spoke_obstruction
+#print axioms PWLProductTriang.overhang_factor_lt_alpha
+#print axioms PWLProductTriang.limsup_density_recurrence
+#print axioms PWLProductTriang.universal_density_constant_strict_improvement
+
+#print axioms WeightedDataVector.H_variational_le
+#print axioms WeightedDataVector.H_variational_attained
+#print axioms WeightedDataVector.H_mono_loewner
+#print axioms WeightedDataVector.H_concave
+#print axioms WeightedDataVector.H_le_quarter_trace
+#print axioms WeightedDataVector.three_point_expectation_bound
+#print axioms WeightedDataVector.two_output_lines_bound
+#print axioms WeightedDataVector.isotropic_six_atom_identity
+#print axioms WeightedDataVector.isotropic_six_atom_le_quarter
+#print axioms WeightedDataVector.six_vectors_nonneg_inner_product
+#print axioms WeightedDataVector.seven_atom_moment_conditions
+#print axioms WeightedDataVector.seven_atom_orig_weight_k3
+#print axioms WeightedDataVector.seven_atom_orig_weight_k4
+#print axioms WeightedDataVector.seven_atom_reweighted_beats_both
+#print axioms WeightedDataVector.dual_cert_orthogonality
+#print axioms WeightedDataVector.dual_cert_k3
+#print axioms WeightedDataVector.dual_cert_k4

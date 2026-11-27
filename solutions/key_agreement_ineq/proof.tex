@@ -1,0 +1,294 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\Sow}{S_{\mathrm{ow}}}
+\newcommand{\mkv}{\text{--}}
+
+\title{\bfseries Logical Incompatibility of the Key-Agreement Conjectures\\and Exact Collapse of \texorpdfstring{$\Psi_\Delta$}{Psi\_Delta}}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: H.~Abin and A.~Gohari, \emph{On the Source Model Key Agreement Problem},\\
+\emph{IEEE Trans.\ Inf.\ Theory} 72(8):5317--5334 (2026), \href{https://arxiv.org/abs/2502.00294}{arXiv:2502.00294}, Conjectures~\texttt{conjecture:1} and~\texttt{conj:2}\\[0.35em]
+Companion verification script: \texttt{solutions/key\_agreement\_ineq/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve the joint relationship between Conjecture~1 (\texttt{conjecture:1}) and Conjecture~2 (\texttt{conj:2}) of Abin and Gohari (\emph{IEEE Trans.\ Inf.\ Theory}, 2026; \href{https://arxiv.org/abs/2502.00294}{arXiv:2502.00294}).
+For every binary XOR source $(A, B, E)$ with $E = A \oplus B$, we construct an explicit six-variable common-observation instance of Conjecture~1 whose left-hand side minus right-hand side equals $I(A; B) - S(A; B \| A \oplus B)$ identically.
+Consequently, Conjecture~1 implies the negation of Conjecture~2: the two conjectures cannot both hold, and any strict-gap witness to Conjecture~2 produces a counterexample to Conjecture~1 with the exact same gap.
+More generally, Conjecture~1 forces $S(A; B \| E) = I(A; B)$ for every source satisfying the auxiliary-variable hypothesis of Theorem~\texttt{Th:gen:classic} in Abin and Gohari (2026).
+Second, we evaluate the paper's constrained upper bound $\Psi_\Delta(A; B \| A \oplus B) = I(A; B)$ for every binary XOR law and every feasible $\Delta \in [0, H(E)]$ (alongside the Maurer--Wolf intrinsic information), refuting the paper's proposed strategy for proving Conjecture~2.
+Neither conjecture is individually proved or refuted here.
+We also characterize one-way equality, exhibit a strictly positive two-sample interactive rate for every dependent binary XOR source, and construct a triple-grouping protocol for the symmetric triangle source achieving $(1 + \log_2 3)/12 \approx 0.215414$ when both one-way capacities vanish.
+\end{abstract}
+
+\section{Model and Conjecture Statements}
+
+All random variables take values in finite alphabets and all logarithms are base~$2$.
+Alice, Bob, and Eve observe i.i.d.\ copies of a discrete memoryless source $(X, Y, Z)$, receiving $X^n, Y^n, Z^n$ respectively.
+Using independent private randomness and an authenticated public interactive transcript $F$, Alice and Bob output keys $K_A, K_B$ in a common finite alphabet $\mathcal{K}$.
+Following Ahlswede--Csisz\'ar~\cite{AhlswedeCsiszar1993} and Abin--Gohari~\cite{AbinGohari2026}, a rate $R \ge 0$ is achievable if for every $\delta > 0$ and sufficiently large $n$ there exists a protocol satisfying $\Pr[K_A \neq K_B] \le \delta$, $R = H(K_A)/n$,
+\[
+\frac{1}{n}\log_2 |\mathcal{K}| - R \le \delta, \qquad \frac{1}{n}I(K_A; Z^n, F) \le \delta.
+\]
+The secret-key capacity $S(X; Y \| Z)$ is the supremum of achievable rates.
+The one-way capacity from $X$ to $Y$ is characterized by the single-letter formula~\cite{AhlswedeCsiszar1993,AbinGohari2026}
+\[
+\Sow(X \to Y \| Z) = \max_{(U, V) \mkv X \mkv (Y, Z)} \bigl[I(U; Y \mid V) - I(U; Z \mid V)\bigr],
+\]
+where standard cardinality bounds ensure the maximum is attained.
+We use the operational inequalities $\Sow(X \to Y \| Z) \le S(X; Y \| Z) \le \min\{I(X; Y),\, I(X; Y \mid Z)\}$; in particular, $S(T; T \| E) = H(T \mid E)$, since setting $U = T$ and $V$ constant matches the upper bound $I(T; T \mid E) = H(T \mid E)$.
+
+\begin{quote}
+\textbf{Conjecture~1 (\texttt{conjecture:1}, \cite{AbinGohari2026}).}
+\emph{For every finite joint distribution $P_{X, Y, Z, X', Y', Z'}$,}
+\begin{equation}\label{eq:conj1}
+\begin{split}
+S(X; Y \| Z) - S(X'; Y' \| Z') \;\le\;{}& \Sow(X, Y \to Z' \| Z) + I(Y', Z'; X \mid X') \\
+&+ I(X', Z'; Y \mid Y') + I(X; Y \mid X', Y', Z').
+\end{split}
+\end{equation}
+\end{quote}
+
+\begin{quote}
+\textbf{Conjecture~2 (\texttt{conj:2}, \cite{AbinGohari2026}).}
+\emph{There exists a binary joint distribution $P_{X, Y}$ on $\{0, 1\}^2$ such that $S(X; Y \| X \oplus Y) < I(X; Y)$.}
+\end{quote}
+
+\section{Joint Incompatibility: Conjecture~1 Implies \texorpdfstring{$\neg$}{not }Conjecture~2}
+
+\begin{lemma}[Common-observation identity and XOR lift]\label{lem:lift}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For any finite joint distribution $P_{T, A, B, E}$,
+\begin{equation}\label{eq:identity}
+\begin{split}
+H(T \mid E) - H(T \mid A) - H(T \mid B) + H(T \mid A, B, E)
+&= I(A; B) - I(A; B \mid T) \\
+&\quad - I(T; E) - I(T; E \mid A, B).
+\end{split}
+\end{equation}
+\item For every binary distribution $P_{A, B}$ on $\{0, 1\}^2$ with $E = A \oplus B$, there exists a random variable $T$ on a $4$-element alphabet coupled to $(A, B)$ such that
+\begin{equation}\label{eq:lift-props}
+I(A; B \mid T) = 0, \qquad I(T; E) = 0, \qquad I(T; E \mid A, B) = 0, \qquad H(A, B \mid T, E) = 0.
+\end{equation}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+For~(1), expanding every conditional entropy and mutual information into joint entropies gives
+\begin{align*}
+\text{LHS} &= H(T, E) - H(E) - H(T, A) + H(A) - H(T, B) + H(B) + H(T, A, B, E) - H(A, B, E), \\
+\text{RHS} &= \bigl[H(A) + H(B) - H(A, B)\bigr] - \bigl[H(T, A) + H(T, B) - H(T, A, B) - H(T)\bigr] \\
+&\quad - \bigl[H(T) + H(E) - H(T, E)\bigr] - \bigl[H(T, A, B) + H(A, B, E) - H(T, A, B, E) - H(A, B)\bigr],
+\end{align*}
+which agree identically.
+
+For~(2), denote the probability masses of $(A, B)$ at $(00, 01, 10, 11)$ by $(a, b, c, d)$, set $s := a + d$ and $t := b + c$, and define $u := a/s$ (setting $u := 0$ if $s = 0$) and $v := b/t$ (setting $v := 0$ if $t = 0$).
+Define $T \in \{1, 2, 3, 4\}$ with weights and conditional laws for $(A, B)$ listed in Table~\ref{tab:lift}.
+The weighted column sums equal $(su,\, tv,\, t(1 - v),\, s(1 - u)) = (a, b, c, d)$, including the boundary cases $s = 0$ or $t = 0$.
+In every state of $T$, one coordinate of $(A, B)$ is constant, so $I(A; B \mid T) = 0$; the parity $E = A \oplus B$ has distribution $(s, t)$ in every state, so $I(T; E) = 0$; $E$ is a function of $(A, B)$, so $I(T; E \mid A, B) = 0$; and knowing $T$ and $E$ fixes one bit and the XOR, hence determines $(A, B)$, giving $H(A, B \mid T, E) = 0$.
+\end{proof}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}cllc@{}}
+\toprule
+State $T$ & Weight $P_T$ & Conditional law on $(00, 01, 10, 11)$ & Fixed bit \\
+\midrule
+$1$ & $u v$ & $(s,\, t,\, 0,\, 0)$ & $A = 0$ \\
+$2$ & $u(1 - v)$ & $(s,\, 0,\, t,\, 0)$ & $B = 0$ \\
+$3$ & $(1 - u) v$ & $(0,\, t,\, 0,\, s)$ & $B = 1$ \\
+$4$ & $(1 - u)(1 - v)$ & $(0,\, 0,\, t,\, s)$ & $A = 1$ \\
+\bottomrule
+\end{tabular}
+\caption{Product-mixture lift $P_{T, A, B}$ for a binary law $(a, b, c, d)$ with $s = a + d$, $t = b + c$.}\label{tab:lift}
+\end{table}
+
+\begin{theorem}[Incompatibility of Conjectures~1 and~2]\label{thm:incomp}
+Assume Conjecture~1 holds.
+Then every finite source $(A, B, E)$ admitting an auxiliary variable $T$ with $I(A; B \mid T) = I(T; E) = I(T; E \mid A, B) = 0$ (i.e., every source satisfying Theorem~\texttt{Th:gen:classic} of~\cite{AbinGohari2026}) satisfies $S(A; B \| E) = I(A; B)$.
+In particular, Conjecture~1 implies $S(A; B \| A \oplus B) = I(A; B)$ for every binary law $P_{A, B}$, which is the negation of Conjecture~2.
+\end{theorem}
+
+\begin{proof}
+Apply~\eqref{eq:conj1} with $(X, Y, Z) = (T, T, E)$ and $(X', Y', Z') = (A, B, E)$.
+Then $S(T; T \| E) = H(T \mid E)$, and $\Sow(T, T \to E \| E) = 0$ because $I(U; E \mid V) - I(U; E \mid V) = 0$ identically.
+The remaining three penalty terms evaluate to
+\begin{align*}
+&I(B, E; T \mid A) + I(A, E; T \mid B) + I(T; T \mid A, B, E) \\
+&\quad = \bigl[H(T \mid A) - H(T \mid A, B, E)\bigr]
+  + \bigl[H(T \mid B) - H(T \mid A, B, E)\bigr] + H(T \mid A, B, E) \\
+&\quad = H(T \mid A) + H(T \mid B) - H(T \mid A, B, E).
+\end{align*}
+Subtracting the right-hand side of~\eqref{eq:conj1} from its left-hand side and invoking~\eqref{eq:identity} yields
+\[
+\text{LHS}\eqref{eq:conj1} - \text{RHS}\eqref{eq:conj1}
+= I(A; B) - S(A; B \| E) - I(A; B \mid T) - I(T; E) - I(T; E \mid A, B).
+\]
+When the last three terms vanish, \eqref{eq:conj1} forces $S(A; B \| E) \ge I(A; B)$; combining with the standard upper bound $S(A; B \| E) \le I(A; B)$ gives $S(A; B \| E) = I(A; B)$.
+Applying Lemma~\ref{lem:lift}(2) completes the proof for all binary XOR sources.
+\end{proof}
+
+\begin{remark}[Scope caveat and restricted equivalence]
+Neither Conjecture~1 nor Conjecture~2 is individually settled here.
+Theorem~\ref{thm:incomp} proves that Conjecture~1 holds on the restricted family of common-observation XOR instances $((T, T, E), (A, B, E))$ if and only if Conjecture~2 is false: any witness with $S(A; B \| A \oplus B) < I(A; B)$ immediately refutes Conjecture~1 with the identical gap, whereas disproving Conjecture~2 would still leave arbitrary six-variable instances of Conjecture~1 open.
+\end{remark}
+
+\section{Exact Collapse of \texorpdfstring{$\Psi_\Delta$}{Psi\_Delta} and Intrinsic Information}
+
+To pursue Conjecture~2, Abin and Gohari~\cite{AbinGohari2026} proposed the constrained upper bound $\Psi_\Delta(A; B \| E)$ for protocols whose normalized residual XOR entropy is at least $\Delta \in [0, H(E)]$:
+\[
+\Psi_\Delta(A; B \| E) := \inf_{P_{J \mid A, B, E}} \max_{\substack{(U, V) \mkv (A, B) \mkv (J, E) \\ I(V; E) \le I(V; J) + H(E) - \Delta}} \bigl[I(A; B \mid J) + I(U; J \mid V) - I(U; E \mid V)\bigr],
+\]
+allowing the additional XOR constraint $H(A, B \mid U, V, E) = 0$ and binary cardinality bound $|\mathcal{U}| \le 4$.
+
+\begin{theorem}[Collapse of $\Psi_\Delta$ and intrinsic information]\label{thm:psi}
+For every binary law $P_{A, B}$ with $E = A \oplus B$ and every $0 \le \Delta \le H(E)$,
+\begin{equation}\label{eq:psi}
+\Psi_\Delta(A; B \| E) = I(A; B).
+\end{equation}
+Moreover, the Maurer--Wolf intrinsic information $I(A; B \downarrow E) := \inf_{(A, B) \mkv E \mkv J} I(A; B \mid J)$ equals $I(A; B)$.
+\end{theorem}
+
+\begin{proof}
+Choosing $J$ constant yields $\Psi_\Delta(A; B \| E) \le I(A; B)$ since $I(U; J \mid V) = 0$ and $I(U; E \mid V) \ge 0$.
+Conversely, fix any finite channel $P_{J \mid A, B}$ (equivalent to $P_{J \mid A, B, E}$ since $E = A \oplus B$).
+Generate the $4$-state variable $T$ of Lemma~\ref{lem:lift}(2) from its conditional law given $(A, B)$, conditionally independent of $J$ given $(A, B)$, so that $I(T; J \mid A, B) = 0$.
+Set $U = T$ and take $V$ constant.
+Then $(U, V) \mkv (A, B) \mkv (J, E)$, $|\mathcal{U}| \le 4$, $|\mathcal{V}| = 1$, $H(A, B \mid U, V, E) = H(A, B \mid T, E) = 0$, and $I(V; E) = 0 \le I(V; J) + H(E) - \Delta$ throughout $[0, H(E)]$.
+
+Since $I(A; B \mid T) = 0$,
+\[
+I(J; A \mid T) + I(J; B \mid T) = I(J; A, B \mid T) - I(A; B \mid J, T) \le I(J; A, B \mid T).
+\]
+Applying the chain rule with $I(T; J \mid A, B) = 0$ therefore gives
+\begin{align*}
+I(A; B) - I(A; B \mid J)
+&= I(J; A) + I(J; B) - I(J; A, B) \\
+&= \bigl[I(J; T) + I(J; A \mid T) - I(J; T \mid A)\bigr] + \bigl[I(J; T) + I(J; B \mid T) - I(J; T \mid B)\bigr] \\
+&\quad - \bigl[I(J; T) + I(J; A, B \mid T) - I(J; T \mid A, B)\bigr] \\
+&\le I(J; T) - I(J; T \mid A) - I(J; T \mid B) \le I(J; T).
+\end{align*}
+Since $I(T; E) = 0$, this feasible $(U, V)$ achieves $I(A; B \mid J) + I(T; J) - I(T; E) \ge I(A; B)$ for every channel $P_{J \mid A, B}$, proving~\eqref{eq:psi}.
+Finally, for any degradation $(A, B) \mkv E \mkv J$, the chain $T \mkv E \mkv J$ and $I(T; E) = 0$ force $I(J; T) = 0$, so the same inequality gives $I(A; B \mid J) \ge I(A; B)$, attained by constant~$J$.
+\end{proof}
+
+Theorem~\ref{thm:psi} evaluates the upper bound $\Psi_\Delta$ identically to $I(A; B)$ across all $\Delta \in [0, H(E)]$, even if the operational subclass at a given $\Delta$ had strictly smaller capacity.
+Thus neither optimizing Eve's degradation~\cite{MaurerWolf1999} nor strengthening the residual-entropy parameter $\Delta$ in $\Psi_\Delta$~\cite{GohariAnantharam2010,AbinGohari2026} can certify Conjecture~2.
+
+\section{Operational Rates for Binary XOR Sources}
+
+\begin{proposition}[One-way equality criterion]\label{prop:ow}
+Let $(A, B)$ be dependent binary random variables ($I(A; B) > 0$) and $E = A \oplus B$.
+Then $\Sow(A \to B \| E) = I(A; B)$ if and only if $A \perp E$.
+By symmetry, $\Sow(B \to A \| E) = I(A; B)$ if and only if $B \perp E$.
+\end{proposition}
+
+\begin{proof}
+For any $(U, V)$ satisfying $(U, V) \mkv A \mkv (B, E)$, the chain rule gives the exact gap
+\[
+I(A; B) - \bigl[I(U; B \mid V) - I(U; E \mid V)\bigr] = I(V; B) + I(A; B \mid U, V) + I(U; E \mid V).
+\]
+Because $A, B$ are binary and dependent, the conditional distributions $P_{B \mid A = 0}$ and $P_{B \mid A = 1}$ are distinct.
+Thus $I(V; B) = 0$ uniquely fixes $P(A = 1 \mid V) = P(A = 1)$, i.e., $V \perp A$.
+Likewise, $I(A; B \mid U, V) = 0$ forces $A$ to be determined by $(U, V)$, since otherwise some $(u, v)$ supports both distinct conditional laws of $B$.
+Then $(U, V) \mkv A \mkv E$ and $V \perp A$ yield $I(U; E \mid V) = I(A; E \mid V) = I(A; E)$.
+Since the one-way maximum is attained, equality forces $I(A; E) = 0$.
+Conversely, if $A \perp E$, setting $U = A$ and $V$ constant attains $I(A; B)$.
+\end{proof}
+
+\begin{proposition}[Strictly positive two-sample interactive rate]\label{prop:twosample}
+For every binary XOR source with masses $(a, b, c, d)$ at $(00, 01, 10, 11)$,
+\[
+S(A; B \| A \oplus B) \;\ge\; (ad + bc)\left[1 - h_2\!\left(\frac{ad}{ad + bc}\right)\right]
+\]
+(interpreted as $0$ when $ad + bc = 0$), which is strictly positive if and only if $ad \neq bc$.
+\end{proposition}
+
+\begin{proof}
+Group $2m$ i.i.d.\ samples into $m$ pairs.
+Alice announces $A_{2i-1} \oplus A_{2i}$ and Bob announces $B_{2i-1} \oplus B_{2i}$ for each pair $i$, retaining pairs where both parities equal~$1$ (probability $2(ad + bc)$ per pair).
+Given acceptance, $(A_{2i-1}, B_{2i-1})$ has law proportional to $(ad, bc, bc, ad)$ on $(00, 01, 10, 11)$: both marginal bits are fair, and Eve's two observations $(E_{2i-1}, E_{2i})$ are identical and independent of $A_{2i-1}$.
+Retaining a deterministic count $\lfloor m \cdot 2(ad + bc)(1 - \varepsilon)\rfloor$ of accepted pairs (aborting with exponentially small probability on shortage) and running one-way key extraction from $A$ to $B$ yields $1 - h_2(ad/(ad + bc))$ bits per accepted pair, hence $(ad + bc)[1 - h_2(ad/(ad + bc))]$ per original sample.
+\end{proof}
+
+\begin{proposition}[Triangle source]\label{prop:triangle}
+For the binary XOR source $(a, b, c, d) = (1/3, 1/3, 1/3, 0)$, both one-way capacities vanish, $\Sow(A \to B \| E) = \Sow(B \to A \| E) = 0$, whereas
+\[
+\frac{1 + \log_2 3}{12} = 0.215413541727\ldots \;\le\; S(A; B \| E) \;\le\; I(A; B) = \log_2 3 - \frac{4}{3} = 0.251629167388\ldots
+\]
+Moreover, the common-observation instance of Theorem~\ref{thm:incomp} uses a single fair bit $T$ (all six variables binary), with unprimed capacity~$1$ and total penalty $7/3 - \log_2 3$.
+\end{proposition}
+
+\begin{proof}
+Given $A$, the conditional laws of $B$ and $1 - E$ coincide, so $I(U; B \mid V) = I(U; E \mid V)$ for all $(U, V) \mkv A \mkv (B, E)$, giving $\Sow(A \to B \| E) = 0$; symmetry gives $\Sow(B \to A \| E) = 0$.
+Setting $T = 0$ at $(0, 1)$, $T = 1$ at $(1, 0)$, and a fair coin at $(0, 0)$ yields a binary $T \sim \mathrm{Bern}(1/2)$ with $I(A; B \mid T) = I(T; E) = I(T; E \mid A, B) = 0$ and $H(T \mid E) = 1$.
+
+For the interactive lower bound, Alice independently shuffles her lists of $1$-positions and $0$-positions in $A^n$, partitions as many positions as possible into $m = \min(N_1, \lfloor N_0 / 2 \rfloor)$ disjoint triples each containing one~$1$ and two~$0$s ($m/n \to 1/3$ in probability), and publishes $N_1$ together with the unordered triples.
+In each triple, call the index of Alice's~$1$ the \emph{pointer}.
+Permuting the three coordinates inside any triple preserves both the source probability and the grouping likelihood, so independent within-triple permutations act transitively on pointer tuples conditional on $N_1$, the unordered triples, and the ungrouped symbols; hence the pointers are i.i.d.\ uniform trits.
+
+In each triple, Bob holds $0$ at the pointer and two independent fair bits elsewhere, and announces his Hamming weight:
+\begin{itemize}[leftmargin=1.5em]
+\item \emph{Weight~$2$ (probability $1/4$):} Bob identifies the pointer uniquely and Eve sees $(1, 1, 1)$, yielding a uniform secret trit independent of Eve's view and the transcript.
+\item \emph{Weight~$1$ (probability $1/2$):} Alice's pointer, Bob's~$1$, and Eve's~$0$ occupy the three positions in a uniform random order. Alice publishes an unordered pair consisting of her pointer and one uniformly chosen other position; Bob announces success if his~$1$ belongs to the pair (probability $1/2$, total mass $1/4$). On success, both know the pointer, while Eve's~$0$ lies outside the pair and both endpoints remain equiprobable given Eve's view and the transcript, yielding one uniform secret bit.
+\item \emph{Remaining cases (probability $1/2$):} Discarded.
+\end{itemize}
+Retaining deterministic counts $M_1 = \lfloor m(1/4 - \varepsilon) \rfloor$ of weight-$2$ triples and $M_2 = \lfloor m(1/4 - \varepsilon) \rfloor$ of successful weight-$1$ triples gives vanishing abort probability and a uniform secret key in $\mathcal{K} = \{0, 1, 2\}^{M_1} \times \{0, 1\}^{M_2}$ independent of $(E^n, F)$.
+Under the finite-alphabet definition of~\cite{AbinGohari2026} ($\frac{1}{n}\log_2 |\mathcal{K}| - R \le \delta$), outputting these $M_1$ trits and $M_2$ bits directly achieves rate $\frac{1}{3}(\frac{1}{4}\log_2 3 + \frac{1}{4}) = (1 + \log_2 3)/12$ without needing trit-to-bit binning (and optional binning to binary strings incurs only $o(1)$ rate loss).
+\end{proof}
+
+\section{Reproducible Verification}
+
+The script \texttt{solutions/key\_agreement\_ineq/explore.py} enumerates all $455$ binary laws with denominator~$12$, verifies the $4$-state lift and Theorem~\ref{thm:incomp}'s gap identity on every law, checks $36{,}855$ binary degradation channels and $2{,}275$ random $3$-output auxiliary channels for Theorem~\ref{thm:psi}, confirms that all $390$ dependent grid laws have a strictly positive two-sample rate (Proposition~\ref{prop:twosample}), checks $500$ seeded six-variable Conjecture~1 instances with analytically known capacities, and verifies the exact branch distributions for Proposition~\ref{prop:triangle}. All assertions pass.
+
+\begin{thebibliography}{9}
+
+\bibitem{AbinGohari2026}
+H.~Abin and A.~Gohari.
+On the source model key agreement problem.
+\emph{IEEE Transactions on Information Theory}, 72(8):5317--5334, August 2026.
+Preprint \href{https://arxiv.org/abs/2502.00294}{arXiv:2502.00294}.
+
+\bibitem{AhlswedeCsiszar1993}
+R.~Ahlswede and I.~Csisz\'ar.
+Common randomness in information theory and cryptography---Part~I: Secret sharing.
+\emph{IEEE Transactions on Information Theory}, 39(4):1121--1132, 1993.
+
+\bibitem{GohariAnantharam2010}
+A.~Gohari and V.~Anantharam.
+Information-theoretic key agreement of multiple terminals---Part~I.
+\emph{IEEE Transactions on Information Theory}, 56(8):3973--3996, 2010.
+
+\bibitem{MaurerWolf1999}
+U.~M.~Maurer and S.~Wolf.
+Unconditionally secure key agreement and the intrinsic conditional information.
+\emph{IEEE Transactions on Information Theory}, 45(2):499--514, 1999.
+
+\end{thebibliography}
+
+\end{document}

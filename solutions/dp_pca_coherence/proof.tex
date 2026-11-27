@@ -1,0 +1,213 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\coh}{coh}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\polylog}{polylog}
+\DeclareMathOperator{\Tr}{Tr}
+
+\title{\bfseries Rank-Eight Counterexamples to Graph Coherence Stability under Random Edge Union}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: T.~d'Orsi and G.~Novikov, \emph{Tight Differentially Private PCA via Matrix Coherence},\\
+SODA 2026 / \href{https://arxiv.org/abs/2510.26679}{arXiv:2510.26679} (October 2025),\\
+Conjectures~\texttt{conj:coherence-simple} and~\texttt{conj:coherence-normalized}\\[0.35em]
+Companion verification script: \texttt{solutions/dp\_pca\_coherence/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We simultaneously refute Conjecture~1.7 (\texttt{conj:coherence-simple}) for raw adjacency and Conjecture~1.8 (\texttt{conj:coherence-normalized}) for normalized adjacency of d'Orsi and Novikov (SODA~2026 / \href{https://arxiv.org/abs/2510.26679}{arXiv:2510.26679}) under their intended probability regime $np \ge \polylog(n)$.
+At constant edge density $p = 1/5$, we construct a sequence of simple unweighted graphs $K$ on $n = 8t + \lfloor t^{3/4} \rfloor$ vertices of exact rank $r = 8$ whose raw and normalized input coherences both equal $\frac{n}{8t} = 1 + o(1)$, while the random edge union $\hat{K} = K \cup G(n, 1/5)$ satisfies $\coh_8(A_{\hat{K}}) = \Omega(n^{1/4})$ and $\coh_8(\bar{A}_{\hat{K}}) = \Omega(n^{1/4})$ simultaneously with probability $1 - o(1)$.
+The mechanism is an exact rank-$1$ collapse of the $2 \times 2$ core quotient at $p = 1/5$, coupling a zero core direction to $s = \lfloor t^{3/4} \rfloor$ formerly isolated vertices so that the eighth singular vector localizes half of its squared mass on the isolate block with a $\Theta(s/t)$ singular gap that dominates the $O(\sqrt{\log t/t})$ random perturbation.
+\end{abstract}
+
+\section{Statements, Conventions, and Input Graph}
+
+Let $M \in \mathbb{R}^{n \times n}$ be symmetric with leading rank-$r$ singular projector $P_r$ (when $\sigma_r(M) > \sigma_{r+1}(M)$, the left and right singular projectors coincide and equal the orthogonal projector onto the top-$r$ eigenspace ordered by absolute eigenvalue). By Definition~\texttt{def:coherence} of~\cite{dOrsiNovikov2025},
+\[
+\coh_r(M) := \frac{n}{r} \max_{i,j} |(P_r)_{ij}| = \frac{n}{r} \max_j (P_r)_{jj},
+\]
+where the second equality holds because $|(P_r)_{ij}| \le \sqrt{(P_r)_{ii}(P_r)_{jj}}$ by Cauchy--Schwarz for any orthogonal projector $P_r^2 = P_r = P_r^\top$. For a simple unweighted graph $K$, $A_K$ is its zero-diagonal adjacency matrix and $\bar{A}_K := D(A_K)^{-1/2} A_K D(A_K)^{-1/2}$, with $D(A_K)_{jj}^{-1/2} := 0$ whenever $D(A_K)_{jj} = 0$.
+
+\begin{quote}
+\textbf{Conjectures~\texttt{conj:coherence-simple} and~\texttt{conj:coherence-normalized} (\cite{dOrsiNovikov2025}).}
+\emph{Let $K$ be a graph whose adjacency matrix $A_K$ (resp.\ normalized adjacency matrix $\bar{A}_K$) has rank $r$, and let $\mathbf{G} \sim G(n, p)$ with $1/2 \ge p \ge \polylog(n)/n$ [printed literally as $1/2 \ge p \ge \polylog(n)$]. For $\hat{K} = K \cup \mathbf{G}$, with high probability ($1 - o(1)$),}
+\[
+\coh_r(A_{\hat{K}}) \le O\bigl(\coh_r(A_K)\bigr) + \polylog(n)
+\quad\text{and}\quad
+\coh_r(\bar{A}_{\hat{K}}) \le O\bigl(\coh_r(\bar{A}_K)\bigr) + \polylog(n).
+\]
+\end{quote}
+
+\begin{remark}[Literal probability-range typo]
+The printed statements in~\cite{dOrsiNovikov2025} write $1/2 \ge p \ge \polylog(n)$, which is vacuously empty for large $n$ under any growing positive power of $\log n$. Because our counterexample operates at constant edge density $p = 1/5$, it exceeds every fixed polylogarithmic expected-degree threshold $np \ge \polylog(n)$ and refutes both conjectures under the intended range.
+\end{remark}
+
+\paragraph{Construction of $K$.}
+For an integer $t \to \infty$, put $s := \lfloor t^{3/4} \rfloor$ and $n := 8t + s$. Begin with $K_4$ and attach one private leaf to each clique vertex. Replace each of these $8$ vertices by an independent set of size $t$ and every edge by $K_{t,t}$, then append a set $S$ of $s$ isolated vertices. Call the four clique classes the \emph{centers} and the four leaf classes the \emph{leaves}.
+
+\begin{lemma}[Input rank and coherence]\label{lem:input}
+For every $t \ge 1$, $\rank(A_K) = \rank(\bar{A}_K) = 8$ and $\coh_8(A_K) = \coh_8(\bar{A}_K) = \frac{n}{8t} = 1 + o(1)$.
+\end{lemma}
+
+\begin{proof}
+In the orthonormal basis of the eight normalized class indicators, $A_K$ acts as $tB$ with
+\[
+B := \begin{pmatrix} J_4 - I_4 & I_4 \\ I_4 & 0 \end{pmatrix},
+\]
+and vanishes on the orthogonal complement. From $B(x, y) = 0$ we get $x = 0$ and then $y = 0$ ($\det B = 1$), so $\rank(A_K) = 8$. Vertex degrees are $4t$ on centers, $t$ on leaves, and $0$ on $S$, so $\bar{A}_K$ is an invertible diagonal congruence of $A_K$ on the same $8$-dimensional range. Both rank-$8$ projectors therefore have diagonal $1/t$ on the $8t$ non-isolates and $0$ on $S$, giving $\coh_8(A_K) = \coh_8(\bar{A}_K) = n/(8t) = 1 + o(1)$.
+\end{proof}
+
+\section{Deterministic Population Quotient at \texorpdfstring{$p = 1/5$}{p = 1/5}}
+
+Write $\hat{A} := A_{\hat{K}}$ for $\hat{K} = K \cup G(n, 1/5)$. Define $H := (1 - p)A_K + p J_n$ and $D_H := \diag(H\mathbf{1})$, so that $\mathbb{E}[\hat{A}] = H - p I_n$ exactly. Set $\epsilon := \sqrt{s/t} = \Theta(t^{-1/8})$ and define the comparison matrices
+\[
+T_{\mathrm{raw}} := \frac{1}{t}H, \qquad T_{\mathrm{norm}} := D_H^{-1/2} H D_H^{-1/2},
+\]
+paired with $\hat{A}/t$ and $\bar{A}_{\hat{K}}$ respectively.
+
+\begin{lemma}[Block reduction, singular gap, and isolate localization]\label{lem:quotient}
+At $p = 1/5$, both $T = T_{\mathrm{raw}}$ and $T = T_{\mathrm{norm}}$ vanish outside the $9$-dimensional class-indicator span and split orthogonally into:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item a $6$-dimensional difference subspace carrying three copies of $(1-p)\begin{pmatrix} -c^2 & cl \\ cl & 0 \end{pmatrix}$, supplying $6$ singular values uniformly bounded away from~$0$; and
+\item a $3$-dimensional block on the normalized indicators of all centers, all leaves, and $S$:
+\[
+\diag(c, l, i)
+\begin{pmatrix}
+16/5 & 8/5 & 2\epsilon/5 \\
+8/5 & 4/5 & 2\epsilon/5 \\
+2\epsilon/5 & 2\epsilon/5 & \epsilon^2/5
+\end{pmatrix}
+\diag(c, l, i),
+\]
+where $(c, l, i) = (1, 1, 1)$ for $T_{\mathrm{raw}}$, and
+\[
+(c, l, i) = \Bigl((24/5 + \epsilon^2/5)^{-1/2},\, (12/5 + \epsilon^2/5)^{-1/2},\, (8/5 + \epsilon^2/5)^{-1/2}\Bigr)
+\]
+for $T_{\mathrm{norm}}$.
+\end{enumerate}
+In both cases, $T$ has $7$ singular values of order $\Theta(1)$ and two small outlier eigenvalues $\lambda_+ > 0 > \lambda_-$ satisfying
+\[
+\lambda_\pm = \pm\epsilon b + o(\epsilon), \qquad
+\sigma_8(T) - \sigma_9(T) = \lambda_+ + \lambda_- = \epsilon^2\Bigl(d - \frac{h^2}{a}\Bigr) + o(\epsilon^2),
+\]
+where the limiting gap coefficient $d - h^2/a$ equals $16/125$ (raw) and $5/72$ (normalized). The unit eigenvector of $\lambda_+$ (the $8$th singular vector of $T$) has squared mass $1/2 + o(1)$ on $S$.
+\end{lemma}
+
+\begin{proof}
+On the $3$-dimensional subspace spanned by the normalized indicators of all $4t$ centers, all $4t$ leaves, and $S$, $A_K/t$ acts as $\begin{pmatrix} 3 & 1 \\ 1 & 0 \end{pmatrix} \oplus (0)$ and $J_n/t$ acts as $(2, 2, \epsilon)^\top(2, 2, \epsilon)$. At $p = 1/5$, the upper-left $2 \times 2$ block $\begin{pmatrix} 16/5 & 8/5 \\ 8/5 & 4/5 \end{pmatrix}$ collapses to rank~$1$, equaling $(4/5)vv^\top$ for $v := (2c, l)^\top$ after scaling by $\diag(c, l, i)$. The row sums of $H/t$ are $24/5 + \epsilon^2/5$, $12/5 + \epsilon^2/5$, and $8/5 + \epsilon^2/5$, giving $(c, l, i)$ for $T_{\mathrm{norm}}$. On the $6$-dimensional difference subspace, $J_n$ vanishes and $J_4 - I_4$ acts as $-I$ on three orthonormal vectors perpendicular to $\mathbf{1}_4$, yielding three identical blocks $(1-p)\begin{pmatrix} -c^2 & cl \\ cl & 0 \end{pmatrix}$ with nonzero limiting determinant $-(1-p)^2 c^2 l^2$.
+
+Set $u := (-l, 2c)^\top/\|v\|$ and $w := (c, l)^\top$. In the orthonormal basis $\{v/\|v\|,\, u,\, \mathbf{1}_S/\sqrt{s}\}$, the $3 \times 3$ block takes the form
+\[
+L = \begin{pmatrix}
+a & 0 & \epsilon h \\
+0 & 0 & \epsilon b \\
+\epsilon h & \epsilon b & \epsilon^2 d
+\end{pmatrix},
+\quad
+a = \frac{4}{5}\|v\|^2, \quad h = \frac{2i}{5}\frac{v^\top w}{\|v\|}, \quad b = \frac{2i}{5} u^\top w, \quad d = \frac{1}{5}i^2,
+\]
+with $a, b$ converging to strictly positive limits. Comparing with $\diag(a, 0, 0)$ gives $\lambda_0 = a + O(\epsilon)$. Eliminating the second and third coordinates of its eigenvector yields
+\[
+\lambda_0 - a = \frac{\epsilon^2 h^2}{\lambda_0 - \epsilon^2 d - \epsilon^2 b^2/\lambda_0} = \frac{\epsilon^2 h^2}{a} + o(\epsilon^2).
+\]
+By $\det L = -a\epsilon^2 b^2$, the remaining two eigenvalues satisfy $\lambda_+ \lambda_- = -a\epsilon^2 b^2/\lambda_0 < 0$ (so $\lambda_+ > 0 > \lambda_-$), and by $\Tr L = a + \epsilon^2 d$,
+\[
+\lambda_+ + \lambda_- = \epsilon^2\Bigl(d - \frac{h^2}{a}\Bigr) + o(\epsilon^2), \qquad
+d - \frac{h^2}{a} = \frac{i^2}{5}\left[1 - \left(\frac{2c^2 + l^2}{4c^2 + l^2}\right)^2\right].
+\]
+Evaluating at $(c, l, i) = (1, 1, 1)$ gives $16/125$; evaluating at the normalized limits $c^2 = 5/24, l^2 = 5/12, i^2 = 5/8$ gives $5/72$. From their sum and product, $\lambda_\pm = \pm\epsilon b + o(\epsilon)$, so $\sigma_8(T) = \lambda_+ > |\lambda_-| = \sigma_9(T)$ with gap $\Theta(\epsilon^2)$. For a unit eigenvector $(x, y, z)^\top$ of $L$ with eigenvalue $\lambda_+$, $x = -\epsilon h z/(a - \lambda_+) = O(\epsilon)$ and $y = \epsilon b z / \lambda_+ = (1 + o(1))z$, giving $z^2 = 1/2 + o(1)$. Since $z$ is the coordinate along $\mathbf{1}_S/\sqrt{s}$, the $8$th singular vector places squared mass $1/2 + o(1)$ on $S$.
+\end{proof}
+
+\section{Concentration and Simultaneous Coherence Lower Bound}
+
+\begin{theorem}[Simultaneous refutation of \texttt{conj:coherence-simple} and \texttt{conj:coherence-normalized}]\label{thm:main}
+At $p = 1/5$, for $K$ on $n = 8t + \lfloor t^{3/4} \rfloor$ vertices and $\hat{K} = K \cup G(n, 1/5)$, with probability $1 - o(1)$ as $t \to \infty$, both $A_{\hat{K}}$ and $\bar{A}_{\hat{K}}$ simultaneously satisfy
+\[
+\coh_8(A_{\hat{K}}) \ge \frac{n}{8s}\Bigl(\frac{1}{2} - o(1)\Bigr) = \Omega(n^{1/4})
+\quad\text{and}\quad
+\coh_8(\bar{A}_{\hat{K}}) \ge \frac{n}{8s}\Bigl(\frac{1}{2} - o(1)\Bigr) = \Omega(n^{1/4}).
+\]
+\end{theorem}
+
+\begin{proof}
+\emph{Step~1 (Spectral and degree concentration).}
+Let $W := \hat{A} - \mathbb{E}[\hat{A}]$. Its upper-triangular off-diagonal entries are independent, zero-mean, and supported in intervals of length at most~$1$. For any fixed $x \in S^{n-1}$, $x^\top W x = 2\sum_{i<j} x_i x_j W_{ij}$ has squared interval-length sum $4\sum_{i<j} x_i^2 x_j^2 \le 2$, so Hoeffding's inequality yields $\Pr(|x^\top W x| > u) \le 2e^{-u^2}$. A maximal $1/4$-separated set $\mathcal{N} \subset S^{n-1}$ is a $1/4$-net of cardinality at most $9^n$ satisfying $\|W\| \le 2\max_{y \in \mathcal{N}}|y^\top W y|$. Setting $u = 2\sqrt{n}$ gives $\Pr(\|W\| > 4\sqrt{n}) \le 2\cdot 9^n e^{-4n} \to 0$, so $\|\hat{A} - H\| \le \|W\| + p = O(\sqrt{n})$ w.h.p.
+
+By scalar Hoeffding at each vertex and a union bound, $\max_j |\hat{d}_j - (D_H)_{jj}| = O(\sqrt{n\log n})$ w.h.p.\ (including the diagonal shift $p$). Since $(D_H)_{jj} \ge pn = \Theta(t)$, all degrees satisfy $\hat{d}_j = \Theta(t)$. Setting $\hat{D} := \diag(\hat{d})$, the mean value theorem gives $\|\hat{D}^{-1/2} - D_H^{-1/2}\| = O(\sqrt{n\log n}/t^{3/2})$. Using $\|\hat{D}^{-1/2}\|, \|D_H^{-1/2}\| = O(t^{-1/2})$ and $\|H\| \le n$, telescoping $\hat{D}^{-1/2}\hat{A}\hat{D}^{-1/2} - D_H^{-1/2} H D_H^{-1/2}$ bounds its operator norm by $O(\sqrt{n\log n}/t) = O(\sqrt{\log t/t})$. Hence on a single event of probability $1 - o(1)$, both $\hat{A}/t - T_{\mathrm{raw}}$ and $\bar{A}_{\hat{K}} - T_{\mathrm{norm}}$ have operator norm at most
+\[
+\eta = O\!\left(\sqrt{\frac{\log t}{t}}\right) = o(t^{-1/4}) = o(\epsilon^2).
+\]
+
+\emph{Step~2 (Perturbation of the $8$th singular vector and coherence bound).}
+Write $M = T + E$ with $\|E\| \le \eta$. By Weyl's inequality, singular values and ordered signed eigenvalues shift by at most $\eta$. Since $\sigma_8(T) - \sigma_9(T) = \Theta(\epsilon^2) \gg \eta$, the strict $8$th--$9$th singular gap persists and $\sigma_8(M)$ equals the perturbed positive eigenvalue $\hat{\lambda}_+$ near $\lambda_+$. Moreover, $\lambda_+$ is separated by $\Omega(\epsilon)$ from every other signed eigenvalue of $T$ (including $0$ and $\lambda_-$). For a unit eigenvector $\hat{v}$ of $M$ associated with $\hat{\lambda}_+$, $\|(T - \lambda_+ I)\hat{v}\| \le 2\eta$; expanding $\hat{v}$ in an eigenbasis of $T$ shows that its component perpendicular to the population eigenvector $v_+$ has norm $O(\eta/\epsilon) = o(1)$. Hence $\sum_{j \in S} \hat{v}_j^2 = 1/2 + o(1)$. By pigeonhole, some $j^* \in S$ has $(P_8)_{j^* j^*} \ge \hat{v}_{j^*}^2 \ge (1/2 - o(1))/s$, giving
+\[
+\coh_8(M) = \frac{n}{8}\max_j (P_8)_{jj} \;\ge\; \frac{n}{8s}\Bigl(\frac{1}{2} - o(1)\Bigr) \;=\; \Omega(n^{1/4})
+\]
+simultaneously for $A_{\hat{K}}$ and $\bar{A}_{\hat{K}}$ with probability $1 - o(1)$.
+\end{proof}
+
+\section{Reproducible Numerical Verification}
+
+The script \texttt{solutions/dp\_pca\_coherence/explore.py} tests five control graphs at $p \in \{0.08, 0.2, 0.5\}$, checks exact full-matrix reconstruction from the $9$-dimensional quotient at $t = 32$, verifies quotient convergence up to $t = 2^{40}$, and evaluates sampled unions at $t \in \{32, 128, 384\}$. Table~\ref{tab:dppca} summarizes the quotient and sampled results; all assertions pass.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+\multicolumn{5}{c}{Population quotient convergence ($p = 1/5$)} \\
+\midrule
+$t$ & Raw mass ($\to 0.5$) & Raw gap ($\to 0.128$) & Norm.\ mass ($\to 0.5$) & Norm.\ gap ($\to 0.069444$) \\
+\midrule
+$16$     & 0.616161 & 0.126767 & 0.619630 & 0.063770 \\
+$2^{12}$ & 0.561376 & 0.127693 & 0.568348 & 0.067952 \\
+$2^{24}$ & 0.522187 & 0.127962 & 0.525525 & 0.069255 \\
+$2^{40}$ & 0.505581 & 0.127998 & 0.506482 & 0.069433 \\
+\midrule
+\multicolumn{5}{c}{Sampled random graph unions ($p = 1/5$)} \\
+\midrule
+$t$ & $n$ & Input $\coh_8$ & Raw union $\coh_8$ (mass) & Norm.\ union $\coh_8$ (mass) \\
+\midrule
+32  & 269  & 1.0508 & 2.7207 (0.1026) & 2.9201 (0.3450) \\
+128 & 1062 & 1.0371 & 2.7863 (0.3122) & 3.5876 (0.4619) \\
+384 & 3158 & 1.0280 & 3.7213 (0.4398) & 4.2239 (0.5123) \\
+\bottomrule
+\end{tabular}
+\caption{Population quotient limits and sampled random unions verified in \texttt{explore.py}.}\label{tab:dppca}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{dOrsiNovikov2025}
+T.~d'Orsi and G.~Novikov.
+Tight differentially private PCA via matrix coherence.
+In \emph{Proceedings of SODA 2026}; preprint \href{https://arxiv.org/abs/2510.26679}{arXiv:2510.26679}, October 2025.
+
+\end{thebibliography}
+
+\end{document}

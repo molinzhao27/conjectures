@@ -1,0 +1,202 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Aut}{Aut}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\SNR}{SNR}
+\DeclareMathOperator{\op}{op}
+
+\title{\bfseries Refutation of Three Conjectures on Group-Averaged Spectral Estimation}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: M.~A.~Thornton, \emph{Algebraic Diversity: Group-Theoretic Spectral Estimation}\\
+\emph{from Single Observations}, \href{https://arxiv.org/abs/2604.03634}{arXiv:2604.03634} (local v17 draft, June 2026),\\
+Conjectures~\texttt{conj:blind}, \texttt{conj:nadh}, and~\texttt{conj:gaat}\\[0.35em]
+Companion verification script: \texttt{solutions/group\_spectral\_est/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute all three conjectures in the local v17 draft of Thornton (\href{https://arxiv.org/abs/2604.03634}{arXiv:2604.03634}, June~2026) as stated.
+For Blind Group Selection (\texttt{conj:blind}), we exhibit regular transitive order-$4$ groups $G = \mathbb{Z}_4$ and $H = V_4$ for which the blind spectral-concentration selector chooses the mismatched group with probability tending to~$1$ as $\SNR \to \infty$, as well as conjugate cyclic groups on a polynomial graph-filtered Gaussian signal on $C_4$ where the error probability stays bounded away from zero.
+For the refined Non-Abelian Dominance Hypothesis (\texttt{conj:nadh}), the printed comparator $\mathbb{E}[\max_U \psi(U^H \mathbb{Z}_n U, x)]$ equals~$1$ identically for every observation law with $\Pr[x = 0] = 0$, whereas the six-vertex $3$-sunlet graph ($\Aut(\mathcal{G}) \cong S_3$) with filter $3I + A$ satisfies both spectral premises and has $\mathbb{E}[\psi(S_3, x)] < 1$; we explicitly distinguish this from the open fixed-$U$ variant placing the maximum outside the expectation.
+For General Algebraic Averaging (\texttt{conj:gaat}), we separate counterexamples arising from omitted regularity, noise-dependence, and linearity hypotheses from the structural ill-posedness of $d_{\mathrm{eff}}(G, f)$, and prove a corrected fixed-$\sigma$ variance bound for the outer-product estimator.
+\end{abstract}
+
+\section{Definitions and Oracle Conventions}
+
+For a finite unitary representation $\pi : G \to U(M)$, define the group twirl and single-observation estimator
+\[
+T_G(B) := \frac{1}{|G|} \sum_{g \in G} \pi_g B \pi_g^*, \qquad F_G(x) := T_G(xx^*).
+\]
+Following~\cite{Thornton2026} (\texttt{def:commut\_residual} and Eq.~(953)), the sample commutativity residual and spectral concentration score are
+\[
+\delta(G, x, R) := \frac{\|[F_G(x), R]\|_F}{\|F_G(x)\|_F \|R\|_F},
+\qquad \psi(G, x) := \frac{\lambda_{\max}(F_G(x))}{\|x\|^2},
+\]
+where $\Tr(F_G(x)) = \|x\|^2$, whence $0 < \psi(G, x) \le 1$ for $x \neq 0$. Because Conjecture~\texttt{conj:blind} suppresses $x$ in $\delta(G, R)$, we resolve all standard oracle interpretations: the sample residual $\delta(G, x, R)$, its expectation $\mathbb{E}[\delta(G, x, R)]$, exact group commutation $[\pi_g, R] = 0$, and the population-twirl commutator $[T_G(R), R]$.
+
+\section{Disproof of Blind Group Selection (\texttt{conj:blind})}
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:blind} (\cite{Thornton2026}).}
+\emph{Let $G^* = \arg\min_{G \in \mathcal{G}} \delta(G, R)$ be the optimal group. Then $\Pr[\arg\max_{G \in \mathcal{G}} \psi(G, x) = G^*] \to 1$ as $\SNR \to \infty$.}
+\end{quote}
+
+\begin{theorem}[Order-$4$ regular transitive counterexample]\label{thm:blind-v4}
+Let $G = \langle P \rangle \cong \mathbb{Z}_4$ where $P = (1\,2\,3\,4)$ acts via $P e_j = e_{P(j)}$, and let $H \cong V_4$ consist of the identity and the three double transpositions on $\{1,2,3,4\}$. Both groups act regularly and transitively on $\{1,2,3,4\}$. Set
+\[
+u := \frac{1}{2}(1, 1, -1, -1)^\top, \qquad v := Pu = \frac{1}{2}(-1, 1, 1, -1)^\top, \qquad w_\pm := \frac{u \pm iv}{\sqrt{2}}.
+\]
+Let $\epsilon \in \{\pm 1\}$ be uniform, $\eta \in S^1 \subset \mathbb{C}$ be an independent uniform phase, and $z \sim \mathcal{CN}(0, I_4)$ be independent noise. For $s := \eta(2w_+ + \epsilon w_-)$ and $x_\sigma := s + \sigma z$ with covariance $R_\sigma = R_0 + \sigma^2 I_4$ ($R_0 = 4w_+ w_+^* + w_- w_-^*$):
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $G$ is the unique oracle optimum under $\delta(G, x_\sigma, R_\sigma)$, under $\mathbb{E}[\delta(G, x_\sigma, R_\sigma)]$, and under elementwise commutation $[\pi_g, R_\sigma] = 0$.
+\item As $\sigma \downarrow 0$ ($\SNR \to \infty$), $\Pr[\arg\max_{J \in \{G, H\}} \psi(J, x_\sigma) = G] \to 0$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+On $\spn\{u, v\}$, $Pu = v$ and $Pv = -u$, so $w_\pm$ are orthonormal eigenvectors of $P$ with distinct eigenvalues $\mp i$; all four characters of $G$ are distinct. Likewise $u$ and $v$ are eigenvectors of $H$ with distinct characters. For any finite Abelian group with distinct $1$-dimensional characters on an orthonormal basis $\{e_k\}$, character orthogonality deletes all off-diagonal terms under twirling, giving $F_J(x) = \sum_k |\langle e_k, x\rangle|^2 e_k e_k^*$.
+
+For $G$, both $F_G(x)$ and $R_\sigma$ are diagonal in $G$'s character basis for every $x$, so $\delta(G, x_\sigma, R_\sigma) \equiv 0$, and $F_G(s)$ has nonzero eigenvalues $4, 1$. For $H$, the squared components of $s$ along $u$ and $v$ are $(2+\epsilon)^2/2$ and $(2-\epsilon)^2/2$, so for either sign $\epsilon$, $F_H(s)$ has nonzero eigenvalues $9/2$ and $1/2$. Consequently,
+\[
+\psi(G, s) = \frac{4}{5} < \frac{9}{10} = \psi(H, s).
+\]
+In the $(u, v)$ basis, the off-diagonal entries of $R_0$ have modulus $3/2$, giving $\|[F_H(s), R_0]\|_F = 6\sqrt{2}$, $\|F_H(s)\|_F^2 = 41/2$, $\|R_0\|_F^2 = 17$, and hence $\delta(H, s, R_0) = 12/\sqrt{697} > 0$. Moreover, any double transposition with opposite signs on $u$ and $v$ fails to commute with $R_0$.
+
+Coupling all $\sigma > 0$ via the same $(s, z)$ yields $x_\sigma \to s$ almost surely. By continuity of $\psi$ and $\delta$ at $(s, R_0)$, the strict opposite rankings $\delta(G, x_\sigma, R_\sigma) < \delta(H, x_\sigma, R_\sigma)$ and $\psi(G, x_\sigma) < \psi(H, x_\sigma)$ hold for all sufficiently small $\sigma$ on almost every draw. Bounded convergence yields $\Pr[\text{agreement}] \to 0$ (independently of tie breaking), and since $\delta \le 2$, $\mathbb{E}[\delta(H, x_\sigma, R_\sigma)] \to 12/\sqrt{697} > 0 = \mathbb{E}[\delta(G, x_\sigma, R_\sigma)]$.
+\end{proof}
+
+\begin{proposition}[Conjugate cyclic candidates and graph-filtered Gaussian signal]\label{prop:blind-c4}
+Keep $G = \langle(1\,2\,3\,4)\rangle$, let $K = \langle(1\,3\,2\,4)\rangle$, and let $A = P + P^\top$ be the $C_4$ adjacency matrix. For $y = (2I - A)w$ ($w \sim \mathcal{CN}(0, I_4)$, $R_0 = (2I - A)^2$) and $x_\sigma = y + \sigma z$ ($R_\sigma = R_0 + \sigma^2 I_4$), there exists $p > 0$ such that $\liminf_{\sigma \downarrow 0} \Pr[\arg\max_{J \in \{G, K\}} \psi(J, x_\sigma) \neq G] \ge p$.
+\end{proposition}
+
+\begin{proof}
+Put $b := \frac{1}{2}(1, -1, 1, -1)^\top$. The filter $2I - A$ kills $\mathbf{1}$ and has eigenvalues $2, 2, 4$ on $u, v, b$, so $y$ has full positive complex Gaussian density on $\spn_{\mathbb{C}}\{u, v, b\}$ with $R_0$ eigenvalues $4, 4, 16$. At $y_0 := 3u + v + ib$, the $G$-Fourier squared magnitudes are $5, 5, 1$, giving $\psi(G, y_0) = 5/11$ and $[F_G(y_0), R_0] = 0$. Under $K$'s generator $P_K$, $P_K u = -u$, $P_K v = -b$, $P_K b = v$, so $v + ib$ is a character vector of $K$ with eigenvalue $+i$; thus $F_K(y_0)$ has nonzero eigenvalues $9, 2$, giving $\psi(K, y_0) = 9/11 > 5/11$, while its $(v, b)$ block $(v+ib)(v+ib)^*$ couples the distinct $R_0$ eigenvalues $4$ and $16$, so $\delta(K, y_0, R_0) > 0 = \delta(G, y_0, R_0)$. Both strict rankings hold on an open neighborhood of $y_0$ of probability $p > 0$, and Fatou's lemma as $\sigma \downarrow 0$ completes the proof.
+\end{proof}
+
+\begin{proposition}[Population-twirl oracle {$[T_J(R), R]$}]\label{prop:blind-pop}
+For $\{G, K\}$ as in Proposition~\ref{prop:blind-c4} and $s = \eta a$ with $a = (2, 1, -2, -1)^\top$, $R = aa^* + \sigma^2 I_4$, we have $T_J(R) = F_J(a) + \sigma^2 I_4$. Because $a$ has equal nonzero $G$-Fourier powers $5, 5$ and unequal nonzero $K$-Fourier powers $9, 1/2, 1/2$, $[T_G(R), R] = 0 \neq [T_K(R), R]$, yet $\psi(G, a) = 1/2 < 9/10 = \psi(K, a)$. Hence agreement probability tends to~$0$ as $\sigma \downarrow 0$.
+\end{proposition}
+
+\section{Disproof of the Non-Abelian Dominance Hypothesis (\texttt{conj:nadh})}
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:nadh} (\cite{Thornton2026}).}
+\emph{Let $\mathcal{G}$ be a graph on $n$ vertices with non-Abelian automorphism group $G = \Aut(\mathcal{G})$ of order $n$, and let $x$ be a single observation of a graph-filtered signal. Then $\mathbb{E}[\psi(G, x)] > \mathbb{E}[\max_{U} \psi(U^H \mathbb{Z}_n U, x)]$ if and only if: \textup{(i)}~the graph-filtered covariance has at least one eigenspace of dimension $d > 1$ carrying an irreducible representation of $G$ of dimension $d$; and \textup{(ii)}~the dominant eigenvalue is non-degenerate.}
+\end{quote}
+
+\begin{theorem}[Disproof of \texttt{conj:nadh} as printed]\label{thm:nadh}
+For every $n \ge 1$ and $x \in \mathbb{C}^n \setminus \{0\}$, the pointwise cyclic maximum satisfies $\max_{U \in U(n)} \psi(U^H \mathbb{Z}_n U, x) = 1$. Consequently, for every observation law with $\Pr[x = 0] = 0$,
+\[
+\mathbb{E}\bigl[\psi(G, x)\bigr] \;\le\; 1 \;=\; \mathbb{E}\!\left[\max_{U \in U(n)} \psi(U^H \mathbb{Z}_n U, x)\right].
+\]
+Furthermore, the $6$-vertex $3$-sunlet graph (a triangle with one pendant leaf at each vertex) has non-Abelian automorphism group $G = \Aut(\mathcal{G}) \cong S_3$ of order $6$, and under the polynomial graph filter $h(A) = 3I + A$ ($x = h(A)w + n$, $w \sim \mathcal{CN}(0, I_6)$, independent white noise $n$), both spectral premises \textup{(i)} and \textup{(ii)} hold while $\mathbb{E}[\psi(S_3, x)] < 1$.
+\end{theorem}
+
+\begin{proof}
+Given $x \neq 0$, select $U \in U(n)$ such that $U(x/\|x\|) = \mathbf{1}/\sqrt{n}$. Every cyclic shift fixes $\mathbf{1}/\sqrt{n}$, so every element of $U^H \mathbb{Z}_n U$ fixes $x$. Thus $F_{U^H \mathbb{Z}_n U}(x) = xx^*$ and $\psi(U^H \mathbb{Z}_n U, x) = 1$, which is the universal maximum.
+
+For the $3$-sunlet graph, degrees ($3$ on the triangle, $1$ on the leaves) distinguish the two triples and every triangle permutation induces a unique leaf permutation, so $\Aut(\mathcal{G}) \cong S_3$ (non-Abelian, order~$6$). Its adjacency matrix is
+\[
+A = \begin{pmatrix} J_3 - I_3 & I_3 \\ I_3 & 0 \end{pmatrix}.
+\]
+Because $J_3 - I_3$ has eigenvalue $2$ on $\mathbf{1}_3$ and $-1$ on $\mathbf{1}_3^\perp$, vectors $(\lambda q, q)$ solve $A(\lambda q, q) = \lambda(\lambda q, q)$ whenever $\lambda^2 - \mu\lambda - 1 = 0$ ($\mu \in \{2, -1\}$). This yields simple eigenvalues $1 \pm \sqrt{2}$ and two multiplicity-$2$ eigenvalues $(-1 \pm \sqrt{5})/2$. On each $2$-dimensional eigenspace, a $3$-cycle acts with distinct eigenvalues $e^{\pm 2\pi i/3}$ whose eigenlines are interchanged by any transposition, proving irreducibility under $S_3$. All eigenvalues of $A$ exceed $-3$, so $h(A)^2 + \sigma^2 I_6 = (3I + A)^2 + \sigma^2 I_6$ is positive definite, retains the exact eigenspaces and strict ordering, and has simple top eigenvalue $(4+\sqrt{2})^2 + \sigma^2$. Thus premises~(i) and~(ii) hold. Finally, $\psi(S_3, x) = 1$ holds only if all orbit vectors $\{gx : g \in S_3\}$ are collinear, requiring $x$ to be an eigenvector of a nonidentity transposition; this finite union of proper subspaces has measure zero under the full-rank Gaussian law, so $\psi(S_3, x) < 1$ a.s.\ and $\mathbb{E}[\psi(S_3, x)] < 1$.
+\end{proof}
+
+\begin{remark}[Quantifier order: printed vs.\ fixed-$U$ variant]
+Theorem~\ref{thm:nadh} refutes \texttt{conj:nadh} verbatim with $\max_U$ inside the expectation (which also matches the per-trial random-unitary sweep in \S 13.4 Test~A of~\cite{Thornton2026}). If the maximum is instead moved \emph{outside} the expectation, comparing $\mathbb{E}[\psi(G, x)]$ against $\max_{U \in U(n)} \mathbb{E}[\psi(U^H \mathbb{Z}_n U, x)]$, the pointwise construction above does not apply and that fixed-$U$ variant remains open.
+\end{remark}
+
+\section{Disproof and Repair of General Algebraic Averaging (\texttt{conj:gaat})}
+
+In Conjecture~\texttt{conj:gaat} of~\cite{Thornton2026}, $x = s + n \in \mathbb{C}^M$ with deterministic $s$ and $n \sim \mathcal{CN}(0, \sigma^2 I_M)$, $f(\pi_g x) = \tilde{\pi}_g f(x)$, and $\hat{\theta}_G = |G|^{-1}\sum_{g \in G} f(\pi_g x)$. The conjecture asserts: (i)~$\mathbb{E}[\hat{\theta}_G] = \theta_f^G$ (projection of $\mathbb{E}[f(x)]$ onto the $G$-invariant subspace); (ii)~$\Var(\hat{\theta}_G) \le C(f, s)/d_{\mathrm{eff}}(G, f)$ with $C$ independent of $G$; (iii)~$\Var(\hat{\theta}_{G, L}) \le C(f, s)/(d_{\mathrm{eff}}\cdot L)$ for $L$ i.i.d.\ snapshots; and (iv)~setting $G = \{e\}, L = N$ recovers the LLN with $\Var \propto 1/N$.
+
+\subsection{Counterexamples and Structural Ill-Posedness}
+
+We distinguish defects caused by omitted regularity/linearity hypotheses from the structural ambiguity of $d_{\mathrm{eff}}(G, f)$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{Finite mean, infinite variance at fixed noise ($\sigma = 1$).} Take $M = 1$, $s = 0$, $\sigma = 1$, $G = \{e\}$, and $f(z) = \exp(|z|^2/2)$ (invariant under every finite phase group). Since $T = |z|^2 \sim \mathrm{Exp}(1)$,
+\[
+\mathbb{E}[f] = \int_0^\infty e^{-t/2}\,dt = 2, \qquad \mathbb{E}[f^2] = \int_0^\infty 1\,dt = \infty.
+\]
+Here $\hat{\theta}_G = f$ and $d_{\mathrm{eff}} = 1$, so no finite $C(f, 0)$ satisfies~(ii). For every finite $L \ge 1$, $\hat{\theta}_{G,L} \ge f(x_1)/L$ still has infinite variance, refuting~(iii) and the variance law in~(iv). The same divergence occurs on the $6$-vertex $3$-sunlet graph for any deterministic $s \in \mathbb{C}^6$ using the $\Aut(\mathcal{G})$-invariant statistic $f(x) = \exp(\|x\|^2/2)$ (completing the square gives finite mean, while in $\mathbb{E}[f^2]$ the Gaussian quadratic decay cancels, leaving $\int_{\mathbb{C}^6} c\exp(2\operatorname{Re} x^* s)\,dx = \infty$). Without integrability, $f(z) = \exp(|z|^2)$ lacks an expectation, refuting~(i).
+\item \emph{Omitted $\sigma$-dependence of $C(f, s)$.} For the polynomial outer product $f(z) = |z|^2$ ($M = 1, s = 0, G = \{e\}, d_{\mathrm{eff}} = 1$), $\Var(f) = \sigma^4$ is unbounded as $\sigma$ varies, refuting any $\sigma$-independent constant $C(f, s)$.
+\item \emph{Nonlinearity of the output action $\tilde{\pi}$.} Let $G = \{\pm 1\}$ act by negation on $\mathbb{C}$ ($s = 0, \sigma = 1$), and set $f(z) = h(\operatorname{Re} z)$ where $h(t) = t + \max(t, 0)$ is a bijection $\mathbb{R} \to \mathbb{R}$. Under the nonlinear involution $\tilde{\pi}_{-1}(y) := h(-h^{-1}(y))$, $f$ is equivariant with fixed subspace $\{0\}$, yet $\hat{\theta}_G(z) = |\operatorname{Re} z|/2$ has strictly positive mean, refuting~(i).
+\item \emph{Structural ill-posedness of $d_{\mathrm{eff}}(G, f)$.} Definition~\texttt{def:deff} specifies $d_{\mathrm{eff}} = M^2 / \dim_{\mathbb{C}} \mathcal{C}(\pi)$ only for $f(x) = xx^*$ and states that the distinct orbit-value count upper-bounds $d_{\mathrm{eff}}$. No general formula is given; moreover, defining $d_{\mathrm{eff}}$ as the variance ratio $\Var(Y)/\Var(PY)$ violates the orbit-count bound for $f(z) = z$ under $\mathbb{Z}_2$ (orbit size $\le 2$, while $PY \equiv 0$).
+\end{enumerate}
+
+\subsection{Positive Bounds under Regularity}
+
+\begin{proposition}[Linear unitary actions and fixed-$\sigma$ outer-product bound]\label{prop:gaat-pos}
+Suppose $\tilde{\pi}$ is a unitary representation on a finite-dimensional inner-product space $\mathcal{V}$, so $P := |G|^{-1}\sum_{g \in G} \tilde{\pi}_g$ is the orthogonal projector onto $\mathcal{V}^G$ and $\hat{\theta}_G = P f(x)$. Then~\textup{(i)} holds for integrable $f$; for square-integrable $Y = f(x)$ with covariance operator $\Sigma_Y$, $\Var(\hat{\theta}_G) = \Tr(P\Sigma_Y P^*) \le \Tr(\Sigma_Y)$, and $\Var(\hat{\theta}_{G,L}) = \Var(\hat{\theta}_G)/L$ for $L$ i.i.d.\ snapshots.
+
+Moreover, for the outer product $f(x) = xx^*$ in the Frobenius norm, with $D := \dim_{\mathbb{C}}\mathcal{C}(\pi)$ and $d_{\mathrm{eff}} := M^2/D$,
+\begin{equation}\label{eq:gaat-cov}
+\Var(F_G(x)) \;\le\; D(\sigma^4 + 2\sigma^2\|s\|^2) \;=\; \frac{M^2(\sigma^4 + 2\sigma^2\|s\|^2)}{d_{\mathrm{eff}}},
+\end{equation}
+with equality in the first inequality when $s = 0$.
+\end{proposition}
+
+\begin{proof}
+Linearity of expectation gives $\mathbb{E}[\hat{\theta}_G] = P\,\mathbb{E}[f(x)]$; independence eliminates cross terms in $\hat{\theta}_{G,L}$, giving exact $1/L$ variance scaling. For $f(x) = xx^*$, twirling $T_G$ is the Frobenius orthogonal projector onto the adjoint-closed commutant $\mathcal{C}(\pi)$, which admits a Frobenius-orthonormal basis $\{B_1, \dots, B_D\}$ of Hermitian matrices. For any Hermitian $B$, diagonalizing $B$ and using rotational invariance of $n \sim \mathcal{CN}(0, \sigma^2 I_M)$ reduces $x^* B x$ to a sum of independent terms $\lambda_k |w_k|^2$ with $w_k \sim \mathcal{CN}(m_k, \sigma^2)$. Expanding $|w_k|^2$ gives $\Var(|w_k|^2) = \sigma^4 + 2\sigma^2 |m_k|^2$, whence
+\[
+\Var(x^* B x) = \sigma^4 \Tr(B^2) + 2\sigma^2 \|Bs\|^2.
+\]
+Because $\|B_j\|_F = 1$ implies $\|B_j\|_{\op} \le 1$, summing over $j = 1, \dots, D$ yields $\Var(F_G(x)) = \sum_{j=1}^D (\sigma^4 + 2\sigma^2\|B_j s\|^2) \le D(\sigma^4 + 2\sigma^2\|s\|^2)$, with equality when $s = 0$.
+\end{proof}
+
+\section{Reproducible Numerical Verification}
+
+The script \texttt{solutions/group\_spectral\_est/explore.py} verifies all three refutations in NumPy. (Note that \texttt{explore.py} defines the cyclic shift via \texttt{permutation([1,2,3,0])}, acting as $e_j \mapsto e_{j-1}$, i.e.\ $P^{-1}$ relative to $P e_j = e_{P(j)}$; both generate the identical group $G = \langle(1\,2\,3\,4)\rangle$, swapping $w_\pm$ while leaving every score, residual, and covariance unchanged.) Table~\ref{tab:gse} summarizes the checks; all assertions pass.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Conjecture & Check in \texttt{explore.py} & Observed outcome \\
+\midrule
+\texttt{conj:blind} ($\mathbb{Z}_4, V_4$) & Exact + 256 draws ($\sigma = 10^{-3}$) & $\psi = 4/5 < 9/10$; 256/256 chose rival \\
+\texttt{conj:blind} ($C_4$, $G, K$) & Exact $y_0$, twirl + 2{,}048 draws & $\psi(y_0) = 5/11 < 9/11$; 765/2{,}048 rival \\
+\texttt{conj:nadh} ($3$-sunlet) & All $720$ perms, spec., 128 draws & $|\Aut|=6$, mean $S_3$ score $0.524225 < 1$ \\
+\texttt{conj:gaat} & Trunc.\ $\mathbb{E}[f^2]$ ($T \le 64$), $\sigma^4$, $L=2$ & $\mathbb{E}[f^2]$ diverges; scaling \& halving exact \\
+\bottomrule
+\end{tabular}
+\caption{Summary of numerical checks in \texttt{solutions/group\_spectral\_est/explore.py}.}\label{tab:gse}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Thornton2026}
+M.~A.~Thornton.
+\emph{Algebraic Diversity: Group-Theoretic Spectral Estimation from Single Observations}.
+Preprint \href{https://arxiv.org/abs/2604.03634}{arXiv:2604.03634} (local v17 draft), June 2026.
+
+\end{thebibliography}
+
+\end{document}

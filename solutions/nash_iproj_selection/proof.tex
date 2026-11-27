@@ -1,0 +1,255 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\KL}{KL}
+\DeclareMathOperator{\logit}{logit}
+
+\newcommand{\NE}{\mathcal{N}}
+
+\title{\bfseries A $2\times 2$ Counterexample to Moving-Reference I-Projection Selection}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: L.~Leal, \emph{Which Nash Equilibrium? Solver-Dependent Selection on Zero-Sum Nash Polytopes},\\
+\href{https://arxiv.org/abs/2606.28308}{arXiv:2606.28308} (June 2026), Section~7, Conjecture~1 (\texttt{conj:iproj})\\[0.35em]
+Companion verification script: \texttt{solutions/nash\_iproj\_selection/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~1 (\texttt{conj:iproj}) of Leal (\href{https://arxiv.org/abs/2606.28308}{arXiv:2606.28308}, June 2026), including its uniform-reference / maximum-entropy specialization.
+On the $2\times 2$ zero-sum game $A = \bigl(\begin{smallmatrix} 0 & 2 \\ 0 & -1 \end{smallmatrix}\bigr)$, the Nash polytope is $\NE(A) = [1/3, 1] \times \{0\}$ and the information projection of any interior reference $(p_0, q_0)$ is $(\max\{1/3, p_0\}, 0)$ (so uniform initialization projects to $\sigma^{\mathrm{ME}} = (1/2, 0)$).
+For every interior start with $p_0 \in (1/3, 1)$, $q_0 \in (0, 1)$, we prove convergence to a Nash equilibrium $(p_\infty, 0)$ with \emph{strict discrepancy} $p_\infty > p_0$ under all four moving-reference regimes: (i)~exact anchored QRE resets at every fixed temperature $\lambda > 0$ (where $p_\infty$ also depends on $\lambda$); (ii)~simultaneous discrete MMD (\texttt{eq:mmd}) with periodic resets for every $\eta > 0$, $\lambda > 0$, and $m \ge 1$; (iii)~the small-step continuous flow with periodic resets every $T > 0$; and (iv)~the continuously reset flow ($\lambda = 0$), where an exact first integral gives $p_\infty(1 - p_\infty)^2 = 1/64$ ($p_\infty \approx 0.8656496057$) from uniform start.
+Finally, a tangent-orthogonality invariance criterion explains why Leal's $180$-game random ensemble (which lacks strictly dominated / unused columns) never observed the discrepancy.
+\end{abstract}
+
+\section{Model, Game, and Exact I-Projection}
+
+Following Section~2 of Leal~\cite{Leal2026} (\texttt{eq:me}, \texttt{eq:iproj}, \texttt{eq:mmd}), given a two-player zero-sum game with Nash polytope $\NE(G)$ and interior initial reference $\rho_0$, the information projection is $\Pi_{\NE}(\rho_0) := \arg\min_{\sigma \in \NE(G)} \KL(\sigma \| \rho_0)$, specializing under uniform $\rho_0$ to the maximum-entropy equilibrium $\sigma^{\mathrm{ME}}$.
+(Note that~\cite{Leal2026} averages entropy and KL across information sets by $1/|\mathcal{I}| = 1/2$, whereas the unaveraged sum $D(\sigma \| \rho_0) := D(x \| x_0) + D(y \| y_0)$ has the exact same minimizers.)
+Conjecture~1 (\texttt{conj:iproj}) of~\cite{Leal2026} asserts that R-NaD (equivalently, MMD with a moving reference~\cite{Perolat2021,Perolat2022,Sokota2023}) initialized at $\rho_0$ converges to $\Pi_{\NE}(\rho_0)$.
+
+Consider the $2\times 2$ zero-sum payoff matrix (row maximizes, column minimizes)
+\[
+A := \begin{pmatrix} 0 & 2 \\ 0 & -1 \end{pmatrix}.
+\]
+Write $x = (p, 1 - p)^\top$ and $y = (1 - q, q)^\top$, so $p$ is the probability of row~$1$ and $q$ is the probability of column~$2$. The expected row payoff is $x^\top A y = q(3p - 1)$.
+Column~$1$ guarantees payoff~$0$, and row strategy $p = 1/3$ also guarantees~$0$, so the game value is~$0$ and the row maximin set is $p \in [1/3, 1]$. For any $q > 0$, pure row~$1$ earns $2q > 0$, so the unique column minimax strategy is $q = 0$. Therefore,
+\[
+\NE(A) = [1/3, 1] \times \{0\}, \qquad
+\Pi_{\NE}(p_0, q_0) = \bigl(\max\{1/3, p_0\},\, 0\bigr)
+\]
+for every $(p_0, q_0) \in (0, 1)^2$: on $\NE(A)$ the column KL divergence $-\log(1 - q_0)$ is constant, while the Bernoulli row KL divergence is strictly convex with unique unconstrained minimum at $p_0$. In particular, $\Pi_{\NE}(1/2, 1/2) = \sigma^{\mathrm{ME}} = (1/2, 0)$.
+
+Throughout Sections~2--4, fix $(p_0, q_0)$ with $p_0 \in (1/3, 1)$ and $q_0 \in (0, 1)$, initialize both policy and reference at $(p_0, q_0)$, and define
+\[
+g(z) := \frac{1}{1 + e^{-z}}, \qquad
+u := \log\frac{p}{1 - p}, \qquad
+v := \log\frac{q}{1 - q}, \qquad
+d := 3p_0 - 1 > 0.
+\]
+The payoff differences are $(Ay)_1 - (Ay)_2 = 3q = 3g(v)$ for the row player and $(-A^\top x)_2 - (-A^\top x)_1 = -(3p - 1) = -(3g(u) - 1)$ for the column player.
+
+\section{Exact Anchored QRE Resets}
+
+Fix temperature $\lambda > 0$ and put $h := 1/\lambda > 0$. At a fixed point of the anchored MMD update (\texttt{eq:mmd} of~\cite{Leal2026})---equivalently, the unique saddle point of $x^\top A y - \lambda D(x \| x_n) + \lambda D(y \| y_n)$---taking log-odds cancels the normalization and learning rate, so resetting the anchor to that fixed point yields
+\begin{equation}\label{eq:qre-reset}
+u_{n+1} = u_n + 3h\,g(v_{n+1}), \qquad
+v_{n+1} = v_n - h\bigl(3g(u_{n+1}) - 1\bigr).
+\end{equation}
+
+\begin{theorem}[Exact anchored QRE resets]\label{thm:qre}
+For every $h = 1/\lambda > 0$ and every interior start with $p_0 \in (1/3, 1)$, $q_0 \in (0, 1)$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Each update $(u_{n+1}, v_{n+1})$ in~\eqref{eq:qre-reset} exists uniquely.
+\item The iterates converge to a Nash equilibrium $(g(u_\infty), 0) \in \NE(A)$ satisfying
+\[
+0 < u_1 - u_0 \le u_\infty - u_0 \le \frac{3h e^{v_0}}{e^{hd} - 1} < \infty,
+\]
+so $g(u_\infty) > p_0 = \Pi_{\NE}(p_0, q_0)_1$.
+\item From uniform initialization $(p_0, q_0) = (1/2, 1/2)$, the selected equilibrium depends strictly on temperature: $u_\infty(h = 1) \ge 3/(1 + e^2) > 0.35 > 0.017 > 48/(e^8 - 1) \ge u_\infty(h = 16)$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Substituting the first equation of~\eqref{eq:qre-reset} into the second gives $\Phi(b) := b - v_n + h\{3g(u_n + 3h g(b)) - 1\} = 0$ for $b = v_{n+1}$. Because $g$ is strictly increasing and bounded, $\Phi'(b) \ge 1$ everywhere and $\Phi(b) \to \pm\infty$ as $b \to \pm\infty$, so $(u_{n+1}, v_{n+1})$ exists uniquely.
+
+Since $g(v_{n+1}) > 0$, induction gives $u_{n+1} > u_n \ge u_0$ for all $n \ge 0$, hence $3g(u_{n+1}) - 1 \ge 3p_0 - 1 = d > 0$ and $v_{n+1} \le v_n - hd$, so $v_k \le v_0 - khd$ for all $k \ge 1$. Using $g(b) < e^b$,
+\[
+0 < u_1 - u_0 \le u_\infty - u_0 = 3h\sum_{k=1}^\infty g(v_k) \le 3h\sum_{k=1}^\infty e^{v_0 - khd} = \frac{3h e^{v_0}}{e^{hd} - 1} < \infty.
+\]
+Hence $u_n \uparrow u_\infty \in (u_0, \infty)$ and $v_n \to -\infty$, so $(g(u_n), g(v_n)) \to (g(u_\infty), 0) \in \NE(A)$ with $g(u_\infty) > p_0$.
+
+From uniform start ($u_0 = v_0 = 0$, $d = 1/2$): at $h = 1$, $v_1 = -(3g(u_1) - 1) \ge -2$, so $u_\infty \ge u_1 = 3g(v_1) \ge 3/(1 + e^2) > 0.35$; at $h = 16$, the upper bound yields $u_\infty \le 48/(e^8 - 1) < 0.017$.
+\end{proof}
+
+\begin{remark}[Fixed-anchor vanishing regularization vs.\ moving-reference dynamics]
+A \emph{single} fixed-anchor solve from $\rho_0$ obeys $0 < u_1 - u_0 \le 3h e^{v_0 - hd} \to 0$ and $q_1 \to 0$ as $\lambda \downarrow 0$ ($h \to \infty$), recovering $\Pi_{\NE}(\rho_0)$ in agreement with classical vanishing-regularization theory~\cite{McKelveyPalfrey1995,Turocy2005,Cuturi2013,Weed2018} (and likewise $u_\infty(h) \to u_0$ as $h \to \infty$ on this game). Theorem~\ref{thm:qre} (and Theorems~\ref{thm:discrete}--\ref{thm:cont-reset} below) refutes \texttt{conj:iproj} at every \emph{fixed} $\lambda > 0$, which is the moving-reference R-NaD / MMD algorithm defined in~\cite{Leal2026}.
+\end{remark}
+
+\section{Discrete MMD With Periodic Resets}
+
+Fix learning rate $\eta > 0$, temperature $\lambda > 0$, $c := (1 + \eta\lambda)^{-1} \in (0, 1)$, and reset period $m \ge 1$. Within block~$n$, hold anchor logits $(U_n, V_n)$ and start at $(u_0, v_0) = (U_n, V_n)$. Each simultaneous update of~\texttt{eq:mmd} in~\cite{Leal2026} reads
+\[
+u_{i+1} - U_n = c\bigl(u_i - U_n + 3\eta g(v_i)\bigr), \qquad
+v_{i+1} - V_n = c\bigl(v_i - V_n - \eta(3g(u_i) - 1)\bigr),
+\]
+followed by the reset $(U_{n+1}, V_{n+1}) := (u_m, v_m)$.
+
+\begin{theorem}[Simultaneous discrete MMD with periodic resets]\label{thm:discrete}
+For every $\eta > 0$, $\lambda > 0$, $m \ge 1$, and interior initialization with $p_0 \in (1/3, 1)$, $q_0 \in (0, 1)$, the full last-iterate sequence converges to $(g(U_\infty), 0) \in \NE(A)$ with $g(U_\infty) > p_0$.
+\end{theorem}
+
+\begin{proof}
+Unrolling the linear recurrence within block~$n$ gives, for $1 \le j \le m$,
+\[
+u_j - U_n = 3c\eta\sum_{i=0}^{j-1} c^{j-1-i} g(v_i), \qquad
+v_j - V_n = -c\eta\sum_{i=0}^{j-1} c^{j-1-i}\bigl(3g(u_i) - 1\bigr).
+\]
+Since $1 - c = c\eta\lambda$, the weights sum to $s_j := c\eta\sum_{i=0}^{j-1} c^i = (1 - c^j)/\lambda > 0$.
+Because $g(v_i) > 0$, we have $u_j > U_n$ for all $1 \le j \le m$, hence $U_{n+1} > U_n \ge U_0 = \logit(p_0)$ by induction.
+Thus $3g(u_i) - 1 \ge d$ for every $0 \le i < m$ in every block, so $v_j \le V_n - d s_j \le V_n$ and $u_j - U_n \le 3 s_j e^{V_n}$.
+With $s := s_m > 0$, the block endpoints satisfy
+\[
+V_n \le V_0 - n d s, \qquad 0 < U_{n+1} - U_n \le 3s e^{V_0 - n d s}.
+\]
+Geometric summation yields $U_n \uparrow U_\infty \in (U_0, \infty)$ and $V_n \to -\infty$. The within-block bounds $v_j \le V_n$ and $0 \le u_j - U_n \le 3s e^{V_n}$ give $v_j \to -\infty$ and $u_j - U_n \to 0$ uniformly in $0 \le j \le m$ as $n \to \infty$, proving full last-iterate convergence to $(g(U_\infty), 0)$ with $g(U_\infty) > p_0$.
+\end{proof}
+
+\section{Continuous-Time Flows}
+
+With physical time $t = k\eta$, the $\eta \downarrow 0$ limit for a fixed anchor $(U, V)$ is the globally Lipschitz ODE
+\begin{equation}\label{eq:flow}
+\dot u = 3g(v) - \lambda(u - U), \qquad
+\dot v = -(3g(u) - 1) - \lambda(v - V).
+\end{equation}
+
+\begin{theorem}[Periodic-reset flow]\label{thm:periodic-flow}
+For every $\lambda > 0$, reset interval $T > 0$, and interior start with $p_0 \in (1/3, 1)$, $q_0 \in (0, 1)$, the trajectory of~\eqref{eq:flow} with resets $(U_{n+1}, V_{n+1}) = (u(T), v(T))$ converges to $(g(U_\infty), 0) \in \NE(A)$ with $g(U_\infty) > p_0$.
+\end{theorem}
+
+\begin{proof}
+Variation of constants within block~$n$ from $(U_n, V_n)$ gives
+\[
+u(t) - U_n = 3\int_0^t e^{-\lambda(t - r)} g(v(r))\,dr, \qquad
+v(t) - V_n = -\int_0^t e^{-\lambda(t - r)}\bigl(3g(u(r)) - 1\bigr)\,dr.
+\]
+Let $s(t) := (1 - e^{-\lambda t})/\lambda$. Then $u(t) > U_n$ for all $t > 0$, so $U_{n+1} > U_n \ge U_0$ by induction, $3g(u(r)) - 1 \ge d$ in every block, $v(t) \le V_n - d s(t) \le V_n$, and $0 \le u(t) - U_n \le 3 s(t) e^{V_n}$. Setting $s := s(T) > 0$, the exact same geometric bounds as in Theorem~\ref{thm:discrete} give convergence of the full trajectory to $(g(U_\infty), 0)$ with $g(U_\infty) > p_0$.
+\end{proof}
+
+\begin{theorem}[Continuously reset flow]\label{thm:cont-reset}
+Under continuous resets $(U, V) = (u, v)$ (i.e., $\lambda = 0$ in~\eqref{eq:flow}: $\dot u = 3g(v)$, $\dot v = 1 - 3g(u)$), every interior start with $p_0 \in (1/3, 1)$, $q_0 \in (0, 1)$ converges to $(g(u_\infty), 0) \in \NE(A)$ with $g(u_\infty) > p_0$. From uniform initialization $(0, 0)$, $p_\infty := g(u_\infty)$ is the unique root in $(1/2, 1)$ of
+\[
+p(1 - p)^2 = \frac{1}{64} \qquad (p_\infty \approx 0.8656496057).
+\]
+\end{theorem}
+
+\begin{proof}
+Since $\dot u = 3g(v) > 0$, we have $u(t) > u_0$, hence $\dot v \le -d$, $v(t) \le v_0 - dt$, and $\dot u \le 3e^{v_0 - dt} \in L^1([0, \infty))$, giving $u(t) \uparrow u_\infty \in (u_0, \infty)$ and $v(t) \to -\infty$.
+Define $F(u) := -u + 3\log(1 + e^u)$ and $J(v) := \log(1 + e^v)$. Since $F' = 3g - 1$ and $J' = g$,
+\[
+\frac{d}{dt}\bigl(F(u) + 3J(v)\bigr) = (3g(u) - 1)(3g(v)) + 3g(v)(1 - 3g(u)) = 0.
+\]
+At $(0, 0)$, $F(0) + 3J(0) = 6\log 2$, while $J(v(t)) \to 0$ as $t \to \infty$, so $e^{F(u_\infty)} = 64$. Substituting $e^u = p/(1 - p)$ yields $e^{F(u)} = (p(1 - p)^2)^{-1}$, i.e., $p_\infty(1 - p_\infty)^2 = 1/64$, which has a unique root on $(1/2, 1)$ because $p(1 - p)^2$ is strictly decreasing on $(1/3, 1)$.
+\end{proof}
+
+\section{Structural Mechanism and Numerical Verification}
+
+\begin{proposition}[Tangent orthogonality and dominated columns]\label{prop:tangent}
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Let $z \in \mathbb{R}^m$ satisfy $\sum_i z_i = 0$. If $z^\top A = 0$, then $z^\top \log(x_t / x_0)$ is invariant along moving-reference discrete MMD for all $\eta, \lambda, m$.
+\item In the $3\times 3$ and $3\times 4$ games with columns $w = (2,-1,0)^\top$, $-w$, $b = (2,1,1)^\top$ (plus $a = (4,3,2)^\top$ in $3\times 4$), the Nash polytope is $\NE(A) = \{(t, 2t, 1 - 3t) : 0 \le t \le 1/3\} \times \{(1/2, 1/2, 0[, 0])\}$ and the I-projection of a positive row reference $r$ has $t = R/(1 + 3R)$ with $R = (r_1 r_2^2/4)^{1/3}/r_3$. The tangent $z = (1, 2, -3)^\top$ satisfies $z^\top w = 0$ (exact invariance on the $3\times 2$ core), whereas $z^\top b = 1 > 0$ and $z^\top a = 4 > 0$, causing transient play on the strictly dominated column(s) to permanently shift $z^\top \log(x_t / r)$ across resets.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+In one discrete MMD step with anchor $X_n$ and normalization constant $\gamma$, $\log x_{i+1} - X_n = c(\log x_i - X_n + \eta A y_i) + \gamma\mathbf{1}$. Taking the inner product with $z$ eliminates $\gamma\mathbf{1}$, giving $z^\top(\log x_{i+1} - X_n) = c\,z^\top(\log x_i - X_n) + c\eta(z^\top A y_i)$, which is constant whenever $z^\top A = 0$.
+In the $3\times 3$ and $3\times 4$ games, $(1/2, 1/2, 0[, 0])$ guarantees payoff~$0$ and strictly dominates $b$ and $a$; row optimality forces $x^\top w = 0$, i.e., $x = (t, 2t, 1 - 3t)$, and first-order optimality of $D(x \| r)$ yields $t = R/(1 + 3R)$. Because $z^\top b = 1$ and $z^\top a = 4$ are strictly positive, any positive weight on $b$ or $a$ strictly increases $z^\top \log x$, and each anchor reset preserves the shift.
+\end{proof}
+
+Proposition~\ref{prop:tangent} explains why Leal's $180$-game random ensemble in~\cite{Leal2026} (whose games contained no unused / dominated columns) did not expose the discrepancy.
+
+The script \texttt{solutions/nash\_iproj\_selection/explore.py} verifies all $32$ deterministic cases across three initializations, four exact-solve temperatures, three discrete MMD settings, two periodic-flow settings, the algebraic continuously reset limit, and the $3\times 3$ and $3\times 4$ tilted games; all $32$ pass with $\textsc{NashConv} < 10^{-10}$. Table~\ref{tab:uniform} records selected uniform-start results on the $2\times 2$ game; on the $3\times 3$ and $3\times 4$ games from uniform start, $\Pi_{\NE}$ has $t = 0.2179883530$, while discrete MMD ($\eta = 0.12, \lambda = 1, m = 25$) reaches $0.2232759106$ and $0.2270167967$.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Regime & Parameters & Deployed $p_\infty$ & Projected $p$ \\
+\midrule
+Exact anchored QRE reset & $\lambda = 1$ ($h = 1$) & $0.7632330195$ & $0.5000000000$ \\
+Exact anchored QRE reset & $\lambda = 1/16$ ($h = 16$) & $0.5034167483$ & $0.5000000000$ \\
+Discrete MMD, periodic reset & $\eta = 0.15,\; \lambda = 1,\; m = 7$ & $0.8534454367$ & $0.5000000000$ \\
+Continuous flow, periodic reset & $\lambda = 1,\; T = 1$ & $0.8428003635$ & $0.5000000000$ \\
+Continuously reset flow & $\lambda = 0$ (algebraic root) & $0.8656496057$ & $0.5000000000$ \\
+\bottomrule
+\end{tabular}
+\caption{Selected uniform-start convergence values on $A = \bigl(\begin{smallmatrix} 0 & 2 \\ 0 & -1 \end{smallmatrix}\bigr)$ vs.\ $\sigma^{\mathrm{ME}} = (1/2, 0)$.}\label{tab:uniform}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Cuturi2013}
+M.~Cuturi.
+Sinkhorn distances: Lightspeed computation of optimal transport.
+In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2013.
+
+\bibitem{Leal2026}
+L.~Leal.
+\emph{Which Nash Equilibrium? Solver-Dependent Selection on Zero-Sum Nash Polytopes}.
+Preprint \href{https://arxiv.org/abs/2606.28308}{arXiv:2606.28308}, June 2026.
+
+\bibitem{McKelveyPalfrey1995}
+R.~D.~McKelvey and T.~R.~Palfrey.
+Quantal response equilibria for normal form games.
+\emph{Games and Economic Behavior}, 10(1):6--38, 1995.
+
+\bibitem{Perolat2021}
+J.~P\'erolat et~al.
+From Poincar\'e recurrence to convergence in imperfect information games: Finding equilibrium via regularization.
+In \emph{ICML}, 2021.
+
+\bibitem{Perolat2022}
+J.~P\'erolat et~al.
+Mastering the game of Stratego with model-free multiagent reinforcement learning.
+\emph{Science}, 378(6623):990--996, 2022.
+
+\bibitem{Sokota2023}
+S.~Sokota, R.~D'Orazio, J.~Z.~Kolter, N.~Loizou, M.~Lanctot, I.~Mitliagkas, N.~Brown, and C.~Kroer.
+A unified approach to reinforcement learning, quantal response equilibria, and two-player zero-sum games.
+In \emph{ICLR}, 2023.
+
+\bibitem{Turocy2005}
+T.~L.~Turocy.
+A dynamic homotopy interpretation of the logistic quantal response equilibrium correspondence.
+\emph{Games and Economic Behavior}, 51(2):243--263, 2005.
+
+\bibitem{Weed2018}
+J.~Weed.
+An explicit analysis of the entropic penalty in linear programming.
+In \emph{COLT}, 2018.
+
+\end{thebibliography}
+
+\end{document}

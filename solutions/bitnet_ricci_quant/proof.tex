@@ -1,0 +1,252 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\Hess}{Hess}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\pa}{pa}
+\DeclareMathOperator{\divop}{div}
+
+\title{\bfseries Disproof of Fisher-Volume Scalar Curvature Quantization for Bitnets}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target papers: C.~C.~Rodr\'iguez, \emph{The Volume of Bitnets}, AIP Conf.\ Proc.\ \textbf{735}, 555--564 (2004);\\
+and \emph{Quantization of Ricci Curvature in Information Geometry},\\
+\href{https://arxiv.org/abs/2603.10054v1}{arXiv:2603.10054v1} (March 2026), Conjecture~\texttt{conj:main}\\[0.35em]
+Companion verification script: \texttt{solutions/bitnet\_ricci\_quant/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We disprove the conjecture of Rodr\'iguez (2004; restated as Conjecture~1.1, \texttt{conj:main}, in \href{https://arxiv.org/abs/2603.10054v1}{arXiv:2603.10054v1}, March~2026) that the normalized Fisher-volume average scalar curvature $\langle R \rangle$ of every binary Bayesian network (bitnet) lies in $\tfrac{1}{2}\mathbb{Z}^+$.
+Using a multi-warped product scalar curvature identity, we show that the five-node tree bitnet $A \to B$, $A \to C$, $B \to D$, $B \to E$ ($d = 9$ parameters) satisfies $\langle R \rangle = 14/11 \notin \tfrac{1}{2}\mathbb{Z}$, and a six-node tree ($d = 11$) yields $\langle R \rangle = 25/14 \notin \tfrac{1}{2}\mathbb{Z}$ via purely polynomial Dirichlet integration.
+We also construct a seven-node bitnet ($d = 16$) containing a single chordless four-cycle with $\langle R \rangle = 24/5$.
+Moreover, we prove an exact formula $\langle R \rangle = n m 2^{n-2} \in \tfrac{1}{2}\mathbb{Z}^+$ for $n$ independent roots and $m$ common sinks, which refutes both the tree quantization theorem and the proposed double-collider ($D_4$) disproof ($\langle R \rangle_{D_4} = 4$, not $36/5$) of \href{https://arxiv.org/abs/2603.10054v1}{arXiv:2603.10054v1}, as well as its five-parent collapsing-star sign-inversion claim ($\langle R \rangle(\tilde{C}_6) = 40$, not $-272$) and its three-node chain/fork formula ($\langle R \rangle = 1$).
+Finally, we establish an exact, absolutely convergent rational series for the four-node directed diamond.
+\end{abstract}
+
+\section{Model, Fisher Metric, and Multi-Warped Product Identity}
+
+A \emph{bitnet} is a finite directed acyclic graph (DAG) of observed binary variables whose parameter domain is the open unit cube with one free conditional probability coordinate $t = P(X_i = 1 \mid X_{\pa(i)} = s) \in (0, 1)$ for each node $i$ and parent configuration $s$ (including one marginal parameter for each root). Writing $q = P(X_{\pa(i)} = s)$, the log-likelihood derivative with respect to $t$ is the configuration indicator times $(X_i - t)/[t(1-t)]$, which has conditional expectation zero given all earlier nodes in a topological ordering. Scores at distinct nodes or disjoint parent configurations are therefore orthogonal, so the one-observation Fisher information metric $g$ is diagonal with entries $q/[t(1-t)]$.
+
+The angular change of variables $z = 2\arcsin\sqrt{t} \in (0, \pi)$ converts $dt^2/[t(1-t)] = dz^2$. Hence each sink CPT parameter contributes a flat interval $(0, \pi)$ with squared line element $q\,dz^2$. We study the normalized Jeffreys-volume average
+\[
+\langle R \rangle = \frac{\int R\,dV_g}{\int dV_g}, \qquad dV_g = \sqrt{\det g}\,d\theta,
+\]
+under the curvature convention of~\cite{Rodriguez2004,Rodriguez2026} assigning scalar curvature $R(\tilde{K}_n) = d(d-1)/4$ to a radius-$2$ $d$-sphere. Integrating out a sink interval contributes a factor $\pi\sqrt{q}$ to the marginal base volume density.
+
+\begin{quote}
+\textbf{Conjecture~\texttt{conj:main} (Rodr\'iguez~\cite{Rodriguez2004,Rodriguez2026}).}
+\emph{For any bitnet with Fisher information metric, $\langle R \rangle \in \tfrac{1}{2}\mathbb{Z}^+$.}
+\end{quote}
+
+\begin{lemma}[Multi-warped product scalar curvature]\label{lem:warped}
+Let $(B, g_0)$ be a Riemannian manifold with scalar curvature $R_0$, and equip $B \times \prod_j (0, \pi)$ with the metric $g = g_0 + \sum_j f_j^2\,dz_j^2$, where each $f_j > 0$ is smooth on $B$. Set $F := \prod_j f_j$, $\Delta := \divop_{g_0}\nabla$, and $\Gamma(h, k) := \langle \nabla h, \nabla k \rangle_{g_0}$. Then the scalar curvature of $g$ is
+\begin{equation}\label{eq:warped}
+R = R_0 - 2\Delta\log F - \Gamma(\log F, \log F) - \sum_j \Gamma(\log f_j, \log f_j),
+\end{equation}
+and the volume density relative to $dV_{g_0}\prod_j dz_j$ is $F$.
+\end{lemma}
+
+\begin{proof}
+Let $X$ be a unit horizontal vector field and $e_j := f_j^{-1}\partial_{z_j}$ the orthonormal vertical frame. Metric compatibility and the brackets $[X, e_j] = -X(\log f_j)e_j$, $[e_i, e_j] = 0$ yield $\nabla_X e_j = 0$, $\nabla_{e_j} X = X(\log f_j)e_j$, $\nabla_{e_j} e_j = -\nabla\log f_j$, and $\nabla_{e_i} e_j = 0$ ($i \neq j$), while the horizontal Levi-Civita connection agrees with that of $g_0$. Direct evaluation gives mixed sectional curvatures $-\Hess(f_j)(X, X)/f_j$ and vertical sectional curvatures $-\Gamma(f_i, f_j)/(f_i f_j)$ ($i \neq j$). Using $\Delta f_j / f_j = \Delta\log f_j + \Gamma(\log f_j, \log f_j)$ and summing twice over all orthonormal coordinate $2$-planes yields
+\[
+R = R_0 - 2\sum_j \frac{\Delta f_j}{f_j} - \sum_{i \neq j} \Gamma(\log f_i, \log f_j)
+  = R_0 - 2\Delta\log F - \Gamma(\log F, \log F) - \sum_j \Gamma(\log f_j, \log f_j). \qedhere
+\]
+\end{proof}
+
+\section{Tree Counterexamples via Two Adjacent Internal Nodes}
+
+Consider the single-edge base bitnet $A \to B$, which parametrizes every strictly positive four-cell joint law $p_{ij} = P(A=i, B=j)$ ($\sum p_{ij} = 1$). Set
+\[
+a := P(A=1), \quad b := P(B=1), \quad u := a(1-a), \quad v := b(1-b), \quad w := p_{11} - ab.
+\]
+Under $p_{ij} \mapsto x_{ij} = 2\sqrt{p_{ij}}$, the Fisher metric $\sum dp_{ij}^2 / p_{ij}$ is isometric to the positive orthant of the radius-$2$ three-sphere $S^3(2)$, which has constant scalar curvature $R_0 = 3/2$. In three free cell coordinates the Fisher metric has determinant $1/\prod_{i,j} p_{ij}$, so the normalized Fisher volume law $E_0$ is $\mathrm{Dirichlet}(1/2, 1/2, 1/2, 1/2)$.
+
+\begin{lemma}[Edge base operators and $(k, l)$-leaf curvature]\label{lem:edge}
+On the base model $A \to B$,
+\[
+\Gamma(a, a) = u, \quad \Gamma(b, b) = v, \quad \Gamma(a, b) = w, \qquad \Delta a = 1 - 2a, \quad \Delta b = 1 - 2b.
+\]
+Attaching $k$ single-parent leaves to $A$ and $l$ single-parent leaves to $B$ produces volume weight $F = u^{k/2} v^{l/2}$ and scalar curvature
+\begin{equation}\label{eq:tree-curv}
+R = \frac{3}{2} + C_k(u) + C_l(v) - \frac{kl}{2}\frac{w(1-2a)(1-2b)}{uv},
+\qquad C_k(u) := k^2 + \frac{5k}{2} - \frac{k(k+1)}{4u}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+On $S^3(2)$, each coordinate $x_\alpha = 2\sqrt{p_\alpha}$ satisfies $\Delta x_\alpha = -\frac{3}{4} x_\alpha$ and $\langle \nabla x_\alpha, \nabla x_\beta \rangle = \delta_{\alpha\beta} - \frac{1}{4} x_\alpha x_\beta$. For any event $E$, writing $P(E) = \frac{1}{4}\sum_{\alpha \in E} x_\alpha^2$ gives $\Gamma(P(E_1), P(E_2)) = \Cov(\mathbf{1}_{E_1}, \mathbf{1}_{E_2})$ and
+\[
+\Delta P(E) = \frac{1}{2}\sum_{\alpha \in E}\bigl(x_\alpha \Delta x_\alpha + |\nabla x_\alpha|^2\bigr)
+= \frac{1}{2}\sum_{\alpha \in E}(1 - x_\alpha^2) = \frac{|E|}{2} - 2P(E).
+\]
+Applying this to $a = p_{10} + p_{11}$ and $b = p_{01} + p_{11}$ ($|E| = 2$) establishes the five operator identities.
+
+With $k$ leaves at $A$ and $l$ leaves at $B$, the fiber warps consist of $k$ copies each of $\sqrt{a}, \sqrt{1-a}$ and $l$ copies each of $\sqrt{b}, \sqrt{1-b}$, so $F = u^{k/2} v^{l/2}$. Direct differentiation gives $\Delta\log u = -2$, $\Gamma(\log u, \log u) = (1-2a)^2/u = 1/u - 4$, and
+\[
+\sum_{j \in A\text{-leaves}} \Gamma(\log f_j, \log f_j) = \frac{k}{4}\Bigl(\frac{u}{a^2} + \frac{u}{(1-a)^2}\Bigr) = \frac{k}{4}\Bigl(\frac{1}{u} - 2\Bigr).
+\]
+In~\eqref{eq:warped}, the terms depending solely on $A$ sum to $2k - \frac{k^2}{4}(1/u - 4) - \frac{k}{4}(1/u - 2) = C_k(u)$, and symmetrically $C_l(v)$ for $B$. The unique cross term from $-\Gamma(\log F, \log F)$ is $-\frac{kl}{2}\Gamma(\log u, \log v) = -\frac{kl}{2}\frac{w(1-2a)(1-2b)}{uv}$, yielding~\eqref{eq:tree-curv}.
+\end{proof}
+
+\begin{theorem}[Five-node tree counterexample]\label{thm:five-node}
+Let $\mathcal{T}_5$ be the five-node tree bitnet with edges $A \to B$, $A \to C$, $B \to D$, $B \to E$ (corresponding to $(k, l) = (1, 2)$ and $d = 9$ free CPT parameters). Its normalized Fisher-volume average scalar curvature is
+\[
+\langle R \rangle(\mathcal{T}_5) = \frac{14}{11} \notin \frac{1}{2}\mathbb{Z}.
+\]
+\end{theorem}
+
+\begin{proof}
+Under $E_0 = \mathrm{Dirichlet}(1/2, 1/2, 1/2, 1/2)$, changing variables from $(p_{00}, p_{01}, p_{10}, p_{11})$ to $(a, t_0, t_1)$ with $t_i = P(B=1 \mid A=i)$ introduces Jacobian $u = a(1-a)$, cancelling $u^{-1}$ in $(p_{00}p_{01}p_{10}p_{11})^{-1/2}$. Thus $a \sim \mathrm{Unif}(0, 1)$ and $t_0, t_1 \sim \mathrm{Beta}(1/2, 1/2)$ are independent, with $\mathbb{E}[t_i] = 1/2$ and $\Var(t_i) = 1/8$. Using $b = (1-a)t_0 + a t_1$ and $w = u(t_1 - t_0)$,
+\[
+E_0[v \mid a] = \frac{1 + 2u}{8}, \qquad E_0[w(1 - 2b) \mid a] = \frac{u(1 - 2a)}{4}.
+\]
+For $(k, l) = (1, 2)$, Lemma~\ref{lem:edge} gives $F = \sqrt{u}\,v$ and
+\[
+R = 14 - \frac{1}{2u} - \frac{3}{2v} - \frac{w(1-2a)(1-2b)}{uv}.
+\]
+Let $J_s := \int_0^1 [a(1-a)]^s\,da = \Gamma(s+1)^2/\Gamma(2s+2)$, so $J_{-1/2} = \pi$, $J_{1/2} = \pi/8$, and $J_{3/2} = 3\pi/128$. Because $|w| \le u$ bounds $|Fw(1-2a)(1-2b)/(uv)| \le \sqrt{u}$, all four weighted integrals converge absolutely:
+\begin{align*}
+E_0[F] &= \frac{J_{1/2} + 2J_{3/2}}{8} = \frac{11\pi}{512}, &
+E_0[F/u] &= \frac{J_{-1/2} + 2J_{1/2}}{8} = \frac{5\pi}{32}, \\
+E_0[F/v] &= J_{1/2} = \frac{\pi}{8}, &
+E_0\!\left[\frac{Fw(1-2a)(1-2b)}{uv}\right] &= \frac{J_{1/2} - 4J_{3/2}}{4} = \frac{\pi}{128}.
+\end{align*}
+Substituting these values yields
+\[
+\langle R \rangle(\mathcal{T}_5) = 14 - \frac{\frac{5\pi}{64} + \frac{3\pi}{16} + \frac{\pi}{128}}{11\pi/512}
+= 14 - \frac{140}{11} = \frac{14}{11}. \qedhere
+\]
+\end{proof}
+
+\begin{remark}[Sign convention for $\mathbb{Z}^+$]
+Because $2(14/11) = 28/11 \notin \mathbb{Z}$, Theorem~\ref{thm:five-node} disproves Conjecture~\texttt{conj:main} regardless of whether $0 \in \mathbb{Z}^+$ (note that the one-node bitnet $\tilde{K}_1$ has $\langle R \rangle = 0$).
+\end{remark}
+
+\begin{proposition}[Six-node tree via polynomial Dirichlet moments]\label{prop:six-node}
+For $(k, l) = (2, 2)$ ($d = 11$ parameters), $F = uv$ makes every volume-weighted term of~\eqref{eq:tree-curv} a polynomial in $(p_{ij})$. By the $\mathrm{Dirichlet}(1/2,1/2,1/2,1/2)$ moment identity $E_0[\prod p_\alpha^{n_\alpha}] = \prod (1/2)_{n_\alpha}/(2)_{\sum n_\alpha}$,
+\[
+E_0[uv] = \frac{7}{240}, \qquad E_0[u] = E_0[v] = \frac{1}{6}, \qquad E_0[w(1-2a)(1-2b)] = \frac{1}{120},
+\]
+and therefore $\langle R \rangle = \frac{39}{2} - \frac{3(1/6) + 2(1/120)}{7/240} = \frac{25}{14} \notin \frac{1}{2}\mathbb{Z}$.
+\end{proposition}
+
+\section{Shared-Root Colliders, Refutation of \texorpdfstring{\href{https://arxiv.org/abs/2603.10054v1}{arXiv:2603.10054v1}}{arXiv:2603.10054v1} Claims, and a 1-Loop Counterexample}
+
+\begin{proposition}[Shared-root colliders]\label{prop:shared}
+Consider a bitnet with $n \ge 1$ independent binary roots and $m \ge 1$ sinks, each having all $n$ roots as parents, and put $K := m 2^{n-1}$. In root coordinates $r_1, \dots, r_n \in (0, 1)$ with $U_i := r_i(1-r_i)$,
+\begin{equation}\label{eq:shared}
+R = \sum_{i=1}^n S_K(r_i), \qquad S_K(r) := \frac{K(2K+1)}{2} - \frac{K(K-1)}{4U},
+\end{equation}
+the marginal volume density is proportional to $\prod_{i=1}^n U_i^{(K-1)/2}\,dr_i$, and $\langle R \rangle = \frac{nK}{2} = m n 2^{n-2} \in \frac{1}{2}\mathbb{Z}^+$.
+\end{proposition}
+
+\begin{proof}
+In root angular coordinates, the base is flat ($R_0 = 0$) and separates across the $n$ roots. Each of the $m 2^n$ sink warps is a product of $\sqrt{r_i}$ or $\sqrt{1-r_i}$ across roots, with each root state occurring $K = m 2^{n-1}$ times. Hence $\log F = \frac{K}{2}\sum_{i=1}^n \log U_i$. On one root coordinate, $\Gamma(h, h) = U(h')^2$ and $\Delta h = U h'' + \frac{1}{2}(1-2r)h'$. Inserting into~\eqref{eq:warped} yields
+\[
+S_K(r) = -2\cdot\frac{K}{2}\Bigl(-\frac{1}{2U} - 1\Bigr) - \frac{K^2}{4}\Bigl(\frac{1}{U} - 4\Bigr) - \frac{K}{4}\Bigl(\frac{1}{U} - 2\Bigr)
+= \frac{K(2K+1)}{2} - \frac{K(K-1)}{4U}.
+\]
+Each root's Fisher density supplies $U^{-1/2}\,dr$ while the $2K$ warps supply $U^{K/2}$, yielding marginal density $\propto U^{(K-1)/2}\,dr$. For $K = 1$, $S_1 \equiv 3/2$. For $K > 1$, the Beta integral ratio gives $\mathbb{E}[1/U] = \frac{B((K-1)/2, (K-1)/2)}{B((K+1)/2, (K+1)/2)} = \frac{4K}{K-1}$, so $\mathbb{E}[S_K(r)] = K(2K+1)/2 - K^2 = K/2$. Summing over $n$ roots yields $\langle R \rangle = nK/2$.
+\end{proof}
+
+\begin{remark}[Corrections to \href{https://arxiv.org/abs/2603.10054v1}{arXiv:2603.10054v1}]
+Rodr\'iguez~\cite{Rodriguez2026} claimed a positive proof for all trees (Theorem~4.3) and a disproof via the double-collider loop $D_4$ (Proposition~5.2). Both claims fail, so Theorem~\ref{thm:five-node} and Proposition~\ref{prop:six-node} provide the first valid disproofs of~\cite{Rodriguez2004}:
+\begin{enumerate}[label=\textup{(\alph*)}]
+\item \emph{Double collider $D_4$ ($n=2, m=2, K=4$, $d=10$).} Eq.~\eqref{eq:shared} recovers $R_{D_4} = 36 - 3/U_1 - 3/U_2$, but the true marginal exponent is $(K-1)/2 = 3/2$ (not $5/2$). Hence $\mathbb{E}[1/U_i] = 16/3$ and $\langle R \rangle_{D_4} = 36 - 6(16/3) = 4 \in \tfrac{1}{2}\mathbb{Z}^+$, refuting the reported $36/5$.
+\item \emph{Three-node fork $\tilde{E}_3$ ($n=1, m=2, K=2$) and chain $\tilde{L}_3$ ($d=5$).} Both parametrize the same conditional-independence model; Proposition~\ref{prop:shared} yields $R = 5 - 1/(2U)$ and $\langle R \rangle = 1$, confirming~\cite{Rodriguez2004}'s $\langle R \rangle(\tilde{E}_{m+1}) = m/2$ and refuting Theorems~1.2 and~3.2 of~\cite{Rodriguez2026} (which claim $(2n-1)/2$).
+\item \emph{Five-parent collapsing star $\tilde{C}_6$ ($n=5, m=1, K=16$, $d=37$).} Eq.~\eqref{eq:shared} gives constant term $5\cdot 264 = 1320$ (not $1008$), singular coefficient $60$ per root, and $\langle R \rangle(\tilde{C}_6) = 40 > 0$, refuting Theorem~3.4's claimed sign inversion to $-272$.
+\item \emph{Tree theorem.} Theorem~4.3 of~\cite{Rodriguez2026} already disagrees with the 3-node V-structure (as noted in its Remark~4.4) and is disproved by Theorem~\ref{thm:five-node} and Proposition~\ref{prop:six-node}.
+\end{enumerate}
+\end{remark}
+
+\begin{proposition}[Seven-node 1-loop counterexample]\label{prop:loop}
+Take seven nodes with edge $A \to B$, an independent root $H$, leaves $C, D$ each with parents $\{A, H\}$, and leaves $E, G$ each with parent $\{B\}$. This bitnet has $d = 1 + 2 + 1 + 4 + 4 + 2 + 2 = 16$ parameters and unique chordless four-cycle $A - C - H - D - A$. Its exact average scalar curvature is $\langle R \rangle = 24/5 \notin \frac{1}{2}\mathbb{Z}$.
+\end{proposition}
+
+\begin{proof}
+The base is the orthogonal product of $A \to B$ and the independent root $H$. Each warp for $C, D$ factors into an $A$-factor and an $H$-factor, so along $A \to B$ Lemma~\ref{lem:edge} applies with $(k, l) = (4, 2)$ and weight $u^2 v$, while $H$ contributes an independent additive term $S_4(r_H)$ from~\eqref{eq:shared} of average $2$. By the $\mathrm{Dirichlet}(1/2,1/2,1/2,1/2)$ moment formula, $E_0[u^2 v] = 1/168$ and
+\[
+E_0\!\Bigl[\Bigl(\frac{3}{2} + 26 + 9\Bigr)u^2 v - 5uv - \frac{3}{2}u^2 - 4uw(1-2a)(1-2b)\Bigr] = \frac{1}{60},
+\]
+so $\langle R \rangle = 2 + (1/60)/(1/168) = 24/5$.
+\end{proof}
+
+\section{Exact Convergent-Series Integral for the Directed Diamond}
+
+For the four-node directed diamond ($A \to B, A \to C, B \to D, C \to D$; $d = 9$ parameters), put $r = P(A=1)$, $b_h = P(B=1 \mid A=h)$, $c_h = P(C=1 \mid A=h)$, $u = r(1-r)$, $p_0 = 1-r$, $p_1 = r$, and $b_{h,1} = b_h$, $b_{h,0} = 1 - b_h$ (similarly for $c$). The four parent-configuration probabilities of $D$ are $q_{ij} = \sum_{h=0}^1 p_h b_{h,i} c_{h,j}$, with product $Q := \prod_{i,j} q_{ij}$. Let $L$ denote expectation over five independent $\mathrm{Beta}(1/2, 1/2)$ variables $(r, b_0, b_1, c_0, c_1)$. By Proposition~\ref{prop:shared} ($n=1, m=2$), the fork base $\{A, B, C\}$ has normalized volume measure $8u\,dL$ and scalar curvature $R_0 = 5 - 1/(2u)$. Applying Lemma~\ref{lem:warped} to $f_s = \sqrt{q_s}$ ($s \in \{0,1\}^2$) gives $\langle R \rangle = N / V$, where
+\[
+V = L[8u\sqrt{Q}], \qquad
+N = L\!\left[8u\sqrt{Q}\left(R_0 - \sum_s \frac{\Delta q_s}{q_s} + \frac{1}{2}\sum_s \frac{\Gamma(q_s, q_s)}{q_s^2} - \frac{1}{2}\sum_{s<t}\frac{\Gamma(q_s, q_t)}{q_s q_t}\right)\right].
+\]
+Since each $q_s$ is affine in each coordinate and each child derivative is divisible by $p_h$, both $\Gamma(q_s, q_t)$ and
+\[
+\Delta q_s = \frac{3}{2}(1-2r)\partial_r q_s + \sum_{h=0}^1 \sum_{t \in \{b_h, c_h\}} \frac{1-2t}{2p_h}\partial_t q_s
+\]
+are polynomials. Writing $\sqrt{Q} = Q \prod_s q_s^{-1/2}$ and cancelling $q_s$ denominators against $Q$ reduces both integrands to finite sums of polynomials times $\prod_s q_s^{-\alpha_s}$ with $\alpha_s \in \{1/2, 3/2\}$. Expanding $q_s^{-\alpha_s} = \sum_{k \ge 0} \frac{(\alpha_s)_k}{k!}(1-q_s)^k$ and applying $L[t^j] = \binom{2j}{j}/4^j$ coordinatewise yields exact rational series for $N$ and $V$.
+
+For absolute convergence, in any unit Fisher direction the derivative of $q_s$ is the covariance of $\mathbf{1}_s$ with a unit-variance score, so Cauchy--Schwarz gives $\Gamma(q_s, q_s) \le q_s(1 - q_s)$. After multiplying by $\sqrt{Q}$, every diagonal derivative and Laplacian term is $O(q_s^{-1/2})$, every cross term is bounded, and $8uR_0 = 40u - 4$ is bounded. By AM--GM, $q_{ij} \ge 2\sqrt{u\,b_{0,i} b_{1,i} c_{0,j} c_{1,j}}$, so $q_{ij}^{-1/2}$ introduces at worst an exponent $-1/4$ at each endpoint and is $L$-integrable. Because each binomial expansion has nonnegative terms before multiplication by its signed polynomial, Fubini--Tonelli justifies term-by-term integration.
+
+\section{Reproducible Symbolic Verification}
+
+The script \texttt{solutions/bitnet\_ricci\_quant/explore.py} verifies all Beta and Dirichlet integrations in exact SymPy rational arithmetic, independently evaluates the full $9$- and $11$-dimensional diagonal Fisher metrics at rational interior points to confirm~\eqref{eq:tree-curv}, checks~\eqref{eq:shared} across all seven shared-root colliders, and evaluates the exact leading and first-order diamond series coefficients: $(-5347/2097152,\, 1017/1048576)$ at multi-index $(0,0,0,0)$ and $(-394549/536870912,\, 3051/8388608)$ at each unit multi-index. Table~\ref{tab:bitnets} summarizes the certified averages; all assertions pass.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lrrc@{}}
+\toprule
+Bitnet topology & $d$ & Exact $\langle R \rangle$ & In $\tfrac{1}{2}\mathbb{Z}^+$? \\
+\midrule
+Five-node tree $(k, l) = (1, 2)$ & 9 & $14/11$ & No \\
+Six-node tree $(k, l) = (2, 2)$ & 11 & $25/14$ & No \\
+Seven-node 1-loop graph & 16 & $24/5$ & No \\
+Two-node chain $\tilde{K}_2$ ($n=1, m=1$) & 3 & $3/2$ & Yes \\
+Three-node fork $\tilde{E}_3$ / chain $\tilde{L}_3$ & 5 & $1$ & Yes \\
+Two-parent collider $\tilde{C}_3$ ($n=2, m=1$) & 6 & $2$ & Yes \\
+Double collider $D_4$ ($n=2, m=2$) & 10 & $4$ & Yes \\
+Collapsing stars $\tilde{C}_4, \tilde{C}_5, \tilde{C}_6$ & 11, 20, 37 & $6, 16, 40$ & Yes \\
+\bottomrule
+\end{tabular}
+\caption{Exact normalized Fisher-volume average scalar curvatures verified in \texttt{explore.py}.}\label{tab:bitnets}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{Rodriguez2004}
+C.~C.~Rodr\'iguez.
+The volume of bitnets.
+In \emph{Bayesian Inference and Maximum Entropy Methods in Science and Engineering},
+AIP Conference Proceedings \textbf{735}, pages 555--564, 2004.
+
+\bibitem{Rodriguez2026}
+C.~C.~Rodr\'iguez.
+\emph{Quantization of Ricci Curvature in Information Geometry}.
+arXiv preprint \href{https://arxiv.org/abs/2603.10054v1}{arXiv:2603.10054v1}, March 2026.
+
+\end{thebibliography}
+
+\end{document}

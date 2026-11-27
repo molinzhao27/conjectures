@@ -1,0 +1,332 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.92in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\ID}{ID}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\spn}{span}
+
+\title{\bfseries Partial Resolution of the Monotone-Measure Conjecture\\ for Pattern Inclusion Depth}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: W.~Luo, \emph{Compute Inclusion Depth of a Pattern},\\
+COLT~2005 / \href{https://arxiv.org/abs/2605.30389}{arXiv:2605.30389} (2026), Conjecture~\texttt{conj:monotone-measure}\\[0.35em]
+Companion verification script: \texttt{solutions/pattern\_inclusion\_depth/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We establish new analytic and exact computational cases of Conjecture~\texttt{conj:monotone-measure} of Luo (COLT~2005 / \href{https://arxiv.org/abs/2605.30389}{arXiv:2605.30389}), which asks whether every proper inclusion $L_\Sigma(p) \subsetneq L_\Sigma(q)$ of non-erasing pattern languages over a finite alphabet $|\Sigma| \ge 2$ implies $\mu(p) > \mu(q)$ for $\mu(p) := 2n(p) - v(p)$.
+First, we repair a gap in Luo's binary-alphabet reduction when more than two distinct terminals occur, replacing subalphabet restriction by a letter surjection $\pi \colon \Sigma \to \{0,1\}$ with a section lift.
+Second, we prove strict monotonicity over every finite alphabet $|\Sigma| \ge 2$ in four regimes:
+(i)~all pairs with length gap $n(p) - n(q) \le 1$, at arbitrary pattern lengths and without assuming a morphic witness, via an $\mathbb{F}_2$-rank estimate and Rado's (1942) linear independent-representatives theorem;
+(ii)~all upper patterns $q$ whose minimum variable multiplicity $f$ and multiplicity excess $E(q)$ satisfy $E(q) < (2f-1)(n(p)-n(q))$ (in particular, all constant-multiplicity upper patterns);
+(iii)~all upper patterns of defect $c(q) := n(q) - v(q) \le 2$ at every length, via a gap-shortening reduction to $810$ exact bitmask cases; and
+(iv)~all pairs with $n(p) \le 12$, via exact shortest-word exclusion over $\{0,1\}$, which establishes $\ID_\Sigma(p) = 2n(p) - v(p) - 1$ for every pattern of length at most~$12$.
+The general case with length gap $d \ge 2$ and $n(p) \ge 13$ remains open, as do decidability and polynomial-time computability of $\ID_\Sigma(p)$ (we prove finiteness and upper semicomputability).
+Finally, we record short refutations of the erasing and unary non-erasing variants and a family of genuinely nonmorphic non-erasing inclusions for every finite alphabet size $s \ge 2$.
+\end{abstract}
+
+\section{Definitions and Foundational Reductions}
+
+Fix a finite alphabet $\Sigma$ of size $s := |\Sigma| \ge 2$ and a disjoint countable set of variables $X$.
+A \emph{pattern} is a nonempty string $p \in (\Sigma \cup X)^+$.
+Its \emph{non-erasing pattern language} $L_\Sigma(p)$ is the set of ground strings in $\Sigma^+$ obtained by substituting a nonempty word in $\Sigma^+$ for each variable (consistently across all occurrences) while keeping terminals fixed.
+In the \emph{erasing} variant $L_{\Sigma,\mathrm{E}}(p)$, variables may also be mapped to the empty word $\varepsilon$.
+Write $n(p)$ for the length (number of positions) of $p$, $v(p) := |\var(p)|$ for the number of distinct variables occurring in $p$, $t(p)$ for the number of terminal positions in $p$, and set
+\[
+c(p) := n(p) - v(p), \qquad \mu(p) := 2n(p) - v(p) = n(p) + c(p).
+\]
+Here $c(p)$ (the \emph{defect}) counts terminal positions plus variable occurrences beyond the first.
+Conjecture~\texttt{conj:monotone-measure} of Luo~\cite{Luo2026} asserts that for every finite alphabet $|\Sigma| \ge 2$ and patterns $p, q$,
+\[
+L_\Sigma(p) \subsetneq L_\Sigma(q) \implies \mu(p) > \mu(q).
+\]
+Setting $d := n(p) - n(q)$, the inequality $\mu(p) > \mu(q)$ is equivalent to $v(p) < v(q) + 2d$, or $c(p) > c(q) - d$.
+The \emph{inclusion depth} $\ID_\Sigma(p)$ is the maximum length $k$ of a strict inclusion chain $L_\Sigma(x_1) \supsetneq L_\Sigma(p_1) \supsetneq \cdots \supsetneq L_\Sigma(p_k) = L_\Sigma(p)$.
+
+Luo~\cite{Luo2026} verified the conjecture through length~$7$, and a subsequent note~\cite{IdeospherePatlang} proved the morphic case and verified binary length up to~$8$. All proofs and computations below are self-contained and independent of those checks.
+
+\begin{lemma}[Equal-length characterization, terminal counts, and binary surjection descent]\label{lem:reductions}
+Let $|\Sigma| \ge 2$ and suppose $L_\Sigma(p) \subseteq L_\Sigma(q)$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{Length and equal-length morphism \textup{(cf.\ Angluin~\cite{Angluin1980})}.} We have $n(p) \ge n(q)$. If $n(p) = n(q)$, then $p = h(q)$ for a length-preserving, terminal-fixing letter-to-token substitution $h$. Hence $L_\Sigma(p) = L_\Sigma(q)$ if and only if $p$ and $q$ agree up to bijective variable renaming, and $L_\Sigma(p) \subsetneq L_\Sigma(q)$ implies $v(p) < v(q)$ and $\mu(p) > \mu(q)$.
+\item \emph{Terminal counts.} For every $a \in \Sigma$, the occurrence count $\#_a$ satisfies $\#_a(p) \ge \#_a(q)$. In particular $t(p) \ge t(q)$; if no variable repeats in $q$, then $c(q) = t(q) \le t(p) \le c(p)$, so $d > 0$ implies $\mu(p) > \mu(q)$.
+\item \emph{Binary surjection descent.} Let $\pi \colon \Sigma \to \{0,1\}$ be any surjection, extended to patterns by acting on terminals and fixing variables. Then $L_{\{0,1\}}(\pi p) \subseteq L_{\{0,1\}}(\pi q)$, the quantities $n, v, t$ are preserved, and whenever $d = n(p) - n(q) > 0$ the inclusion $L_{\{0,1\}}(\pi p) \subsetneq L_{\{0,1\}}(\pi q)$ remains proper.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(1)~The shortest words of $L_\Sigma(p)$ have length $n(p)$ and arise from single-letter substitutions, so $n(p) \ge n(q)$.
+When $n(p) = n(q)$, every single-letter substitution for $p$ must also arise from a single-letter substitution for $q$.
+Since $|\Sigma| \ge 2$, any variable of $p$ can take two distinct letters, and distinct variables of $p$ can take distinct letters independently.
+Therefore each terminal position $j$ of $q$ must carry the same terminal at position $j$ of $p$, and any two positions sharing a variable in $q$ must carry the same token in $p$.
+This defines a length-preserving substitution $h$ with $h(q) = p$.
+Every variable of $p$ appears in the image of a variable of $q$, so $v(p) \le v(q)$, with equality if and only if $h$ maps variables bijectively to variables (Angluin~\cite{Angluin1980}), in which case $L_\Sigma(p) = L_\Sigma(q)$.
+
+(2)~For any $a \in \Sigma$, choose $b \in \Sigma \setminus \{a\}$ and substitute $b$ for every variable of $p$. The resulting word in $L_\Sigma(p) \subseteq L_\Sigma(q)$ contains exactly $\#_a(p)$ copies of $a$, hence $\#_a(p) \ge \#_a(q)$.
+
+(3)~Choose a section $\iota \colon \{0,1\} \to \Sigma$ satisfying $\pi \circ \iota = \mathrm{id}_{\{0,1\}}$, and extend $\pi, \iota$ letterwise to strings.
+Given any non-erasing substitution $\sigma \colon X \to \{0,1\}^+$, the lifted substitution $\iota \circ \sigma$ yields a word $w = (\iota \circ \sigma)(p) \in L_\Sigma(p) \subseteq L_\Sigma(q)$, so $w = \tau(q)$ for some $\tau \colon X \to \Sigma^+$.
+Applying $\pi$ gives $\sigma(\pi p) = \pi(w) = (\pi \circ \tau)(\pi q) \in L_{\{0,1\}}(\pi q)$.
+The map $\pi$ leaves $n, v, t$ unchanged, and when $n(p) > n(q)$ the pattern $\pi q$ generates words of length $n(q) < n(p)$ not in $L_{\{0,1\}}(\pi p)$.
+\end{proof}
+
+\begin{remark}[Repairing the subalphabet remark in \href{https://arxiv.org/abs/2605.30389}{arXiv:2605.30389}]
+Section~3 of Luo~\cite{Luo2026} argues for reduction to $|\Sigma| = 2$ by passing to a two-letter subalphabet $\Sigma' \subseteq \Sigma$. That step breaks down whenever $p$ and $q$ together contain more than two distinct terminal symbols, since $L_{\Sigma'}(p)$ is undefined (or empty) for terminals outside $\Sigma'$. Lemma~\ref{lem:reductions}(3) fixes this gap for all positive length gaps via a surjection $\pi \colon \Sigma \to \{0,1\}$ with a section lift.
+\end{remark}
+
+\begin{proposition}[Morphic inclusions and large alphabets]\label{prop:morphic}
+If $p = h(q)$ for a non-erasing, terminal-preserving pattern morphism $h$, then $\mu(p) - \mu(q) \ge n(p) - n(q)$, with strict inequality whenever $L_\Sigma(p) \subsetneq L_\Sigma(q)$. In particular, Conjecture~\texttt{conj:monotone-measure} holds for every fixed pair $(p, q)$ over any alphabet containing at least $v(p)$ letters unused as terminals in $p$ or $q$.
+\end{proposition}
+
+\begin{proof}
+Let $m_x \ge 1$ be the multiplicity of variable $x$ in $q$ and $\ell_x := |h(x)| \ge 1$.
+Then $d = n(p) - n(q) = \sum_{x \in \var(q)} m_x(\ell_x - 1)$ and $v(p) \le \sum_{x \in \var(q)} \ell_x = v(q) + \sum_{x}(\ell_x - 1) \le v(q) + d$, whence $\mu(p) - \mu(q) = 2d - (v(p) - v(q)) \ge d$.
+At $d = 0$, strictness holds by Lemma~\ref{lem:reductions}(1).
+When $\Sigma$ has at least $v(p)$ letters absent from the terminals of $p$ and $q$, substituting distinct fresh markers for the variables of $p$, matching the resulting word with $q$, and decoding the markers back to variables constructs a non-erasing morphism $h$ with $h(q) = p$.
+\end{proof}
+
+\section{Upper Patterns with Low Multiplicity Excess}
+
+\begin{proposition}[Multiplicity-excess bound]\label{prop:mult}
+Let $|\Sigma| = s \ge 2$ and suppose $L_\Sigma(p) \subseteq L_\Sigma(q)$ with $v(q) \ge 1$.
+Write $f := \min_{x \in \var(q)} m_x(q)$ for the minimum variable multiplicity in $q$ and $E(q) := n(q) - t(q) - f\,v(q) \ge 0$ for the total multiplicity excess of $q$.
+Then every variable of $p$ has multiplicity at least $f$, and
+\[
+f\bigl(v(p) - v(q)\bigr) \;\le\; d + E(q), \qquad d := n(p) - n(q).
+\]
+In particular, $\mu(p) > \mu(q)$ holds whenever $d > 0$ and $E(q) < (2f - 1)d$---hence for every upper pattern $q$ whose variables share a common multiplicity $f$, regardless of length or morphic witnesses.
+\end{proposition}
+
+\begin{proof}
+Suppose for contradiction that some variable $y$ of $p$ has multiplicity $e < f$.
+Fix all other variables of $p$ to single letters and substitute an arbitrary word $u \in \Sigma^k$ for $y$.
+Because the start position of the first occurrence of $y$ is fixed, distinct choices of $u$ yield $s^k$ distinct words of length $N = ek + C$ in $L_\Sigma(p)$, where $C = n(p) - e$ is independent of $k$.
+On the other hand, any word in $L_\Sigma(q) \cap \Sigma^N$ is specified by the vector of image lengths $(\ell_x)_{x \in \var(q)}$ (at most $(N+1)^{v(q)}$ choices) and the image strings themselves.
+Since $f \sum_x \ell_x \le \sum_x m_x(q)\ell_x \le N$, each length vector contributes at most $s^{N/f}$ words. Thus
+\[
+s^k \;\le\; |L_\Sigma(p) \cap \Sigma^N| \;\le\; |L_\Sigma(q) \cap \Sigma^N| \;\le\; (N + 1)^{v(q)} s^{(ek + C)/f}.
+\]
+Because $e/f < 1$, the right-hand side is eventually strictly smaller than $s^k$ as $k \to \infty$, a contradiction.
+Hence every variable of $p$ has multiplicity at least $f$, giving $n(p) \ge t(p) + f\,v(p)$.
+Subtracting $n(q) = t(q) + f\,v(q) + E(q)$ and using $t(p) \ge t(q)$ (Lemma~\ref{lem:reductions}(2)) yields $f(v(p) - v(q)) \le d + E(q)$.
+Whenever $E(q) < (2f - 1)d$, we obtain $v(p) - v(q) \le (d + E(q))/f < 2d$, so $\mu(p) > \mu(q)$.
+(A ground pattern $q$ has $v(q) = 0$ and admits no proper nonempty sublanguage.)
+\end{proof}
+
+\section{One-Symbol Length Gap at All Lengths}
+
+We use the linear-matroid specialization of Rado's (1942) independent-representatives theorem~\cite{Rado1942}, proved directly below for completeness.
+
+\begin{lemma}[Linear independent representatives~\cite{Rado1942}]\label{lem:rado}
+Let $S_1, \dots, S_R$ be finite subsets of a vector space $V$ over a field $\mathbb{K}$. If $\dim\spn\bigl(\bigcup_{i \in I} S_i\bigr) \ge |I|$ for every nonempty $I \subseteq \{1, \dots, R\}$, then there exist linearly independent vectors $u_1, \dots, u_R$ with $u_i \in S_i$.
+\end{lemma}
+
+\begin{proof}
+We induct on $R$, the case $R = 1$ being immediate.
+For $R \ge 2$, suppose first that some nonempty proper subset $J \subsetneq \{1, \dots, R\}$ is tight: $\dim W = |J|$ for $W := \spn(\bigcup_{i \in J} S_i)$.
+By induction, pick linearly independent $u_i \in S_i$ ($i \in J$), forming a basis of $W$.
+In $V/W$, every nonempty $I \subseteq \{1, \dots, R\} \setminus J$ satisfies
+\[
+\dim\spn\Bigl(\bigcup_{i \in I} (S_i + W)\Bigr) = \dim\spn\Bigl(\bigcup_{i \in I \cup J} S_i\Bigr) - \dim W \;\ge\; |I| + |J| - |J| = |I|,
+\]
+so induction provides $u_i \in S_i$ ($i \notin J$) linearly independent modulo $W$, and $\{u_1, \dots, u_R\}$ is linearly independent in $V$.
+If no nonempty proper subset is tight, choose any nonzero $u_R \in S_R$, quotient by $\spn\{u_R\}$ (each nonempty $I \subseteq \{1, \dots, R-1\}$ loses at most $1$ in dimension and thus retains dimension $\ge |I|$), and apply induction.
+\end{proof}
+
+\begin{theorem}[All-lengths gap-one theorem]\label{thm:gap1}
+Let $|\Sigma| \ge 2$ and let $p, q$ be patterns with $n(p) = n(q) + 1$ and $L_\Sigma(p) \subseteq L_\Sigma(q)$. Then $v(p) \le v(q) + 1$; equivalently $c(p) \ge c(q)$, and hence $\mu(p) \ge \mu(q) + 1 > \mu(q)$.
+\end{theorem}
+
+\begin{proof}
+By Lemma~\ref{lem:reductions}(3) it suffices to take $\Sigma = \{0,1\}$.
+Set $n := n(p) = n(q) + 1$ and identify $\{0,1\}^n$ with $\mathbb{F}_2^n$.
+The shortest words $P := L_{\{0,1\}}(p) \cap \mathbb{F}_2^n$ form an affine subspace of codimension $c(p)$, defined by fixing one coordinate per terminal of $p$ and equating each subsequent variable occurrence to its first occurrence; these $c(p)$ equations are linearly independent since each eliminates a distinct coordinate.
+
+At length $n = n(q) + 1$, only a variable occurring once in $q$ (a \emph{singleton variable}) can expand to length~$2$.
+Group maximal consecutive runs of singleton variables in $q$ from left to right as runs $1, \dots, R$.
+Within any run, expanding any member produces the same affine subspace—an arbitrary binary block one letter longer.
+Thus $L_{\{0,1\}}(q) \cap \mathbb{F}_2^n = \bigcup_{i=1}^R Q_i$, where each $Q_i$ is an affine subspace of codimension $r := c(q)$ formed by inserting one free coordinate into run~$i$ (and $R \ge 1$ since $P \neq \varnothing$).
+
+Let $S_i \subset (\mathbb{F}_2^n)^*$ be the set of $r$ linearly independent linear parts of the defining equations of $Q_i$.
+We claim that for every nonempty $I = \{i_1 < i_2 < \cdots < i_k\} \subseteq \{1, \dots, R\}$,
+\begin{equation}\label{eq:rank-bound}
+\dim\spn\Bigl(\bigcup_{i \in I} S_i\Bigr) \;\ge\; r + k - 1.
+\end{equation}
+For $k = 1$, $\dim\spn(S_{i_1}) = r$.
+For $t \in \{2, \dots, k\}$, let $b$ be the rightmost position of run $i_{t-1}$ in the unexpanded pattern $q$, and set $h := b + 1$.
+Since run $i_{t-1}$ is maximal and precedes run $i_t$, position $h$ exists in $q$ and carries a constrained token (a terminal or a repeated variable).
+Now inspect coordinate $h$ in the expanded words of length~$n$:
+\begin{itemize}[leftmargin=1.6em,itemsep=2pt]
+\item For every earlier selected run $i_s$ ($s < t$): if $i_s = i_{t-1}$, then coordinate $h = b + 1$ is the added free slot of run $i_{t-1}$; if $i_s < i_{t-1}$, then inserting one coordinate earlier shifts position $b$ of run $i_{t-1}$ to coordinate $b + 1 = h$. In both cases, coordinate $h$ is completely free in $Q_{i_s}$, so every functional in $S_{i_s}$ has $0$ in coordinate~$h$.
+\item For run $i_t$ (which lies strictly to the right of $h$), position $h$ is unshifted and still holds its constrained token. Hence at least one defining equation of $Q_{i_t}$ has coefficient $1$ in coordinate~$h$ (pinning a terminal or linking a repeated variable occurrence to another occurrence).
+\end{itemize}
+Thus each $S_{i_t}$ ($t = 2, \dots, k$) contributes at least one functional linearly independent of $\bigcup_{s < t} S_{i_s}$, proving~\eqref{eq:rank-bound}.
+
+Assume for contradiction that $v(p) \ge v(q) + 2$, so $c(p) \le r - 1$.
+Let $V_P \subseteq \mathbb{F}_2^n$ be the direction space of $P$, with $\dim(V_P^\perp) = c(p) \le r - 1$.
+Restricting functionals to $V_P$ drops subspace dimension by at most $c(p)$, so the restricted sets $\bar{S}_i := \{\varphi|_{V_P} : \varphi \in S_i\} \subset V_P^*$ satisfy
+\[
+\dim\spn\Bigl(\bigcup_{i \in I} \bar{S}_i\Bigr) \;\ge\; (r + |I| - 1) - (r - 1) = |I|
+\]
+for every nonempty $I \subseteq \{1, \dots, R\}$.
+By Lemma~\ref{lem:rado}, we can choose one defining equation $\ell_i(x) = \beta_i$ from each $Q_i$ ($i = 1, \dots, R$) whose linear parts are linearly independent on $V_P$.
+Then $x \mapsto (\ell_1(x), \dots, \ell_R(x))$ maps $P$ surjectively onto $\mathbb{F}_2^R$.
+Selecting $x \in P$ with $\ell_i(x) = \beta_i + 1 \pmod 2$ for every $i$ yields $x \in P \setminus \bigcup_{i=1}^R Q_i$, contradicting $L_{\{0,1\}}(p) \subseteq L_{\{0,1\}}(q)$.
+This proof does not assume that the inclusion is morphic.
+\end{proof}
+
+\section{Exact Exclusion Through Length~12 and Defect at Most Two}
+
+\begin{theorem}[Exact exclusion for $n(p) \le 12$]\label{thm:n12}
+Conjecture~\texttt{conj:monotone-measure} holds over every finite alphabet $|\Sigma| \ge 2$ whenever $n(p) \le 12$.
+\end{theorem}
+
+\begin{proof}
+Gaps $d \le 1$ are covered by Lemma~\ref{lem:reductions}(1) and Theorem~\ref{thm:gap1}.
+For $d = n(p) - n(q) \ge 2$, Lemma~\ref{lem:reductions}(3) reduces to $\Sigma = \{0,1\}$.
+A counterexample requires $v(p) \ge v(q) + 2d$.
+If $v(p) > v(q) + 2d$, fixing surplus variables of $p$ to terminal $0$ produces a length-$n$ pattern $p'$ with $v(p') = v(q) + 2d$ whose shortest-word cube is a subcube of $p$'s shortest-word cube while preserving the terminal lower bounds $\#_a(p') \ge \#_a(q)$ of Lemma~\ref{lem:reductions}(2).
+Hence it suffices to rule out $L_{\{0,1\}}(p) \cap \{0,1\}^n \subseteq L_{\{0,1\}}(q) \cap \{0,1\}^n$ for all $q$ of length $m = n - d$ ($2 \le d \le \lfloor (n-1)/2 \rfloor$) and all length-$n$ patterns $p$ with $v(p) = v(q) + 2d$, $\#_0(p) \ge \#_0(q)$, and $\#_1(p) \ge \#_1(q)$.
+
+The script \texttt{solutions/pattern\_inclusion\_depth/explore.py} carries out this exact exclusion:
+\begin{enumerate}[label=\textup{(\arabic*)},leftmargin=1.8em,itemsep=2pt]
+\item \emph{Symmetry reduction.} Enumerate canonical $q$ (variables numbered in first-occurrence order) and keep one representative per orbit under the commuting $\mathbb{Z}_2 \times \mathbb{Z}_2$ action of bit complementation ($0 \leftrightarrow 1$) and string reversal.
+\item \emph{Allocation bound.} Group consecutive singleton variables of $q$ into maximal runs of cost $f = 1$ per extra letter, and assign each repeated variable its multiplicity $f \ge 2$. Each length-$n$ expansion allocates nonnegative increments $e_j$ with $\sum f_j e_j = d$, forming a cube of size $2^{v(q)+\sum e_j}$, so
+\[
+\bigl|L_{\{0,1\}}(q) \cap \{0,1\}^n\bigr| \;\le\; 2^{v(q)} [z^d] \prod_j (1 - 2z^{f_j})^{-1}.
+\]
+Any $q$ whose $[z^d]$-coefficient is strictly less than $4^d$ cannot cover a cube of size $2^{v(q)+2d}$ and is discarded.
+\item \emph{Exact bitmask containment.} For every surviving $q$, build the exact $2^n$-bit mask of $L_{\{0,1\}}(q) \cap \{0,1\}^n$ as the bitwise union of all allocation cubes. Discard $q$ if its popcount is below $2^{v(q)+2d}$; otherwise check bitwise containment of every admissible source cube $p$.
+\end{enumerate}
+Table~\ref{tab:n12} records the counts; every candidate fails with an explicit length-$n$ ground witness outside $L_{\{0,1\}}(q)$, yielding an exact finite exclusion for the infinite languages.
+\end{proof}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}rrr@{}}
+\toprule
+Longer length $n$ & Exact target slices built & Final source-cube comparisons \\
+\midrule
+1--7 & 0 & 0 \\
+8 & 20 & 0 \\
+9 & 198 & 0 \\
+10 & 2,089 & 3,995 \\
+11 & 19,394 & 1,342,396 \\
+12 & 167,135 & 220,303,162 \\
+\bottomrule
+\end{tabular}
+\caption{Exact binary shortest-word exclusion counts for $n \le 12$; no source cube survives.}\label{tab:n12}
+\end{table}
+
+\begin{proposition}[All lengths for defect $c(q) \le 2$]\label{prop:defect2}
+Over every finite alphabet $|\Sigma| \ge 2$, Conjecture~\texttt{conj:monotone-measure} holds at arbitrary pattern lengths whenever $c(q) \le 2$.
+\end{proposition}
+
+\begin{proof}
+Gaps $d \le 1$ are settled by Lemma~\ref{lem:reductions}(1) and Theorem~\ref{thm:gap1}.
+For $d \ge 2$, failure requires $c(p) \le c(q) - d \le 2 - d \le 0$, so $d = c(q) = 2$ and $c(p) = 0$.
+By Lemma~\ref{lem:reductions}(3), take $\Sigma = \{0,1\}$.
+Since $c(p) = 0$, $p$ consists of $n = n(q) + 2$ distinct singleton variables, so its shortest-word layer is the full cube $\{0,1\}^n$ and $t(q) \le t(p) = 0$ by Lemma~\ref{lem:reductions}(2).
+Hence $q$ is terminal-free with defect~$2$, so its repeated-variable subsequence is (up to renaming) one of $AAA$, $AABB$, $ABAB$, or $ABBA$, separated and flanked by $4$ or $5$ maximal singleton runs.
+
+If any singleton run has length $g \ge 3$ and starts at position $a$ in $q$, consider coordinate $a + 2$ of any word $w \in \{0,1\}^{n(q)+2}$.
+In every cost-$2$ expansion of $q$, at most $2$ letters are inserted before position $a$, so the expanded run covers positions $[a', b']$ with $a' \le a + 2$ and $b' \ge a + g - 1 \ge a + 2$.
+Thus coordinate $a + 2$ always belongs to that unconstrained free block.
+Deleting coordinate $a + 2$ from $w$ and reducing the run length in $q$ from $g$ to $g - 1$ preserves membership under the same allocation; because coordinate projection maps the full cube $\{0,1\}^{n(q)+2}$ onto $\{0,1\}^{n(q)+1}$, the shortened pattern still covers the full cube at gap~$2$.
+Iterating reduces every run to length in $\{0, 1, 2\}$, leaving $3^4 + 3 \cdot 3^5 = 810$ reduced shapes.
+Exact bitmask checks in \texttt{explore.py} verify that none covers $\{0,1\}^{n(q)+2}$.
+\end{proof}
+
+\section{Inclusion Depth, Semicomputability, and Variant Controls}
+
+\begin{proposition}[Depth lower bound, exactness for $n \le 12$, and upper semicomputability]\label{prop:depth}
+Let $|\Sigma| \ge 2$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For every pattern $p$, $\ID_\Sigma(p) \ge 2n(p) - v(p) - 1 = \mu(p) - 1$.
+\item If $n(p) \le 12$, then $\ID_\Sigma(p) = 2n(p) - v(p) - 1$.
+\item For every pattern $p$, $\ID_\Sigma(p)$ is finite and upper semicomputable.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(1)~Starting from $x_1$, split the last variable $n(p)-1$ times to reach $x_1 \cdots x_{n(p)}$; each split excludes words of the previous minimum length.
+At length $n(p)$, pin the $t(p)$ terminal positions one at a time, then equate each repeated variable occurrence to its first occurrence one at a time; each of these $c(p)$ steps removes shortest words since $|\Sigma| \ge 2$.
+The resulting strict chain has length $(n(p)-1) + c(p) = \mu(p) - 1$.
+
+(2)~Along any strict chain ending at $p$, pattern lengths are nondecreasing (Lemma~\ref{lem:reductions}(1)) and hence at most $n(p) \le 12$.
+By Theorem~\ref{thm:n12}, $\mu$ increases by at least $1$ at every step from $\mu(x_1) = 1$, giving $\ID_\Sigma(p) \le \mu(p) - 1$.
+(Conversely, any counterexample $L_\Sigma(p) \subsetneq L_\Sigma(q)$ with $\mu(p) \le \mu(q)$ would refute $\ID_\Sigma(p) = \mu(p) - 1$ upon appending it to the lower-bound chain for~$q$.)
+
+(3)~Every pattern in a strict chain ending at $p$ has length $\le n(p)$, and by Lemma~\ref{lem:reductions}(1) equal languages coincide up to variable renaming.
+There are therefore only finitely many canonical intermediate patterns and candidate chains, proving finiteness.
+Since membership $w \in L_\Sigma(r)$ is decidable by bounded segmentation, enumerating $w \in \Sigma^+$ and discarding any chain once a word falsifies one of its edges yields a decreasing sequence of upper bounds stabilizing at $\ID_\Sigma(p)$ (without providing a computable stopping time).
+\end{proof}
+
+\begin{proposition}[Variant refutations and nonmorphic non-erasing family]\label{prop:variants}
+\leavevmode
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{Erasing, terminal-free.} Over every $|\Sigma| \ge 1$, $L_{\Sigma,\mathrm{E}}(XX) \subsetneq L_{\Sigma,\mathrm{E}}(ABC) \subsetneq L_{\Sigma,\mathrm{E}}(ABCD)$ (separated by a single letter), with $\mu(XX) = 3 = \mu(ABC) < 4 = \mu(ABCD)$. Prefixing a common terminal preserves strictness and adds $2$ to all measures.
+\item \emph{Erasing, binary, nonmorphic.} Over $\{0,1\}$, $L_{\{0,1\},\mathrm{E}}(0X1) \subsetneq L_{\{0,1\},\mathrm{E}}(A01B)$ (every word starting with $0$ and ending with $1$ has an adjacent $01$ at its first $1$, while $101$ separates them) has $\mu(0X1) = 5 < 6 = \mu(A01B)$ and admits no terminal-preserving morphism from $A01B$ to $0X1$.
+\item \emph{Unbounded erasing depth.} Over every $|\Sigma| \ge 1$, the patterns $q_j := XX Y^{3^j}$ ($j \ge 0$) satisfy $L_{\Sigma,\mathrm{E}}(q_0) = \Sigma^*$ and $L_{\Sigma,\mathrm{E}}(q_j) \supsetneq L_{\Sigma,\mathrm{E}}(q_{j+1}) \supsetneq L_{\Sigma,\mathrm{E}}(XX)$ (mapping $Y \mapsto Y^3$ and $Y \mapsto \varepsilon$; separated by $a^{3^j}$, which has odd length $< 3^{j+1}$). Thus arbitrarily long finite strict erasing chains terminate at $XX$.
+\item \emph{Unary non-erasing.} Over $\Sigma = \{0\}$, $L_{\{0\}}(ABCD) = \{0^k : k \ge 4\} \subsetneq \{0^k : k \ge 3\} = L_{\{0\}}(XXY)$ has $\mu(ABCD) = 4 = \mu(XXY)$.
+\item \emph{Nonmorphic non-erasing family \textup{(cf.\ Jiang et~al.~\cite{Jiang1995})}.} For every finite alphabet of size $s \ge 2$, let $p := X_1 \cdots X_{2s+3}$ and $q := ABCBD$. In any word of length $\ge 2s+3$, among positions $2, 4, \dots, 2s+2$ some two carry the same letter by pigeonhole; mapping $B$ to that letter and $A, C, D$ to the nonempty prefix, gap, and suffix shows $L_\Sigma(p) \subsetneq L_\Sigma(q)$. No non-erasing morphism maps $q$ to $p$ since all variables of $p$ are distinct. Here $\mu(p) = 2s + 3 > 6 = \mu(q)$; appending a common terminal gives a terminal-containing example by right cancellation.
+\end{enumerate}
+\end{proposition}
+
+\section{Reproducible Verification}
+
+Running \texttt{.venv/bin/python -B solutions/pattern\_inclusion\_depth/explore.py} (Python standard library only) reproduces: (i)~$25{,}719$ direct checks cross-validating the bitmask layer builder against an independent backtracking matcher and verifying all examples in Proposition~\ref{prop:variants}; (ii)~all $810$ reduced defect-two cases of Proposition~\ref{prop:defect2}; (iii)~bounded scans of all canonical patterns of length $1$--$3$ over $s \in \{2,3,4,5\}$ on words up to length~$4$, finding $0,0,0,0$ non-erasing and $110,193,296,419$ erasing nonincreasing-$\mu$ candidates; and (iv)~the exact binary exclusion through $n = 12$ in Table~\ref{tab:n12}. All assertions pass.
+
+\begin{thebibliography}{9}
+
+\bibitem{Angluin1980}
+D.~Angluin.
+Finding patterns common to a set of strings.
+\emph{Journal of Computer and System Sciences}, 21(1):46--62, 1980.
+
+\bibitem{IdeospherePatlang}
+Ideosphere preprint.
+\emph{A monotone measure for pattern-language inclusion: every morphic inclusion, every pattern of length at most eight, and the inclusion depth in that range}.
+Available at \url{https://ideosphere.ai/papers/patlang-depth}.
+
+\bibitem{Jiang1995}
+T.~Jiang, A.~Salomaa, K.~Salomaa, and S.~Yu.
+Decision problems for patterns.
+\emph{Journal of Computer and System Sciences}, 50(1):53--63, 1995.
+
+\bibitem{Luo2026}
+W.~Luo.
+Compute inclusion depth of a pattern.
+In \emph{Proceedings of the 18th Annual Conference on Learning Theory (COLT 2005)}, LNCS 3559, pp.~689--690, 2005; author-prepared version \href{https://arxiv.org/abs/2605.30389}{arXiv:2605.30389}, 2026.
+
+\bibitem{Rado1942}
+R.~Rado.
+A theorem on independence relations.
+\emph{Quarterly Journal of Mathematics}, 13(1):83--89, 1942.
+
+\end{thebibliography}
+
+\end{document}

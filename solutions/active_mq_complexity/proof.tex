@@ -1,0 +1,181 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\AIC}{AIC}
+\DeclareMathOperator{\SHD}{SHD}
+\DeclareMathOperator{\VC}{VC}
+\DeclareMathOperator{\Bin}{Bin}
+
+\title{\bfseries Logarithmic Adaptive Identification Implies Bounded Synthesized Halving}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: G.~Wang and S.~Dughmi,\\
+\emph{On the Sample Complexity of Active Learning with Membership Queries},\\
+\href{https://arxiv.org/abs/2609.27241}{arXiv:2609.27241} (September 2026), Section~4, Conjecture~\texttt{conj:halve}\\[0.35em]
+Companion verification script: \texttt{solutions/active\_mq\_complexity/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We prove Conjecture~\texttt{conj:halve} of Wang and Dughmi (\href{https://arxiv.org/abs/2609.27241}{arXiv:2609.27241}): for every binary concept class $\mathcal{C} \subseteq \{0,1\}^{\mathcal{X}}$, a uniform logarithmic bound $\AIC(\mathcal{C}, m) = O(\ln m)$ on adaptive identification complexity implies a uniform constant bound $\SHD(\mathcal{C}, m) = O(1)$ on synthesized halving dimension.
+Normalizing $\AIC(\mathcal{C}, m) \le a\log_2(m+1)$ for all $m \ge 1$ with $a \ge 1$, the proof produces a finite constant $t = t(a)$ handling arbitrary version spaces $V \subseteq \mathcal{C}$ with unrestricted fibers over each sample labeling.
+The argument combines two applications of the finite $\epsilon$-net hitting lemma (Haussler--Welzl, 1987) in dual and primal directions, using Assouad's (1983) dual VC bound and the Sauer--Shelah growth bound: first to build a transversal-independent query distribution $Q$ from random optimal identification trees on $k(a)$ sampled label pairs, and second to extract a single deterministic batch $U$ of size $t(a)$ hitting every $Q$-heavy pairwise disagreement set.
+\end{abstract}
+
+\section{Definitions and Main Result}
+
+Let $\mathcal{X}$ be a domain and $\mathcal{C} \subseteq \{0,1\}^{\mathcal{X}}$ a binary concept class. For a finite sample $S \in \mathcal{X}^m$ and a version space $V \subseteq \mathcal{C}$, write $V_S := \{h|_S : h \in V\}$ for the set of realizable $S$-labelings, and for any query batch $U \in \mathcal{X}^t$ and answer pattern $b \in \{0,1\}^U$, write $V[U = b] := \{h \in V : h|_U = b\}$.
+
+Following Section~4 of Wang and Dughmi~\cite{WangDughmi2026}:
+\begin{itemize}[leftmargin=*]
+\item The \emph{adaptive identification complexity} $\AIC(\mathcal{C}, m)$ is the supremum over $S \in \mathcal{X}^m$ of the minimum depth $t \ge 0$ of a deterministic membership-query decision tree (querying arbitrary points of~$\mathcal{X}$) that uniquely determines $h|_S$ for every $h \in \mathcal{C}$.
+\item The \emph{synthesized halving dimension} $\SHD(\mathcal{C}, m)$ is the supremum over $S \in \mathcal{X}^m$ of the minimum $t \ge 0$ such that for every $V \subseteq \mathcal{C}$, there exists a non-adaptive batch $U \in \mathcal{X}^t$ satisfying
+\[
+\bigl|(V[U = b])_S\bigr| \;\le\; \bigl\lceil |V_S|/2 \bigr\rceil \qquad \bigl(\forall b \in \{0,1\}^U\bigr).
+\]
+(Quantifying over all $b \in \{0,1\}^U$ is equivalent to $\sup_{f \in \mathcal{C}} |\{\mathrm{VS}_{U,f}(V)\}_S| \le \lceil |V_S|/2 \rceil$, since unrealized patterns give~$0$; batches shorter than~$t$ may be padded with repeated queries.)
+\end{itemize}
+
+Trivially $\SHD(\mathcal{C}, 0) = 0$, and whenever $|V_S| \le 1$, zero queries suffice. Moreover, since $\AIC(\mathcal{C}, m) \le m$ for all $m \ge 1$ (querying $S$ directly always identifies $h|_S$), the asymptotic hypothesis $\AIC(\mathcal{C}, m) = O(\ln m)$ implies that there exists $a \ge 1$ such that $\AIC(\mathcal{C}, m) \le a\log_2(m+1)$ for every $m \ge 1$.
+
+\begin{theorem}[Resolution of Conjecture~\texttt{conj:halve}]\label{thm:main}
+Fix $a \ge 1$. If a binary concept class $\mathcal{C} \subseteq \{0,1\}^{\mathcal{X}}$ satisfies $\AIC(\mathcal{C}, m) \le a\log_2(m+1)$ for all $m \ge 1$, then there exists a finite constant $t = t(a)$ such that $\SHD(\mathcal{C}, m) \le t$ for all $m \ge 0$.
+\end{theorem}
+
+\section{Two Sampling Lemmas}
+
+For a set system $\mathcal{R}$ on a ground set $\Omega$, let $\Pi_{\mathcal{R}}(s)$ denote its growth function (maximum number of intersections $\{R \cap E : R \in \mathcal{R}\}$ over $s$-element $E \subseteq \Omega$), and let $\VC(\mathcal{R})$ denote its VC dimension.
+
+\begin{lemma}[Primal and dual growth~\cite{Assouad1983,Sauer1972,Shelah1972}]\label{lem:growth}
+Under the hypothesis of Theorem~\ref{thm:main} with $a \ge 1$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For every $s \ge 1$, $\Pi_{\mathcal{C}}(s) \le 2^{\AIC(\mathcal{C},s)} \le (s+1)^a$, so $\VC(\mathcal{C}) \le v := \max\{j \in \mathbb{N} : 2^j \le (j+1)^a\} < \infty$.
+\item The dual family of evaluation sets $\{E_x : x \in \mathcal{X}\}$ on $\mathcal{C}$, where $E_x := \{h \in \mathcal{C} : h(x) = 1\}$, has VC dimension at most $d := 2^{v+1} - 1 < 2^{v+1}$, and $\Pi_{\{E_x\}}(s) \le (s+1)^d$ for all $s \ge 0$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Leaf-counting on an optimal depth-$\AIC(\mathcal{C},s)$ decision tree gives $|\mathcal{C}_S| \le 2^{\AIC(\mathcal{C},s)} \le (s+1)^a$, bounding $v = \VC(\mathcal{C}) < \infty$. If $\{E_x\}$ shattered $2^{v+1}$ concepts, index them by $\{0,1\}^{v+1}$ and pick, for each coordinate $r \in [v+1]$, a query $x_r \in \mathcal{X}$ realizing the $r$-th bit across all $2^{v+1}$ concepts; then $\mathcal{C}$ shatters $\{x_1,\dots,x_{v+1}\}$, contradicting $\VC(\mathcal{C}) \le v$. Finally, for any family of VC dimension $\le d$, deleting one point splits traces into those with one or two extensions, the latter having VC dimension $\le d-1$; induction gives the Sauer--Shelah bound $\Pi(s) \le \sum_{j=0}^d \binom{s}{j}$, and encoding subsets of $[s]$ of size $\le d$ by sorted padded $d$-tuples from $s+1$ symbols gives $\sum_{j=0}^d \binom{s}{j} \le (s+1)^d$.
+\end{proof}
+
+\begin{lemma}[Finite $\epsilon$-net hitting lemma~\cite{HausslerWelzl1987}]\label{lem:hitting}
+Let $P$ be a probability distribution on a finite ground set $\Omega$, let $\mathcal{R} \subseteq 2^\Omega$, and let $n \ge 1$ and $\epsilon \in (0,1]$ satisfy $n\epsilon \ge 8$. Then an i.i.d.\ sample $X \sim P^n$ misses some $R \in \mathcal{R}$ with $P(R) \ge \epsilon$ with probability at most
+\[
+2\,\Pi_{\mathcal{R}}(2n)\,\exp(-\epsilon n/4).
+\]
+\end{lemma}
+
+\begin{proof}
+Let $E_1$ be the event that $X = (X_1,\dots,X_n)$ misses some $R \in \mathcal{R}$ with $P(R) \ge \epsilon$. Draw an independent sample $X' = (X'_1,\dots,X'_n) \sim P^n$, and let $E_2$ be the event that some $R \in \mathcal{R}$ satisfies $P(R) \ge \epsilon$, $R \cap X = \varnothing$, and $|\{j \in [n] : X'_j \in R\}| \ge \epsilon n / 2$. Conditional on $X \in E_1$, pick a witnessing $R_X$ of mass $p := P(R_X) \ge \epsilon$. For $Z \sim \Bin(n,p)$, Chebyshev's inequality gives
+\[
+\mathbb{P}(Z < \epsilon n/2) \le \mathbb{P}\bigl(|Z - np| \ge np/2\bigr) \le \frac{4 np(1-p)}{(np)^2} \le \frac{4}{n\epsilon} \le \frac{1}{2},
+\]
+so $\mathbb{P}(E_2) \ge \frac{1}{2}\mathbb{P}(E_1)$. By exchangeability of $Y = (X, X') \sim P^{2n}$, condition on the ordered $2n$-tuple $Y$ and partition $[2n]$ uniformly at random into two halves of size~$n$. As $R$ ranges over $\mathcal{R}$, there are at most $\Pi_{\mathcal{R}}(2n)$ index patterns $\{j \in [2n] : Y_j \in R\}$ (absorbing repeated draws). For any fixed pattern of size $m \ge \epsilon n/2$, the probability that the first half avoids all $m$ indices is
+\[
+\prod_{j=0}^{n-1}\left(1 - \frac{m}{2n-j}\right) \le \left(1 - \frac{\epsilon}{4}\right)^n \le e^{-\epsilon n/4}.
+\]
+A union bound over at most $\Pi_{\mathcal{R}}(2n)$ patterns and the factor of~$2$ prove the lemma.
+\end{proof}
+
+\section{Proof of \texorpdfstring{Theorem~\ref{thm:main}}{Theorem 1}}
+
+\begin{proof}
+Fix $m \ge 1$, $S \in \mathcal{X}^m$, and $V \subseteq \mathcal{C}$. Set $Y := V_S$ and $N := |Y|$.
+
+\emph{Base case ($N < 8$).} If $N \le 1$, zero queries suffice. If $2 \le N < 8$, iteratively pick a coordinate of $S$ separating two distinct labelings in a nonsingleton part of the current partition of~$Y$; each step increases the number of parts by at least~$1$, so at most $N - 1 \le 6 < 8$ queries isolate all of~$Y$. Thus any $t \ge 8$ handles $N < 8$. Assume henceforth that $N \ge 8$.
+
+\emph{Stage~1 (Dual pair-hitting and random trees).} Let $\Omega_{\mathrm{pair}} := \{(y,z) \in Y \times Y : y \neq z\}$, a finite set of size $N(N-1)$. For each $(y,z) \in \Omega_{\mathrm{pair}}$, fix a coordinate $s(y,z) \in S$ where $y$ and $z$ differ. For an integer $k = k(a) \ge 1$ chosen below, draw $k$ pairs $(y_1,z_1),\dots,(y_k,z_k)$ i.i.d.\ uniformly from $\Omega_{\mathrm{pair}}$, form $S_{\mathrm{train}} := (s(y_1,z_1),\dots,s(y_k,z_k)) \in \mathcal{X}^k$, and let $T = T(S_{\mathrm{train}})$ be a deterministically chosen optimal identification tree for $S_{\mathrm{train}}$, of depth at most
+\[
+D := \lceil a\log_2(k+1) \rceil.
+\]
+Because every leaf of $T$ fixes the labels on all $k$ coordinates of $S_{\mathrm{train}}$, \emph{every training pair $(y_r,z_r)$ is separated by $T$ for every choice of fiber extensions $f, g \in V$ of $y_r, z_r$}. Note that the law of $T$ depends only on $Y$ and the chosen coordinates $s(y,z)$.
+
+Fix any finite transversal $W \subseteq V$ of size $h > N/2$ whose members have pairwise distinct restrictions to~$S$. For any conjunction $L$ of at most $D$ query-answer literals, define the pair range $R_W(L) \subseteq \Omega_{\mathrm{pair}}$ of pairs $(y,z)$ whose unique representatives $f_y, f_z \in W$ both exist and satisfy~$L$, and let $\mathcal{R}_W$ be the family of all such ranges. On any $l$ pairs in $\Omega_{\mathrm{pair}}$, at most $2l$ concepts of $W$ enter the test; by Lemma~\ref{lem:growth}(2), each single literal ($E_x$ or its complement) induces at most $2(2l+1)^d$ patterns on those concepts. Allowing a padding symbol for length $< D$ gives
+\[
+\Pi_{\mathcal{R}_W}(l) \;\le\; \bigl[1 + 2(2l+1)^d\bigr]^D \qquad (\forall l \ge 1).
+\]
+If $L$ is satisfied by $c \ge h/2$ members of $W$, then $c \ge N/4$ and $c - 1 \ge N/4 - 1 \ge N/8$ (since $N \ge 8$), so the uniform mass of $R_W(L)$ on $\Omega_{\mathrm{pair}}$ is
+\[
+\frac{c(c-1)}{N(N-1)} \;\ge\; \frac{(N/4)(N/8)}{N^2} \;=\; \frac{1}{32}.
+\]
+Because $\log([1 + 2(4k+1)^d]^D) = O_a((\log k)^2)$, we can choose $k = k(a)$ depending only on~$a$ such that $k/32 \ge 8$ and
+\[
+2\bigl[1 + 2(4k+1)^d\bigr]^D e^{-k/128} < \frac{1}{2}.
+\]
+By Lemma~\ref{lem:hitting} (with $\epsilon = 1/32$), with probability at least $1/2$ the $k$ training pairs hit every range in $\mathcal{R}_W$ of mass $\ge 1/32$. Since every leaf transcript of $T$ is a conjunction $L$ of length $\le D$ whose range $R_W(L)$ contains no training pair, on this event every leaf of $T$ contains strictly fewer than $h/2$ members of~$W$.
+
+\emph{Query distribution $Q$ and heavy pairs.} Define a single query distribution $Q$ on $\mathcal{X}$, \emph{independent of $W$}: draw $T$, list the queries at its internal nodes (at most $2^D - 1$), pad to length $M := 2^D$ with an arbitrary query, and sample one list entry uniformly at random. Its support $\Omega_Q \subset \mathcal{X}$ is finite because $Y$ and $k$ are finite.
+
+For any fixed transversal $W \subseteq V$ of size $h > N/2$, draw an ordered distinct pair $(f,g)$ uniformly from $W$, independently of~$T$. On the good-tree event (probability $\ge 1/2$), conditional on $f \in W$, fewer than $h/2$ members share $f$'s leaf, so at least $h - \lfloor(h-1)/2\rfloor > h/2$ choices of $g \neq f$ reach a different leaf, giving separation probability $\ge \frac{1}{2} \cdot \frac{h/2}{h-1} > \frac{1}{4}$. Any separated pair disagrees at their first diverging internal node of~$T$, which $Q$ queries with probability $\ge 1/M$. Hence
+\[
+\mathbb{E}_{\substack{f, g \in W \\ f \neq g}}\bigl[Q\bigl(\{x \in \mathcal{X} : f(x) \neq g(x)\}\bigr)\bigr] \;\ge\; \frac{1}{4M}.
+\]
+In particular, \emph{every} transversal $W \subseteq V$ of size $h > N/2$ contains a pair $f, g \in W$ whose disagreement set $D_{f,g} := \{x : f(x) \neq g(x)\}$ has $Q$-mass at least $\eta := \frac{1}{4M} = 2^{-D-2}$.
+
+\emph{Stage~2 (Primal hitting of heavy disagreements).} Consider the family $\mathcal{D} := \{D_{f,g} \cap \Omega_Q : f, g \in \mathcal{C}\}$ on $\Omega_Q$. By Lemma~\ref{lem:growth}(1), $\Pi_{\mathcal{D}}(s) \le \Pi_{\mathcal{C}}(s)^2 \le (s+1)^{2a}$. Choose an integer $t = t(a) \ge 8$ depending only on~$a$ such that $t\eta \ge 8$ and
+\[
+2(2t+1)^{2a} e^{-\eta t/4} < 1.
+\]
+By Lemma~\ref{lem:hitting} applied to $(\Omega_Q, Q, \mathcal{D})$ with $\epsilon = \eta$, there exists a deterministic batch $U \in \mathcal{X}^t$ hitting \emph{every} disagreement set of $Q$-mass $\ge \eta$.
+
+If some answer pattern $b \in \{0,1\}^U$ retained $|(V[U = b])_S| > \lceil N/2 \rceil \ge N/2$, picking one surviving representative in $V[U=b]$ per retained $S$-labeling would yield a transversal $W \subseteq V[U=b]$ of size $h > N/2$. By Stage~1, $W$ contains a pair $f, g$ with $Q(D_{f,g}) \ge \eta$; by Stage~2, $U$ separates $f$ and $g$, contradicting $f|_U = b = g|_U$. Thus $\SHD(\mathcal{C}, m) \le t(a)$ for all $m \ge 0$.
+\end{proof}
+
+\begin{remark}[Quantitative dependence and Wang--Dughmi's finite family]
+Theorem~\ref{thm:main} yields a non-elementary (at least doubly exponential) upper bound $t(a)$ on $\SHD$ in terms of~$a$, leaving the optimal quantitative dependence open; Wang and Dughmi~\cite{WangDughmi2026} previously proved the near-optimal case $\AIC(m) \le \log_2 m + B$. Their finite counterexample sequence $\mathcal{C}_n$ (logarithmic depth on $m = n2^n$ leaf queries, logarithmic halving dimension) is fully consistent with Theorem~\ref{thm:main}: shattering the $n$ auxiliary bit queries of a single block forces $\AIC(\mathcal{C}_n, n) = n$, hence $a_n \ge n / \log_2(n+1) \to \infty$.
+\end{remark}
+
+\section{Exact Finite Computational Checks}
+
+The script \texttt{solutions/active\_mq\_complexity/explore.py} verifies exact optimal adaptive depths and minimum non-adaptive halving-batch sizes across 447 samples and 1,339 sample/version-space cases over nine finite concept families, retaining full fibers over every sample labeling. It also executes the two-stage sampling construction by exact enumeration over all $4^9 = 262{,}144$ sequences of separating coordinates on a 4-label, 8-concept full-fiber class: across all 48 transversals of size $> 2$, the minimum good-tree probability is $32385/32768 > 1/2$, every transversal contains a heavy pair, and a batch of $3$ queries hits all heavy disagreements and halves the full-fiber version space. All assertions passed.
+
+\begin{thebibliography}{9}
+\bibitem{Assouad1983}
+P.~Assouad.
+Densit\'e et dimension.
+\emph{Annales de l'Institut Fourier}, 33(3):233--282, 1983.
+
+\bibitem{HausslerWelzl1987}
+D.~Haussler and E.~Welzl.
+$\epsilon$-nets and simplex range queries.
+\emph{Discrete \& Computational Geometry}, 2(2):127--151, 1987.
+
+\bibitem{Sauer1972}
+N.~Sauer.
+On the density of families of sets.
+\emph{Journal of Combinatorial Theory, Series A}, 13(1):145--147, 1972.
+
+\bibitem{Shelah1972}
+S.~Shelah.
+A combinatorial problem; stability and order for models and theories in infinitary languages.
+\emph{Pacific Journal of Mathematics}, 41(1):247--261, 1972.
+
+\bibitem{WangDughmi2026}
+G.~Wang and S.~Dughmi.
+On the sample complexity of active learning with membership queries.
+Preprint \href{https://arxiv.org/abs/2609.27241}{arXiv:2609.27241}, September 2026.
+\end{thebibliography}
+
+\end{document}

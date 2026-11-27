@@ -1,0 +1,276 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\pd}{pd}
+\DeclareMathOperator{\reg}{reg}
+\DeclareMathOperator{\Tor}{Tor}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\link}{link}
+\DeclareMathOperator{\del}{del}
+\DeclareMathOperator{\ev}{ev}
+\DeclareMathOperator{\chark}{char}
+
+\title{\bfseries Combinatorial Betti Formulas, Extremal Classification,\\
+and Alexander Duality for Polarized Neural Ideals}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: S.~Kara and E.~Lew,\\
+\emph{Neural codes via homological invariants of polarized neural ideals},\\
+\href{https://arxiv.org/abs/2602.16993}{arXiv:2602.16993} (February 2026),
+Questions~\texttt{q:classify\_maxpdim}, \texttt{ques:betti},\\
+\texttt{ques:duality-principle}, and \texttt{ques:region}\\[0.35em]
+Companion verification script: \texttt{solutions/neural\_code\_homological/explore.py}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve three questions and partially resolve a fourth from Kara and Lew (\href{https://arxiv.org/abs/2602.16993}{arXiv:2602.16993}) over an arbitrary field~$k$.
+First, we give two combinatorial descriptions of all multigraded Betti numbers $\beta_{i,W}(I_C)$ of a polarized neural ideal $I_C = \mathcal{P}(J_C)$ (\texttt{ques:betti}): a cube-incidence Hochster formula and a relative Taylor formula on maximal missing coordinate subcubes, together with an exact graph formula $\dim_k \widetilde{H}_1(K(W);k) = (d(W)-1)(h(W)-1)$ on every support with $d(W)>0$ doubled coordinates.
+Second, this yields the converse classifying maximal projective dimension (\texttt{q:classify\_maxpdim}): for every $n \ge 3$, $\pd(I_C) = 2n-3$ holds if and only if $C = \{a,\bar{a}\}$ is an antipodal pair (whereas for $n=2$ singleton codes also attain $\pd = 1$ with $\reg = 1$, resolving a ghost-vertex edge case in Lemma~5.3 of Kara--Lew).
+Third, we characterize exactly when code complementation implements literal-reversed Alexander duality $\iota(I_C^\vee) = I_{Q\setminus C}$ (\texttt{ques:duality-principle}), on which $(\pd,\reg)$ swaps via Terai's theorem~\cite{Terai1999}, and construct families showing that complementation fails to induce a function on $(\pd,\reg)$ with arbitrarily large separation for $n \ge 4$.
+Fourth, for the achievable region $\mathcal{R}_n(k)$ (\texttt{ques:region}), we give a complete structural description through $p+r \le 2n$ (doubling Kara--Lew's diagonal), explicit families reaching $p+r = 3n-3$, and an exact finite enumerative inclusion--exclusion formula in an avoidance algebra for all~$n$. Restricted classes (\texttt{ques:restricted-classes}, e.g., convex or hyperplane codes) and a compact inequality description of $\mathcal{R}_n(k)$ for $n \ge 5$ remain open.
+\end{abstract}
+
+\section{Setup and Multigraded Betti Formulas (\texttt{ques:betti})}
+
+Let $Q := \{0,1\}^n$, $V := \{x_1,\dots,x_n,y_1,\dots,y_n\}$, and $S := k[V]$ over an arbitrary field~$k$. We interpret $x_i$ as the literal $i = 1$ and $y_i$ as the literal $i = 0$. Throughout we use the ideal-module grading $\beta_{i,W}(I) := \dim_k \Tor_i^S(I,k)_W$ of~\cite{KaraLew2026}, and write $I_C := \mathcal{P}(J_C)$ for the polarized canonical-form neural ideal of $C \subseteq Q$.
+
+The empty code $C = \varnothing$ yields $I_\varnothing = S$, contributing $(\pd,\reg) = (0,0)$; the full code $C = Q$ yields $I_Q = (0)$, which has an empty Betti table and contributes no finite pair. We assume $\varnothing \neq C \subsetneq Q$ and set $N := Q \setminus C$.
+
+A literal subset $A \subseteq V$ is \emph{consistent} if $|A \cap \{x_i,y_i\}| \le 1$ for all $i \in [n]$; it determines the coordinate subcube $Q_A \subseteq Q$ of words satisfying all literals in~$A$.
+
+\begin{lemma}[Canonical form and maximal missing subcubes]\label{lem:canon}
+For $\varnothing \neq C \subsetneq Q$, the minimal monomial generators of $I_C$ are precisely the products $\prod_{u\in A} u$ over consistent literal sets $A$ such that $Q_A$ is an inclusion-maximal coordinate subcube contained in $N = Q \setminus C$.
+\end{lemma}
+
+\begin{proof}
+The unpolarized pseudo-monomial of $A$ evaluates to $1$ on $Q_A$ and to $0$ on $Q \setminus Q_A$. If $Q_A \subseteq N$, summing the nonword indicator polynomials over $Q_A$ produces this pseudo-monomial by expanding $\prod_{j \text{ free}} (x_j + (1-x_j)) = 1$, so it lies in $J_C$. If $Q_A \cap C \neq \varnothing$, evaluation at any word in the intersection excludes it from $J_C$. Minimal divisibility corresponds to inclusion-maximality of $Q_A \subseteq N$.
+\end{proof}
+
+For any $F \subseteq V$, let $\mathcal{T}(F)$ denote the collection of consistent literal sets obtained by picking one literal at each coordinate present in $F$ (choosing either $x_i$ or $y_i$ when both belong to $F$), with $\mathcal{T}(\varnothing) := \{\varnothing\}$. For any $W \subseteq V$, define the simplicial complex $K(W)$ on ground set $W$ by
+\[
+F \in K(W) \iff F \subseteq W \text{ and } Q_A \cap C \neq \varnothing \text{ for every } A \in \mathcal{T}(F).
+\]
+
+\begin{theorem}[Cube-incidence Hochster formula]\label{thm:hochster}
+Over any field~$k$, for every $\varnothing \neq C \subsetneq Q$, every $i \ge 0$, and every squarefree multidegree $W \subseteq V$,
+\begin{equation}\label{eq:hochster}
+\beta_{i,W}(I_C) \;=\; \dim_k \widetilde{H}_{|W|-i-2}(K(W); k),
+\end{equation}
+using augmented chains (so $\{\varnothing\}$ has $\dim_k \widetilde{H}_{-1}(\{\varnothing\};k) = 1$, while the void complex has zero homology in all degrees). All nonsquarefree multidegrees vanish.
+\end{theorem}
+
+\begin{proof}
+A set $F \subseteq W$ fails the face test iff some $A \in \mathcal{T}(F)$ has $Q_A \subseteq N$, which holds iff $F$ contains a consistent set $A'$ with $Q_{A'} \subseteq N$ (any forbidden pattern inside $F$ extends to a choice in $\mathcal{T}(F)$). Hence $K(W)$ is the induced Stanley--Reisner complex of $I_C$ on $W$ with ghost vertices permitted ($K(W) = \{\varnothing\}$ when every vertex of $W$ is a ghost). Hochster's formula for the ideal $I_C$ yields~\eqref{eq:hochster}.
+\end{proof}
+
+For $W \subseteq V$, let $G(W)$ be the set of minimal generators of $I_C$ (maximal subcubes of $N$) whose literal supports lie in $W$. Define the simplicial complex $B(W)$ on vertex set $G(W)$ whose faces are collections of generators in $G(W)$ whose union of literal supports is a \emph{proper} subset of~$W$.
+
+\begin{theorem}[Relative Taylor formula on missing subcubes]\label{thm:taylor}
+Over any field~$k$, if $W \subseteq V$ is nonempty and $G(W) \neq \varnothing$, then
+\begin{equation}\label{eq:taylor}
+\beta_{i,W}(I_C) \;=\; \dim_k \widetilde{H}_{i-1}(B(W); k).
+\end{equation}
+If $G(W) = \varnothing$ (in particular, if $W$ is not a union of generator supports), then $\beta_{i,W}(I_C) = 0$ for all~$i$.
+\end{theorem}
+
+\begin{proof}
+The Taylor complex of $I_C$ has one basis element in homological degree $|A|-1$ for each nonempty subset $A$ of minimal generators, in multidegree $\bigcup_{g\in A}\supp(g)$. In every monomial degree~$m$, its augmented strand is the chain complex of the full simplex on the generators dividing~$m$ (or zero), so it resolves~$I_C$. After tensoring with $k$, the multidegree-$W$ strand is the relative augmented chain complex of the full simplex $\Delta^{G(W)}$ modulo $B(W)$ shifted by one degree, because only deletions preserving the union~$W$ survive modulo the maximal ideal. Acyclicity of $\Delta^{G(W)}$ yields~\eqref{eq:taylor}.
+\end{proof}
+
+\section{The \texorpdfstring{$H_1$}{H1}-Strand and Extremal Classification (\texttt{q:classify\_maxpdim})}
+
+For $W \subseteq V$, let $d = d(W)$ be the number of doubled coordinates (indices $j \in [n]$ with $\{x_j,y_j\} \subseteq W$). The \emph{trace} $T_a \subseteq W$ of a codeword $a \in C$ is its set of true literals in $W$. Define the \emph{trace-sharing graph} on $C$ by joining $a, b \in C$ whenever $T_a \cap T_b \neq \varnothing$.
+
+\begin{theorem}[Graph formula for the $H_1$-strand]\label{thm:h1}
+If $d = d(W) > 0$ and $h = h(W)$ is the number of connected components of the trace-sharing graph on~$C$, then $h \le 2$, $K(W)$ is connected, and over every field~$k$,
+\begin{equation}\label{eq:h1}
+\dim_k \widetilde{H}_1(K(W); k) \;=\; (d-1)(h-1).
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+By the face test, each trace $T_a$ spans a simplex in $K(W)$, and the only remaining edges of $K(W)$ are the opposite pairs $\{x_j,y_j\}$ at doubled coordinates~$j$ where both values occur in~$C$. Picking one doubled coordinate~$j_0$, every codeword satisfies either $x_{j_0}$ or $y_{j_0}$; thus words sharing that value lie in one component (giving $h \le 2$), and if both values occur the edge $\{x_{j_0},y_{j_0}\}$ links them, proving $K(W)$ is connected.
+
+\emph{Case $h = 2$.} Every doubled coordinate is constant on each component and takes opposite values on the two components. Hence the union of trace simplices in each component is a cone. The $d$ opposite edges join the two cones, and none lies in a triangle (a third vertex would be a literal shared across components). Every face without an opposite pair lies in a single trace simplex. Contracting the two contractible cones gives $K(W) \simeq \bigvee_{d-1} S^1$, so $\dim_k \widetilde{H}_1(K(W);k) = d - 1$.
+
+\emph{Case $h = 1$.} Mark the barycenter of each trace simplex $T_a$ (or its sole vertex if $|T_a| = 1$). For any doubled coordinate~$j$ and words $a, b \in C$, let $P_j(a,b)$ be the path from the marked point of $T_a$ to $a$'s $j$-literal, across $\{x_j,y_j\}$ if $a_j \neq b_j$, and to the marked point of $T_b$. For fixed~$j$, $P_j(a,b) * P_j(b,c) \simeq P_j(a,c)$ relative to endpoints because the subcomplex on $\{x_j,y_j\} \cap K(W)$ is a point or an interval.
+
+If $a, b$ share a literal $u \in T_a \cap T_b$, then $P_j(a,b)$ is homotopic to the path through~$u$: for $a_j = b_j$ this holds inside the two trace simplices meeting at $u$ and the common $j$-literal, while for $a_j \neq b_j$ the face test ensures $\{u,x_j,y_j\} \in K(W)$. Thus $P_j(a,b)$ is independent of $j$ up to homotopy whenever $a,b$ are adjacent in the trace-sharing graph, and hence for all $a,b \in C$ because $h = 1$.
+
+Every edge loop in $K(W)$ is homotopic to a concatenation of paths between marked points: detour each trace edge through a marked point of a containing trace, represent transitions at shared literals by $P_{j_0}$, and represent each opposite edge at coordinate~$i$ by $P_i$ via incident traces (consecutive opposite edges backtrack). Replacing every $P_i$ by $P_{j_0}$ reduces the loop to a closed concatenation along coordinate~$j_0$, which contracts. Hence $\pi_1(K(W)) = 1$ and $\widetilde{H}_1(K(W);k) = 0$.
+\end{proof}
+
+\begin{theorem}[Classification of maximal projective dimension]\label{thm:maxpd}
+Let $\varnothing \neq C \subsetneq \{0,1\}^n$ and let $k$ be any field.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For every $n \ge 3$, $\pd(I_C) = 2n-3$ if and only if $C = \{a,\bar{a}\}$ is an antipodal pair. In that case $\beta_{2n-3,V}(I_C) = n-1$ and $\reg(I_C) = 3$.
+\item For $n = 2$, $\pd(I_C) = 1 = 2n-3$ holds precisely for antipodal pairs (with $(\pd,\reg)=(1,3)$) and singleton codes $C = \{a\}$ (with $(\pd,\reg)=(1,1)$).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+In~\eqref{eq:hochster}, homology degree $-1$ requires $K(W) = \{\varnothing\}$, so every literal in $W$ is a ghost, giving $|W| \le n$ and $i = |W|-1 \le n-1$. This is strictly less than $2n-3$ for $n \ge 3$; for $n = 2$, equality $i = 1$ occurs iff $|W| = 2$ consists of two ghosts, i.e., $C = \{a\}$ is a singleton (giving $I_C$ generated by two variables, hence $(1,1)$). Homology degree $0$ requires $K(W)$ disconnected, hence $d(W) = 0$ by Theorem~\ref{thm:h1}, giving $|W| \le n$ and $i = |W|-2 \le n-2 < 2n-3$. Homology degrees $q \ge 1$ give $i = |W|-q-2 \le 2n-3$, with equality iff $W = V$ ($d(V) = n$) and $q = 1$. By Theorem~\ref{thm:h1}, $\widetilde{H}_1(K(V);k) \neq 0$ iff $h(V) = 2$ (with dimension $n-1$). Since every word shares a literal with every word except its antipode $\bar{a}$, $h(V) = 2$ iff $C = \{a,\bar{a}\}$. For an antipodal pair, every induced subcomplex $K(W)$ is a union of at most two simplices joined by disjoint edges with no mixed triangles, so $\widetilde{H}_q(K(W);k) = 0$ for $q \ge 2$ and $\reg(I_C) = 3$.
+\end{proof}
+
+\begin{remark}[Ghost-vertex edge case in Kara--Lew Lemma~5.3]
+In Kara and Lew~\cite{KaraLew2026}, Lemma~5.3 (labeled \texttt{lem:pdim-max-implies-reg-ge-3}) restricts Hochster's formula to $W \subseteq V(\Delta)$ and deduces $\reg(I_C) \ge 3$ whenever $\pd(I_C) = 2n-3$. Theorem~\ref{thm:maxpd} confirms this for all $n \ge 3$, while recording the $n = 2$ singleton exception $(\pd,\reg) = (1,1)$ arising from ghost vertices.
+\end{remark}
+
+\begin{remark}[Other extremal corners]
+For $n \ge 2$, $\reg(I_C) = 2n-1$ iff $N = \{a,\bar{a}\}$: generators have degree $\le n$ and shifts are $\le 2n$, so $\reg = 2n-1$ forces $\beta_{1,V} \neq 0$, i.e., $B(V)$ disconnected by~\eqref{eq:taylor}; two generators in distinct components cover $V$ and must be opposite full words, and any third generator bridges them. Likewise $\pd(I_C) = 0$ iff $N$ is a single coordinate subcube (pair $(0,t)$ at codimension~$t$), and $\reg(I_C) = 1$ iff $C$ is a coordinate subcube (pair $(t-1,1)$ via Koszul).
+\end{remark}
+
+\section{Complementation and Duality (\texttt{ques:duality-principle})}
+
+For a squarefree monomial ideal $I \subset S$, the minimal generators of its Alexander dual $I^\vee$ are the minimal literal sets meeting every generator of~$I$. Let $\iota$ be the involution swapping $x_i \leftrightarrow y_i$ for all $i \in [n]$.
+
+\begin{theorem}[Exact cube criterion for literal-reversed Alexander duality]\label{thm:duality}
+Let $\varnothing \neq C \subsetneq \{0,1\}^n$. The consistent minimal generators of $\iota(I_C^\vee)$ always generate $I_{Q\setminus C}$. Moreover, $\iota(I_C^\vee) = I_{Q\setminus C}$ holds if and only if for every partition $[n] = D \sqcup T \sqcup U$ and every assignment $t \in \{0,1\}^T$,
+\begin{equation}\label{eq:duality}
+\bigl[\,\forall u \in \{0,1\}^U\;\exists d \in \{0,1\}^D : (d,t,u) \in C\,\bigr]
+\;\Longrightarrow\;
+\bigl[\,\exists d \in \{0,1\}^D\;\forall u \in \{0,1\}^U : (d,t,u) \in C\,\bigr].
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Take any squarefree support $H \subseteq V$, with doubled coordinates $D$, single-literal coordinates $T$ (values $t \in \{0,1\}^T$), and unused coordinates $U$. Then $H \in \iota(I_C^\vee)$ iff no missing subcube $Q_A \subseteq Q \setminus C$ is disjoint from $\iota(H)$. Being disjoint from $\iota(H)$ means $A$ uses no coordinate in $D$ and agrees with $t$ on $T$; such a missing pattern exists iff some $u \in \{0,1\}^U$ satisfies $(d,t,u) \notin C$ for all $d \in \{0,1\}^D$. Negating, $H \in \iota(I_C^\vee)$ is equivalent to the left-hand side of~\eqref{eq:duality}. Conversely, $H \in I_{Q\setminus C}$ iff $H$ contains the literals of some coordinate subcube contained in~$C$. Completing a consistent subset of $H$ on $D \cup T$ leaves $U$ free, which is equivalent to the right-hand side of~\eqref{eq:duality}. For consistent $H$ ($D = \varnothing$) the two conditions coincide, proving both assertions.
+\end{proof}
+
+By Terai's theorem~\cite{Terai1999}, $\pd(I^\vee) = \reg(I) - 1$ for every nonzero proper squarefree ideal $I$ over any field~$k$. For completeness we record a short proof: with $\Delta^* = \{F : V\setminus F \notin \Delta\}$ the complex of $I^\vee$, the Alexander dual of $\Delta^*|_W$ on $W$ is $\link_\Delta(V\setminus W)$. Complementation on an $m$-element ground set identifies augmented relative chains of $\Delta^m$ modulo~$K$ with reduced cochains of $K^*$ in complementary degrees $a \leftrightarrow m-a-2$, yielding $\widetilde{H}_j(K;k) \cong \widetilde{H}^{m-j-3}(K^*;k)$ and hence $\beta_{i,W}(I^\vee) = \dim_k \widetilde{H}^{i-1}(\link_\Delta(V\setminus W);k)$ by~\eqref{eq:hochster}. Using the Mayer--Vietoris sequence of $\del_K(v)$ and the cone on $\link_K(v)$: $\widetilde{H}_q(\link_K(v)) \neq 0$ forces $\widetilde{H}_q(\del_K(v)) \neq 0$ or $\widetilde{H}_{q+1}(K) \neq 0$, while $\widetilde{H}_q(\del_K(v)) \neq 0$ forces $\widetilde{H}_q(K) \neq 0$ or $\widetilde{H}_q(\link_K(v)) \neq 0$ (and ghost deletions leave $K$ unchanged). Iterating shows that the maximum nonvanishing reduced homology degree over links equals that over induced subcomplexes, proving $\pd(I^\vee) = \reg(I) - 1$. Consequently, on codes satisfying~\eqref{eq:duality}, complementation swaps $(p,r) \mapsto (r-1, p+1)$.
+
+\begin{proposition}[Unbounded non-functionality of complementation]\label{prop:comp-fail}
+For every $s \ge 1$ and every $n \ge 4s$, there exist codes $C_1, C_2 \subseteq \{0,1\}^n$ with common invariants $(\pd,\reg) = (2s-1, 2s+1)$ whose complements have $(\pd,\reg) = (2s, 2s)$ and $(s, 3s)$, respectively.
+\end{proposition}
+
+\begin{proof}
+For $n = 4$, let $A$ consist of all words with fourth bit $0$ except $1110$, so $I_A = (x_4, x_1 x_2 x_3)$ has $(1,3)$ while $I_{Q\setminus A} = y_4(y_1,y_2,y_3)$ has $(2,2)$. Let $B$ consist of all words whose third and fourth bits differ, so $I_B = (x_3 x_4, y_3 y_4)$ and $I_{Q\setminus B} = (x_3 y_4, y_3 x_4)$ both have $(1,3)$. On disjoint coordinate blocks, $I_{C_1 \times C_2} = I_{C_1} + I_{C_2}$ while $I_{\overline{C_1 \times C_2}} = I_{\bar{C}_1} I_{\bar{C}_2}$; tensoring quotient resolutions in the first case and ideal resolutions in the second yields pair operations $(p_1 + p_2 + 1,\, r_1 + r_2 - 1)$ and $(p'_1 + p'_2,\, r'_1 + r'_2)$. Taking $s$ disjoint copies of $A$ versus $B$ and adding $n-4s$ free coordinates completes the proof.
+\end{proof}
+
+\section{Exact All-Dimension Enumerative Formula (\texttt{ques:region})}
+
+Let $\mathcal{A}_n := \mathbb{Q}[2^Q]$ be the finite-dimensional commutative algebra with basis $\{e_A : A \subseteq Q\}$, unit $e_\varnothing = 1$, and product $e_A e_B = e_{A\cup B}$, equipped with the linear functional $L(e_A) := 2^{2^n - |A|}$. For each $F \subseteq V$, set $f_F := \prod_{A \in \mathcal{T}(F)} (1 - e_{Q_A})$. For each nonempty $W \subseteq V$ and $0 \le t \le |W|$, let $D_t$ be the oriented boundary matrix of the full simplex on $W$ with columns indexed by $t$-element faces ($D_1$ the augmentation row, $D_0$ zero with one column), and let $\mathcal{I}_{t,j}$ be the set of $j$-element families of columns of $D_t$ that are linearly independent over~$k$. Suppressing~$W$, set
+\begin{gather*}
+R_t := \sum_{j=1}^{\rank_k D_t} \left[1 - \prod_{J \in \mathcal{I}_{t,j}} \left(1 - \prod_{F \in J} f_F\right)\right], \\[0.35em]
+b_{W,t} := \sum_{\substack{F \subseteq W \\ |F| = t}} f_F - R_t - R_{t+1},
+\qquad
+z_{W,t} := \prod_{a=1}^{\binom{|W|}{t}} \left(1 - \frac{b_{W,t}}{a}\right),
+\end{gather*}
+for $0 \le t < |W|$, and define
+\begin{gather*}
+A(p,r) := L\!\left(\prod_{\substack{\varnothing \neq W \subseteq V,\; 0 \le t < |W| \\ |W|-t-1 > p \text{ or } t+1 > r}} z_{W,t}\right) - 2, \\[0.35em]
+M_n(p,r) := A(p,r) - A(p-1,r) - A(p,r-1) + A(p-1,r-1).
+\end{gather*}
+
+\begin{theorem}[Exact enumerative region formula]\label{thm:enum}
+For every $n \ge 1$, every field~$k$, and all integers $p \ge 0$, $r \ge 1$,
+\begin{equation}\label{eq:enum}
+(p,r) \in \mathcal{R}_n(k) \iff M_n(p,r) > 0,
+\end{equation}
+where $M_n(p,r)$ counts the labeled nonempty proper codes $C \subseteq \{0,1\}^n$ with $(\pd(I_C),\reg(I_C)) = (p,r)$.
+\end{theorem}
+
+\begin{proof}
+For each $C \subseteq Q$, define the algebra homomorphism $\ev_C : \mathcal{A}_n \to \mathbb{Q}$ by $\ev_C(e_A) := \mathbf{1}[A \cap C = \varnothing]$. Products match unions, and $\sum_{C \subseteq Q} \ev_C(e_A) = 2^{2^n - |A|} = L(e_A)$. By the face test, $\ev_C(f_F) = \mathbf{1}[F \in K(W)]$. Each summand in $R_t$ evaluates to $1$ iff some $k$-independent $j$-tuple of columns of $D_t$ is active, so $\ev_C(R_t)$ equals the $k$-rank of the $t$-th augmented boundary map of $K(W)$ (since all boundary faces of an active face are active). Thus $\ev_C(b_{W,t}) = \dim_k \widetilde{H}_{t-1}(K(W);k) \in \{0,\dots,\binom{|W|}{t}\}$, and Lagrange interpolation gives $\ev_C(z_{W,t}) = \mathbf{1}[\widetilde{H}_{t-1}(K(W);k) = 0]$.
+
+By~\eqref{eq:hochster}, $\widetilde{H}_{t-1}(K(W);k)$ sits at homological degree $i = |W|-t-1$ and strand $|W|-i = t+1$. Hence the product inside $A(p,r)$ indicates $\pd(I_C) \le p$ and $\reg(I_C) \le r$. Both $C = Q$ (acyclic simplices) and $C = \varnothing$ (all $f_F$ vanish, including $f_\varnothing$) evaluate to $1$ for all $p,r$, so subtracting $2$ removes them ($A(-1,r) = A(p,0) = 0$). Differencing gives $M_n(p,r)$.
+\end{proof}
+
+\begin{remark}[Witness extraction and scope]
+Given disjoint forced-present and forced-absent sets $P, E \subseteq Q$, replacing $L(e_A)$ by $0$ if $A \cap P \neq \varnothing$ and $2^{2^n - |A\cup E\cup P|}$ otherwise counts witnesses extending $(P,E)$ in the mixed difference; deciding each word lexicographically constructs a witness in $2^n$ steps whenever $M_n(p,r) > 0$. Because $\dim \mathcal{A}_n = 2^{2^n}$, Theorem~\ref{thm:enum} is a doubly-exponential enumerative formula rather than a compact inequality description for $n \ge 5$, and Question~\texttt{ques:restricted-classes} remains open. Note that dependence on $\chark k$ enters~\eqref{eq:enum} solely through $\mathcal{I}_{t,j}$.
+\end{remark}
+
+\section{Complete Structure Through \texorpdfstring{$p+r \le 2n$}{p + r <= 2n} and Beyond}
+
+\begin{theorem}[Complete description of $\mathcal{R}_n(k)$ for $p+r \le 2n$]\label{thm:diag}
+For every $n \ge 2$ and every field~$k$, the nonempty proper pairs $(p,r) \in \mathcal{R}_n(k)$ with $p+r \le 2n$ are precisely the union of:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $(0,r)$ for $1 \le r \le n$;
+\item $(p,1)$ for $0 \le p \le n-1$;
+\item $(p,2)$ for $0 \le p \le n-2$;
+\item all $(p,r)$ with $p \ge 1$, $r \ge 3$, and $p+r \le 2n$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Parts~(1) and~(2) follow from Section~2. For~(3), if $\reg(I_C) = 2$, only homology degrees $0$ and $-1$ can contribute in~\eqref{eq:hochster}. In degree~$0$, connectedness (Theorem~\ref{thm:h1}) forces $d(W) = 0$, so $|W| \le n$ and $i = |W|-2 \le n-2$. In degree~$-1$, reaching $i = n-1$ requires $n$ ghosts, fixing all coordinates of $C$ and forcing $\reg(I_C) = 1$. Conversely, for $0 \le p \le n-2$, omitting the upward-closed set satisfying $x_1 x_2, \dots, x_1 x_{p+2}$ gives $I_C = x_1(x_2,\dots,x_{p+2})$, with pair $(p,2)$ by Koszul.
+
+For~(4), we first construct two families for $2 \le k \le s \le n$:
+\begin{itemize}[leftmargin=*]
+\item \emph{Private literals:} Omit $k$ words whose first $k$ columns form $I_k$, next $s-k$ columns repeat column~$1$, and last $n-s$ columns are~$0$. Pairwise distances are $\ge 2$, so the minimal generators correspond to the $k$ omitted words, each with a private literal among the first $k$ coordinates. Every boundary deletion in the Taylor resolution strictly shrinks the literal union, making the resolution minimal. Adding a generator raises the shift by at least~$1$, so the full $k$-set (shift $n+s$) maximizes both $i$ and shift minus~$i$, giving $(p,r) = (k-1,\, n+s-k+1)$.
+\item \emph{Complementary diagonal:} Take $C$ to be those $k$ words. Each of the $n-s$ constant coordinates adds a variable generator, raising $\pd$ by~$1$ and preserving $\reg$. On the $s$ active coordinates, $C$ has one word supported on a block of $b := s-k+1$ coordinates (literals $a_i,b_i$) and $t := k-1$ singletons (literals $x_j,y_j$). Writing $Y := \prod_{j=1}^t y_j$, the minimal generators are $a_i b_\ell$ ($i \neq \ell$), $a_i x_j$, $x_j x_h$ ($j < h$), and $b_i Y$ ($1 \le i \le b$). Replacing $Y$ by a single variable~$z$ yields a quadratic ideal on $M := 2b+t+1$ variables whose Stanley--Reisner complex consists of a simplex on $\{a_i\}\cup\{z\}$ and a union of simplices $\{b_1,\dots,b_b\}\cup\{x_j\}$ ($1 \le j \le t$) joined by $b$ matching edges $a_i b_i$ and $t$ edges $z x_j$, all outside triangles. Both pieces are contractible, giving $\dim_k \widetilde{H}_1 = b+t-1 > 0$ at full support, while every induced subcomplex has $\widetilde{H}_q = 0$ for $q \ge 2$. Since there are no ghosts and the full complex is connected,~\eqref{eq:hochster} gives $(M-3, 3)$ for the auxiliary ideal, both witnessed at full support. Because $k[y_1,\dots,y_t]$ is free over $k[Y]$, substituting $z \mapsto Y$ is flat and preserves minimality: $\pd$ remains $M-3 = 2s-k-1$, while shifts containing $z$ increase by $t-1$, giving $\reg = 3 + t - 1 = k+1$. Restoring the $n-s$ constant coordinates yields $(p,r) = (n+s-k-1,\, k+1)$.
+\end{itemize}
+
+Now let $p \ge 1$, $r \ge 3$, $p+r \le 2n$. If $p+r = 2m$ is even ($m \le n$), setting $s = n' = m$ in the two families covers $1 \le p \le m-1$ and $3 \le r \le m+1$ (the full diagonal), and $n-m$ free coordinates lift to $n$. If $p+r = 2m+1$ is odd ($m+1 \le n$) and $r \ge 4$, realize $(p,r-1)$ on $m$ coordinates and restrict the missing set to one layer of a new coordinate (multiplying $I_C$ by one variable, raising $\reg$ by~$1$). If $p+r = 2m+1$ is odd and $r = 3$, then $p \ge 2$; realize $(p-1,3)$ on $m$ coordinates and fix the new coordinate on $C$ (adding a disjoint variable generator, raising $\pd$ by~$1$). Pad with free coordinates.
+\end{proof}
+
+\begin{proposition}[Explicit family reaching $p+r = 3n-3$]\label{prop:beyond}
+For every $n \ge 3$, every field~$k$, and every $1 \le p \le n-1$, the pair $(p, 2n-2)$ belongs to $\mathcal{R}_n(k)$.
+\end{proposition}
+
+\begin{proof}
+Set $m := n-1 \ge 2$, $P := x_1\cdots x_m$, $Y := y_1\cdots y_m$, $z := x_n$, $w := y_n$. For $1 \le t \le m$, omit $0^n$ and all words satisfying $P$ or some $z x_j$ ($1 \le j \le t$). Since $m \ge 2$, $0^n$ is isolated and $I_C = (P, z x_1, \dots, z x_t, w Y)$. Starting from $z(x_1,\dots,x_t)$ with $(t-1, 2)$, we have $(P) \cap z(x_1,\dots,x_t) = (zP)$; its mapping cone is minimal (since $z$ and $P/x_1$ have positive degree) and has $(\max(1,t-1), m)$. Tensoring quotient resolutions with the disjoint degree-$n$ monomial $wY$ adds $1$ to $\pd$ and $n-1$ to $\reg$, giving $(\max(2,t), 2n-2)$. Finally, omitting two words at Hamming distance $n-1 \ge 2$ yields two degree-$n$ generators with union size $2n-1$, realizing $(1, 2n-2)$.
+\end{proof}
+
+\section{Exact Computational Verification}
+
+The script \texttt{solutions/neural\_code\_homological/explore.py} runs exact binary elimination over $\mathbb{F}_2$ across all Hamming-cube symmetry orbits for $1 \le n \le 4$ (Table~\ref{tab:orbits}). It verifies agreement of Theorems~\ref{thm:hochster} and~\ref{thm:taylor} at every multidegree of all 425 orbit representatives, Theorem~\ref{thm:h1} at every doubled support, Theorem~\ref{thm:maxpd} for $n=3,4$, Theorem~\ref{thm:duality} across all supports (finding literal-reversed Alexander duality for $2, 12, 126, 5{,}528$ labeled codes at $n=1,2,3,4$), Theorem~\ref{thm:enum} against exact labeled counts for $n=1,2$, the explicit families of Theorem~\ref{thm:diag} and Proposition~\ref{prop:beyond} through $n=6$, the counterexample of Proposition~\ref{prop:comp-fail}, and both degenerate codes. For $n \le 3$, no pair exceeds $p+r = 2n$; for $n=4$, the only pairs beyond $p+r=8$ are $(3,6)$ (Proposition~\ref{prop:beyond}, $t=3$) and $(4,5)$ (witnessed by binary words $\{0,7,9,10,12\}$, coordinate~$1$ least significant).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}rrrrl@{}}
+\toprule
+$n$ & Labeled codes & Orbits & Pairs & Regularities at successive projective dimensions ($p=0,1,\dots$) \\
+\midrule
+1 & 2      & 1   & 1  & $\{1\}$ \\
+2 & 14     & 4   & 4  & $\{1,2\}\cdot\{1,3\}$ \\
+3 & 254    & 20  & 12 & $1\text{--}3\cdot 1\text{--}5\cdot\{1,3,4\}\cdot\{3\}$ \\
+4 & 65,534 & 400 & 26 & $1\text{--}4\cdot 1\text{--}7\cdot 1\text{--}6\cdot\{1,3,4,5,6\}\cdot 3\text{--}5\cdot\{3\}$ \\
+\bottomrule
+\end{tabular}
+\caption{Exact enumeration of nonempty proper pairs $(\pd(I_C),\reg(I_C))$ over $\mathbb{F}_2$ for $1 \le n \le 4$.}\label{tab:orbits}
+\end{table}
+
+\begin{thebibliography}{9}
+\bibitem{Chau2025}
+T.~Chau.
+Projective dimension and regularity of squarefree monomial ideals without $x_i y_i$.
+Preprint \href{https://arxiv.org/abs/2511.19043}{arXiv:2511.19043}, 2025.
+
+\bibitem{KaraLew2026}
+S.~Kara and E.~Lew.
+Neural codes via homological invariants of polarized neural ideals.
+Preprint \href{https://arxiv.org/abs/2602.16993}{arXiv:2602.16993}, February 2026.
+
+\bibitem{Terai1999}
+N.~Terai.
+Alexander duality theorem and Stanley--Reisner rings.
+In \emph{Free Resolutions of Coordinate Rings of Projective Varieties and Related Topics}, RIMS K\^oky\^uroku 1078, pp.~174--184, 1999.
+\end{thebibliography}
+
+\end{document}
