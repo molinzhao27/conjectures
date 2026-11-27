@@ -1,0 +1,61 @@
+import Conjectures.ReluTopology
+import Conjectures.NeuralCodes
+import Conjectures.PhyloOLA
+import Conjectures.StochThermo
+import Conjectures.AttentionIdentifiability
+import Conjectures.TransformerHeads
+import Conjectures.HopfieldMixedMemories
+
+#print axioms BeshkovReluTopology.beshkov_part_A
+#print axioms BeshkovReluTopology.convex_omegaBar
+#print axioms BeshkovReluTopology.isCompact_omegaBar
+#print axioms BeshkovReluTopology.bottleneck_in_hyperplane
+#print axioms BeshkovReluTopology.bottleneck_relu_in_relu_hyperplane
+#print axioms BeshkovReluTopology.straight_ray_escape
+
+#print axioms NeuralCodesBMF.refutation_clean_3x4
+#print axioms NeuralCodesBMF.refutation_all1_reverse
+#print axioms NeuralCodesBMF.refutation_dup_reverse
+#print axioms NeuralCodesBMF.brank_intersection_complete
+#print axioms NeuralCodesBMF.question2_sharpness
+
+#print axioms PhyloOLA.BinTree.olaEntry_subtree_locality
+#print axioms PhyloOLA.BinTree.olaDist_le_upward_closed
+#print axioms PhyloOLA.BinTree.deterministic_spr_bound
+
+#print axioms WamplerBaratoStochThermo.skewSq_le_max
+#print axioms WamplerBaratoStochThermo.skewSq_ge_min_endpoints
+#print axioms WamplerBaratoStochThermo.kurtU_le_max
+#print axioms WamplerBaratoStochThermo.kurtU_ge_min_endpoints
+#print axioms WamplerBaratoStochThermo.refutation_table1_omega2_skewness
+#print axioms WamplerBaratoStochThermo.refutation_table1_omega2_kurtosis
+#print axioms WamplerBaratoStochThermo.coth_half_eq_tanh_quarter
+#print axioms WamplerBaratoStochThermo.skewness_witness_t_3_5
+#print axioms WamplerBaratoStochThermo.kurtosis_witness_t_13_20
+#print axioms WamplerBaratoStochThermo.universal_maclaurin_positivity
+
+#print axioms DeepSoftmaxIdentifiability.recover_L
+#print axioms DeepSoftmaxIdentifiability.t2_skew_collapse
+#print axioms DeepSoftmaxIdentifiability.twoCluster_invariant
+#print axioms DeepSoftmaxIdentifiability.exponent_gap
+#print axioms DeepSoftmaxIdentifiability.lemma2_expansion
+#print axioms DeepSoftmaxIdentifiability.lemma2_b_step
+#print axioms DeepSoftmaxIdentifiability.deep_softmax_identifiability
+
+#print axioms TransformerHeadCount.softmin_error_bound
+#print axioms TransformerHeadCount.softmin_error_bound_univ
+#print axioms TransformerHeadCount.theoremB_matrices_bounded
+#print axioms TransformerHeadCount.nopeEmbed_unit_norm
+#print axioms TransformerHeadCount.theoremB_L2_h1_D3
+
+#print axioms HopfieldMixedMemories.m5_tie_free
+#print axioms HopfieldMixedMemories.m5_chow_fixed
+#print axioms HopfieldMixedMemories.m5_not_in_M_all
+#print axioms HopfieldMixedMemories.m7_p3_tie_free
+#print axioms HopfieldMixedMemories.m7_p3_chow_fixed
+#print axioms HopfieldMixedMemories.m7_p4_tie_free
+#print axioms HopfieldMixedMemories.m7_p4_chow_fixed
+#print axioms HopfieldMixedMemories.m7_not_in_M_all
+#print axioms HopfieldMixedMemories.M_all_multiplicity_even_above_min
+#print axioms HopfieldMixedMemories.chow_parseval
+#print axioms HopfieldMixedMemories.dense_lift_sum_lt_two

@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Lean / Lake build cache
+lean_proofs/.lake/
+
+# Third-party arXiv sources & local scratch
+papers/
+solutions/poly_identifiability/
+solutions/**/REFEREE_REPORT.md
+
+# OS
+.DS_Store
