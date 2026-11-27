@@ -1,0 +1,191 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\CountThree}{Count3}
+
+\title{\bfseries Refutation of ENTP Conjecture 6.1 (\texttt{Count3}) and Exact One-Pass Streaming Bounds}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: E.~Ewer, D.~Chae, T.~Zeng, J.~Kim, and K.~Lee,\\
+\emph{ENTP: Encoder-only Next Token Prediction}, \href{https://arxiv.org/abs/2410.01600}{arXiv:2410.01600} (v3, Feb.\ 2025; TMLR 2025), Conj.~6.1\\[0.35em]
+Lean~4 companion formalization: \texttt{lean\_proofs/Conjectures/ENTPCount3.lean}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We refute Conjecture~6.1 (\texttt{con:ts2}) of Ewer et~al.\ (\href{https://arxiv.org/abs/2410.01600}{arXiv:2410.01600}, TMLR 2025) under the read-only random-access model used by the paper's own algorithms.
+Grouping modular residue frequencies into blocks of width $B = \lceil \sqrt{n} \rceil$ computes $\CountThree(x_1,\dots,x_n)$ deterministically in $O(n^{3/2})$ time and $O(\sqrt{n})$ words ($O(\sqrt{n}\log n)$ bits) of workspace, performing all work after reading $x_n$, thereby refuting both horns of the conjectured dichotomy.
+Bit-packed counter refinements on a word RAM further achieve $O(n^2 \log\log n / \log n)$ time with $O(1)$ words and $O(n\log n)$ time with $O(n \log\log n / \log n) = o(n)$ bits; all three sit on the trade-off $T \cdot S = \tilde{O}(n^2)$ bits, matching exact second-frequency-moment trade-offs.
+Conversely, under a strict one-pass streaming model with known length $n$, we prove that $\Theta(n)$ persistent bits are both necessary (via an explicit \textsc{Index} reduction for all $n \ge 12$) and sufficient (via a $(2n-2)$-bit unary histogram encoding).
+Consequently, Lemma~6.2 loses its hypothesis, while the fixed-width causal Transformer depth question remains open.
+\end{abstract}
+
+\section{Exact Problem Statement and Histogram Identity}
+
+For positive integers $x_1, \dots, x_n$, Ewer et~al.\ (\href{https://arxiv.org/abs/2410.01600}{arXiv:2410.01600}, Section~6) define the modular triplet-counting task
+\[
+\CountThree(x_1, \dots, x_n)
+:= \bigl|\{(i, j) \in [n]^2 : x_i + x_j + x_n \equiv 0 \pmod n\}\bigr| \bmod n.
+\]
+Both Algorithm~1 and Algorithm~2 of the paper iterate over all ordered pairs $(i,j) \in [n]^2$, including $i = j$ and index $n$.
+In that model, the input $x_1, \dots, x_n$ is read-only and may be scanned repeatedly without counting toward auxiliary space (Algorithm~1 is credited with $O(1)$ space and $O(n^2)$ time; Algorithm~2 with $O(n)$ space and $O(n)$ time).
+
+\begin{quote}
+\textbf{Conjecture~6.1 (\texttt{con:ts2}, arXiv:2410.01600 v3).}
+\emph{Given an algorithm $\mathcal{A}$ that computes $\CountThree(x_1, \dots, x_n)$, at least one of the following must hold:}
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item \emph{$\mathcal{A}$ requires $\Omega(n^2)$ time with access to $x_n$;}
+\item \emph{$\mathcal{A}$ requires $\Omega(n)$ space storing values unique to $n$.}
+\end{enumerate}
+\end{quote}
+
+Set $t := x_n \bmod n$, let $h(a) := |\{i \in [n] : x_i \equiv a \pmod n\}|$ for $a \in \{0, \dots, n-1\}$, and define the involution $c(a) := (-t - a) \bmod n \in \{0, \dots, n-1\}$, so that $a + b + t \equiv 0 \pmod n \iff b = c(a)$ for $a, b \in \{0, \dots, n-1\}$.
+
+\begin{proposition}[Histogram identity]\label{prop:hist}
+For every $n \ge 1$ and $x_1, \dots, x_n \in \mathbb{N}$,
+\[
+\CountThree(x_1, \dots, x_n) = \biggl(\sum_{a=0}^{n-1} h(a)\, h(c(a))\biggr) \bmod n.
+\]
+\end{proposition}
+
+\begin{proof}
+Partition the set of ordered pairs $(i, j) \in [n]^2$ satisfying $x_i + x_j + x_n \equiv 0 \pmod n$ according to $a = x_i \bmod n \in \{0, \dots, n-1\}$. For fixed $a$, a pair $(i, j)$ satisfies the congruence if and only if $x_i \equiv a \pmod n$ and $x_j \equiv c(a) \pmod n$, giving $h(a)\,h(c(a))$ pairs. Summing over $a$ and reducing modulo $n$ yields the identity.
+\end{proof}
+
+\section{Refutation by Residue Blocking}
+
+\begin{theorem}[Residue-block algorithm]\label{thm:blocked}
+For every $n \ge 1$ and every block width $1 \le B \le n$, there is a deterministic read-only algorithm that performs no computation before reading $x_n$, uses $B$ counters and $O(1)$ scalar variables ($O(B)$ words, i.e., $O(B \log n)$ bits), and computes $\CountThree(x_1, \dots, x_n)$ in $O(n \lceil n/B \rceil)$ time.
+In particular, taking $B = \lceil \sqrt{n} \rceil$ achieves $O(n^{3/2})$ time and $O(\sqrt{n})$ words ($O(\sqrt{n}\log n)$ bits), refuting Conjecture~6.1 under both word and bit space accounting.
+\end{theorem}
+
+\begin{proof}
+Read $t = x_n \bmod n$ and initialize $\mathrm{total} \leftarrow 0$.
+Partition $\{0, \dots, n-1\}$ into $M := \lceil n/B \rceil$ disjoint intervals $I_k := [kB,\, \min((k+1)B, n))$ for $k = 0, \dots, M-1$.
+For each $k = 0, \dots, M-1$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Zero an array $\mathrm{cnt}[0 \dots |I_k|-1]$ of length $|I_k| \le B$.
+\item Scan $i = 1, \dots, n$: if $a := x_i \bmod n \in I_k$, increment $\mathrm{cnt}[a - kB]$. After this pass, $\mathrm{cnt}[a - kB] = h(a)$ for every $a \in I_k$.
+\item Scan $j = 1, \dots, n$: compute $b := (-t - x_j) \bmod n = c(x_j \bmod n)$. If $b \in I_k$, add $\mathrm{cnt}[b - kB]$ to $\mathrm{total}$.
+\end{enumerate}
+Since $c$ is an involution on $\{0,\dots,n-1\}$, a residue $b \in I_k$ satisfies $c(x_j \bmod n) = b$ if and only if $x_j \bmod n = c(b)$, which occurs for exactly $h(c(b))$ indices $j \in [n]$. Hence step~(3) adds $\sum_{b \in I_k} h(b)\,h(c(b))$ to $\mathrm{total}$.
+Summing over the disjoint partition $\bigsqcup_{k=0}^{M-1} I_k = \{0, \dots, n-1\}$ and reducing modulo $n$ yields $\CountThree(x_1, \dots, x_n)$ by Proposition~\ref{prop:hist}.
+Each block performs two linear scans of the input and clears at most $B$ counters, for $O(n M) = O(n \lceil n/B \rceil)$ total time.
+For $B = \lceil \sqrt{n} \rceil$, time is $O(n^{3/2}) = o(n^2)$ (all after reading $x_n$) and auxiliary space is $O(\sqrt{n})$ words $= O(\sqrt{n}\log n) = o(n)$ bits.
+\end{proof}
+
+\section{Word-RAM Refinements and the \texorpdfstring{$T \cdot S$}{T * S} Trade-Off}
+
+On a standard word RAM with word length $w = \lceil \log_2(n+1) \rceil$ bits (assuming inputs fit in $O(1)$ words, as in Lemma~6.3 where $x_i < n$, and constant-time bitwise/arithmetic operations with $O(1)$-word intermediates), packing saturating counters into words strictly improves on both baseline algorithms in the paper.
+
+\begin{theorem}[Packed-counter endpoints]\label{thm:packed}
+On a read-only $w$-bit word RAM ($w = \lceil \log_2(n+1) \rceil$), with all computation performed after reading $x_n$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item $\CountThree$ can be computed in $O(n^2 \log\log n / \log n)$ time using $O(1)$ auxiliary words.
+\item $\CountThree$ can be computed in $O(n \log n)$ time using $O(n \log\log n / \log n) = o(n)$ auxiliary bits.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), let $f := \lceil \log_2(w+1) \rceil$, $S := 2^f - 1 \ge w$, and $B := \lfloor w / f \rfloor = \Theta(\log n / \log\log n)$.
+Pack $B$ unsigned $f$-bit counters into a single $w$-bit word.
+For each of the $\lceil n/B \rceil$ blocks $I_k$: (a) scan $x_i$, incrementing the field for $x_i \bmod n \in I_k$ only while strictly below $S$ (preventing carry between fields); (b) scan $x_j$, adding the counter for $b = c(x_j \bmod n) \in I_k$ whenever it is strictly below $S$; (c) for each saturated offset $a \in I_k$ (field equal to $S$), run one linear scan over $x$ counting both $h(a)$ and $h(c(a))$ simultaneously and add $h(a)\,h(c(a))$.
+Each unsaturated residue is counted once in~(b) and each saturated residue once in~(c) (including diagonal residues $c(a)=a$, where the scan computes $h(a)^2$).
+The block scans cost $O(n \lceil n/B \rceil) = O(n^2 \log\log n / \log n)$. Since each saturated residue satisfies $h(a) \ge S \ge w$, there are at most $\lfloor n/S \rfloor \le n/w$ saturated residues across all blocks, contributing $O(n^2/\log n)$ rescan time.
+
+For~(2), let $B := \max(1, \lfloor n/w \rfloor)$, $f := \min(w, \lceil \log_2(w^2+1) \rceil) = \Theta(\log\log n)$, and $S := 2^f - 1 \ge w^2$.
+For each of the $\lceil n/B \rceil = O(\log n)$ blocks $I_k$, pack $B$ saturating $f$-bit fields across $\lceil B f / w \rceil$ words (total $O(Bf) = O(n \log\log n / \log n)$ bits, allowing fields to span word boundaries or using $\lfloor w/f \rfloor$ fields per word for $w \ge 2f$).
+After the first scan over $x$, scan the block to collect the sorted array \texttt{heavy} of saturated offsets in $I_k$. Globally there are at most $\lfloor n/S \rfloor \le n/w^2$ saturated residues, so \texttt{heavy} and its exact-count array occupy $O((n/w^2) w) = O(n/\log n)$ bits.
+Run one scan over $x$ updating exact counts of $x_i \bmod n \in \texttt{heavy}$ via binary search, then scan $x_j$ looking up $b = c(x_j \bmod n) \in I_k$ in the packed array (or in \texttt{heavy} via binary search if saturated).
+Across all blocks, each $x_i$ falls in exactly one block and each $c(x_j \bmod n)$ falls in exactly one block, so at most $2n$ binary searches occur in total, costing $O(n\log n)$. The $O(\log n)$ linear scans also cost $O(n\log n)$, and total workspace is $O(n \log\log n / \log n) = o(n)$ bits.
+\end{proof}
+
+\begin{remark}[Relation to $F_2$ and repaired conjecture]
+Writing $A$ and $B$ for the multisets $\{x_i \bmod n\}$ and $\{(-t - x_j) \bmod n\}$, we have $\sum_a h_A(a) h_B(a) = \frac{1}{2}(F_2(A \uplus B) - F_2(A) - F_2(B))$.
+All algorithms in Theorems~\ref{thm:blocked} and~\ref{thm:packed} satisfy $T \cdot S = \tilde{O}(n^2)$ bits, coinciding with the exact frequency-moment trade-off of Beame--Clifford--Machmouchi (\href{https://arxiv.org/abs/1309.3690}{arXiv:1309.3690}).
+Thus the dichotomy of Conjecture~6.1 is false, while a time--space product lower bound $T \cdot S = \tilde{\Omega}(n^2)$ bits would be the natural repaired conjecture.
+\end{remark}
+
+\section{Exact One-Pass Streaming Complexity}
+
+A natural follow-up question is whether an $\Omega(n)$ space lower bound holds if the algorithm is restricted to a \emph{single streaming pass} with known length $n$. We show that $\Theta(n)$ bits are both necessary and sufficient---noting that $\Theta(n)$ bits is still $\Theta(n/\log n) = o(n)$ words.
+
+\begin{theorem}[Tight one-pass streaming bound]\label{thm:streaming}
+For known sequence length $n$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{(Lower bound)} For every $n \ge 12$, any deterministic one-pass streaming algorithm computing $\CountThree(x_1, \dots, x_n)$ requires at least $2^{\lfloor n/12 \rfloor}$ distinguishable states after reading $x_1, \dots, x_{n-1}$, i.e., at least $\lfloor n/12 \rfloor$ persistent bits (and any bounded-error randomized one-pass algorithm requires $\Omega(n)$ bits).
+\item \emph{(Upper bound)} For every $n \ge 1$, a deterministic one-pass streaming algorithm computes $\CountThree(x_1, \dots, x_n)$ using $2n - 2$ persistent bits between $x_{n-1}$ and $x_n$ and $O(n)$ time after reading $x_n$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+For~(1), set $m := \lfloor n/12 \rfloor \ge 1$ and $F := 4m + 1$. Given any bitstring $b = (b_0, \dots, b_{m-1}) \in \{0, 1\}^m$, form the prefix $x_0, \dots, x_{n-2}$ by setting
+\[
+x_i := \begin{cases}
+2(m + 1 + i) & \text{if } 0 \le i < m \text{ and } b_i = 1, \\
+F & \text{otherwise.}
+\end{cases}
+\]
+For any query index $q \in \{0, \dots, m-1\}$, set $k := m + 1 + q \in [m+1, 2m]$ and append $x_{n-1} := n - k$.
+Since $12m \le n$, every entry satisfies $1 \le x_i < n$. We classify all ordered pairs $(i, j)$ satisfying $x_i + x_j + x_{n-1} \equiv 0 \pmod n$:
+\begin{itemize}[leftmargin=2em]
+\item \emph{Prefix--prefix ($i, j < n - 1$):} Every prefix entry lies in $[2m+2, 4m+1]$, so $x_i + x_j \in [4m+4, 8m+2]$ and hence
+\[
+n + 2m + 4 \le x_i + x_j + (n - k) \le n + 7m + 1 < 2n,
+\]
+which is never divisible by $n$.
+\item \emph{Last--last ($i = j = n - 1$):} $3(n - k) \equiv -3k \pmod n$, and $0 < 3k \le 6m \le n/2 < n$, so this pair never matches.
+\item \emph{Prefix--last (one of $i, j$ equals $n - 1$, the other $r < n - 1$):} Since $x_r \in [2m+2, 4m+1]$ and $2k \in [2m+2, 4m]$, we have $x_r + 2(n - k) \equiv 0 \pmod n \iff x_r = 2k$. Because $F = 4m+1$ is odd and $i \mapsto 2(m+1+i)$ is strictly increasing on $\{0,\dots,m-1\}$, this occurs if and only if $r = q$ and $b_q = 1$.
+\end{itemize}
+Counting both $(q, n-1)$ and $(n-1, q)$ gives $\CountThree(x_0, \dots, x_{n-2}, n - k) = 2b_q \bmod n = 2b_q$ (since $n \ge 12 > 2$).
+Thus any two distinct bitstrings $b \neq b'$ differ on some suffix $n - k$, forcing at least $2^m = 2^{\lfloor n/12 \rfloor}$ states by the pigeonhole principle (and $\Omega(m) = \Omega(n)$ randomized bits by the one-way communication complexity of \textsc{Index}).
+
+For~(2), let $(h_0, \dots, h_{n-1})$ be the residue histogram of $x_1, \dots, x_{n-1}$, so $\sum_{a=0}^{n-1} h_a = n - 1$.
+Its stars-and-bars unary code places $n - 1$ separator zeros at the strictly increasing positions $p(r) = r + \sum_{a=0}^r h_a \in \{0, \dots, 2n-3\}$ for $r = 0, \dots, n-2$.
+The $(2n-2)$-bit indicator vector of $\{p(0), \dots, p(n-2)\}$ uniquely determines $p$ (hence all prefix sums and all counts $h_a$, including $h_{n-1} = (n-1) - \sum_{a=0}^{n-2} h_a$).
+Once $x_n$ arrives, decoding takes $O(n)$ time, incrementing $h_{x_n \bmod n}$, and evaluating Proposition~\ref{prop:hist} in $O(n)$ time.
+\end{proof}
+
+\section{Impact, Formalization, and Attribution}
+
+\paragraph{Impact on \href{https://arxiv.org/abs/2410.01600}{arXiv:2410.01600}.}
+Lemma~6.2 assumes Conjecture~6.1 as its premise, so its proof loses its hypothesis and provides no depth bound.
+Nevertheless, the underlying architectural question---whether a fixed-width causal Transformer computing $\CountThree$ on all prefixes $m \le n$ requires $L = \Omega(n)$ layers---remains open: Theorem~\ref{thm:streaming}(1) does not transfer to causal Transformers because the final token can attend to the entire key--value cache after seeing $x_n$.
+Lemma~6.3 (encoder upper bound) and Theorems~4.1--4.2 do not depend on Conjecture~6.1 and are unaffected.
+
+\paragraph{Lean~4 formalization and Python verification.}
+The companion file \texttt{ENTPCount3.lean} (in \texttt{lean\_proofs/Conjectures/}) compiles under Lean~\texttt{v4.24.0} with Mathlib, zero \texttt{sorry}s, and standard axioms only, machine-checking:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item Proposition~\ref{prop:hist} (\texttt{count3\_eq\_hist\_sum});
+\item Theorem~\ref{thm:blocked} (\texttt{blockedCount3\_eq\_count3}, \texttt{sqrt\_block\_bounds});
+\item Theorem~\ref{thm:streaming} (\texttt{indexInstance\_bounds}, \texttt{index\_reduction\_correct},\\
+\texttt{streaming\_state\_lower\_bound}, \texttt{unaryCode\_injective}).
+\end{itemize}
+The script \texttt{solutions/entp\_count3/explore.py} verifies all four algorithms against the exact definition on all 50,069 sequences for $n = 1, \dots, 6$, 260 saturation stress cases up to $n = 513$, 100 multi-field/multi-heavy packing cases with carry-free and $\le 2n$ search-count assertions, and 4,290 \textsc{Index} queries.
+
+\paragraph{Literature note.}
+All citations refer to arXiv v3 (4~February 2025); the paper was published in TMLR~2025 (the OpenReview camera-ready PDF was behind an anti-bot challenge and could not be verified directly). No prior refutation of Conjecture~6.1 was found in literature searches or citing papers as of November~2026; the blocking and packing methods themselves are elementary and align with Beame--Clifford--Machmouchi (\href{https://arxiv.org/abs/1309.3690}{arXiv:1309.3690}).
+
+\end{document}

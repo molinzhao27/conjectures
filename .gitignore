@@ -6,9 +6,12 @@ __pycache__/
 # Lean / Lake build cache
 lean_proofs/.lake/
 
-# Third-party arXiv sources & local scratch
+# Third-party arXiv sources & local scratch / partial notes
 papers/
+AGENTS.md
 solutions/poly_identifiability/
+solutions/poly_comp_strong/
+solutions/mallat_zeitouni_pca/
 solutions/**/REFEREE_REPORT.md
 
 # OS

@@ -1174,4 +1174,201 @@ theorem bottleneck_not_superset_boundarySimplex {d : ℕ} (W₂ : Matrix (Fin (d
   obtain ⟨h, hh⟩ := hsub hqt_bdry
   exact hray t ht_mem.1 (hh ▸ hmem h)
 
+/-! ### Extensions to Arbitrary Output Width `(d, d, m)` (Theorem A2) and `(k, k+1, k+1)` Tori (Theorem B1) -/
+
+/-- **Scalar firm nonexpansiveness of ReLU**:
+`(relu u - relu v)^2 ≤ (relu u - relu v) * (u - v)` for all `u, v : ℝ`. -/
+theorem relu_firmly_nonexpansive (u v : ℝ) :
+    (relu u - relu v) ^ 2 ≤ (relu u - relu v) * (u - v) := by
+  unfold relu
+  rcases le_total 0 u with hu | hu <;> rcases le_total 0 v with hv | hv
+  · rw [max_eq_right hu, max_eq_right hv]; nlinarith
+  · rw [max_eq_right hu, max_eq_left hv]; nlinarith
+  · rw [max_eq_left hu, max_eq_right hv]; nlinarith
+  · rw [max_eq_left hu, max_eq_left hv]; norm_num
+
+/-- **Vector firm nonexpansiveness through an affine ReLU readout**:
+For any `d, m : ℕ`, `W : Matrix (Fin m) (Fin d) ℝ`, `b : Fin m → ℝ`, and `s, t : Fin d → ℝ`,
+`‖g(s) - g(t)‖₂² ≤ ⟨Wᵀ (g(s) - g(t)), s - t⟩`, where `g(x) = reluVec (W.mulVec x + b)`. -/
+theorem reluVec_firmly_nonexpansive {d m : ℕ}
+    (W : Matrix (Fin m) (Fin d) ℝ) (b : Fin m → ℝ) (s t : Fin d → ℝ) :
+    let y := reluVec (W.mulVec s + b)
+    let z := reluVec (W.mulVec t + b)
+    ∑ i : Fin m, (y i - z i) ^ 2 ≤ dotProduct (W.transpose.mulVec (y - z)) (s - t) := by
+  intro y z
+  have hdot :
+      dotProduct (W.transpose.mulVec (y - z)) (s - t) =
+        ∑ i : Fin m, (y i - z i) * ((W.mulVec s + b) i - (W.mulVec t + b) i) := by
+    have h1 : dotProduct (W.transpose.mulVec (y - z)) (s - t) =
+        dotProduct (y - z) (W.mulVec (s - t)) := by
+      rw [Matrix.mulVec_transpose, Matrix.dotProduct_mulVec]
+    rw [h1]
+    unfold dotProduct
+    refine Finset.sum_congr rfl fun i _ => ?_
+    have hsub : W.mulVec (s - t) i = (W.mulVec s + b) i - (W.mulVec t + b) i := by
+      simp [Matrix.mulVec_sub]
+    rw [hsub]
+    rfl
+  rw [hdot]
+  refine Finset.sum_le_sum fun i _ => ?_
+  exact relu_firmly_nonexpansive ((W.mulVec s + b) i) ((W.mulVec t + b) i)
+
+/-- **Theorem A2 Core (Global injectivity of `Wᵀ` on `g(ℝ^d)` for arbitrary `d, m`)**:
+For EVERY `d, m : ℕ`, `W : Matrix (Fin m) (Fin d) ℝ`, and `b : Fin m → ℝ`, the single linear map
+`Wᵀ : (Fin m → ℝ) → (Fin d → ℝ)` is globally injective on the entire clipped affine `d`-plane
+`g(ℝ^d) = {reluVec (W.mulVec t + b) | t : Fin d → ℝ}`! -/
+theorem transpose_injective_on_relu_affine {d m : ℕ}
+    (W : Matrix (Fin m) (Fin d) ℝ) (b : Fin m → ℝ) (s t : Fin d → ℝ)
+    (heq : W.transpose.mulVec (reluVec (W.mulVec s + b)) =
+           W.transpose.mulVec (reluVec (W.mulVec t + b))) :
+    reluVec (W.mulVec s + b) = reluVec (W.mulVec t + b) := by
+  set y := reluVec (W.mulVec s + b)
+  set z := reluVec (W.mulVec t + b)
+  have hdiff0 : W.transpose.mulVec (y - z) = 0 := by
+    rw [Matrix.mulVec_sub, heq, sub_self]
+  have hle := reluVec_firmly_nonexpansive W b s t
+  dsimp only at hle
+  rw [hdiff0, zero_dotProduct] at hle
+  have hsum0 : ∑ i : Fin m, (y i - z i) ^ 2 = 0 :=
+    le_antisymm hle (Finset.sum_nonneg fun i _ => sq_nonneg _)
+  funext i
+  have hi : (y i - z i) ^ 2 = 0 :=
+    (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => sq_nonneg (y j - z j))).mp hsum0 i (Finset.mem_univ i)
+  have hsub0 : y i - z i = 0 := sq_eq_zero_iff.mp hi
+  linarith
+
+/-- **Piece-wise injectivity identity (`ker Wᵀ ∩ range(D_σ W) = {0}`)**:
+For any active mask `σ : Fin m → Bool`, writing `(D_σ u) i = if σ i then u i else 0`,
+`Wᵀ (D_σ (W v)) = 0 → D_σ (W v) = 0`, establishing that `Wᵀ` is an affine isomorphism
+on every activation cell image `g(C_σ)`. -/
+theorem transpose_ker_inter_active_range {d m : ℕ}
+    (W : Matrix (Fin m) (Fin d) ℝ) (σ : Fin m → Bool) (v : Fin d → ℝ)
+    (h0 : W.transpose.mulVec (fun i => if σ i then W.mulVec v i else 0) = 0) :
+    (fun i => if σ i then W.mulVec v i else 0) = 0 := by
+  set u : Fin m → ℝ := fun i => if σ i then W.mulVec v i else 0
+  have hdot : dotProduct u (W.mulVec v) = 0 := by
+    have h1 : dotProduct (W.transpose.mulVec u) v = dotProduct u (W.mulVec v) := by
+      rw [Matrix.mulVec_transpose, Matrix.dotProduct_mulVec]
+    rw [← h1, h0, zero_dotProduct]
+  have hsq : ∑ i : Fin m, (u i) ^ 2 = 0 := by
+    have heq : ∑ i : Fin m, (u i) ^ 2 = dotProduct u (W.mulVec v) := by
+      unfold dotProduct
+      refine Finset.sum_congr rfl fun i _ => ?_
+      dsimp only [u]
+      cases σ i <;> simp [sq]
+    rw [heq, hdot]
+  funext i
+  have hi : (u i) ^ 2 = 0 :=
+    (Finset.sum_eq_zero_iff_of_nonneg (fun j _ => sq_nonneg (u j))).mp hsq i (Finset.mem_univ i)
+  exact sq_eq_zero_iff.mp hi
+
+/-- **KKT sufficiency for Theorem A2 cone surjectivity (`Wᵀ g(ℝ^d) = Wᵀ ℝ^m_{≥ 0}`)**:
+If `z ≥ 0`, `u ≥ 0`, complementarity `u i * z i = 0`, and `z - b = W t + u`, then
+`z = reluVec (W.mulVec t + b)`. -/
+theorem kkt_implies_relu_preimage {d m : ℕ}
+    (W : Matrix (Fin m) (Fin d) ℝ) (b z u : Fin m → ℝ) (t : Fin d → ℝ)
+    (hz : ∀ i, 0 ≤ z i) (hu : ∀ i, 0 ≤ u i)
+    (hcomp : ∀ i, u i * z i = 0)
+    (hstat : ∀ i, z i - b i = W.mulVec t i + u i) :
+    z = reluVec (W.mulVec t + b) := by
+  funext i
+  simp only [reluVec, relu, Pi.add_apply]
+  have hti : W.mulVec t i + b i = z i - u i := by linarith [hstat i]
+  rw [hti]
+  rcases mul_eq_zero.mp (hcomp i) with hui | hzi
+  · rw [hui, sub_zero, max_eq_right (hz i)]
+  · rw [hzi, zero_sub, max_eq_left (by linarith [hu i])]
+
+/-- **Theorem B1 Core (Hidden-coordinate escape ray for `(k, k+1, k+1)`)**:
+Let `W₂ : Matrix (Fin n) (Fin n) ℝ` be invertible (`W₂inv * W₂ = 1`), `b₂ : Fin n → ℝ`,
+and let `Y_orth := {reluVec (W₂.mulVec h + b₂) | ∀ r, 0 ≤ h r}` be the ReLU image of the
+nonnegative orthant. If `y ∈ ℝ^n_{>0}` satisfies `(W₂inv.mulVec (y - b₂)) i < 0` for some `i`,
+then there exists a coordinate ray `y + t • v` (`v = ±e_j ≠ 0`, `t ≥ 0`) completely disjoint
+from `Y_orth`. -/
+theorem b1_hidden_escape_ray {n : ℕ} (hn : 0 < n)
+    (W₂ W₂inv : Matrix (Fin n) (Fin n) ℝ) (hinv : W₂inv * W₂ = 1)
+    (b₂ y : Fin n → ℝ) (hy : ∀ j, 0 < y j)
+    (i : Fin n) (hneg : W₂inv.mulVec (y - b₂) i < 0) :
+    ∃ v : Fin n → ℝ, v ≠ 0 ∧
+      ∀ t : ℝ, 0 ≤ t →
+        (y + t • v) ∉ {z | ∃ h : Fin n → ℝ, (∀ r, 0 ≤ h r) ∧ z = reluVec (W₂.mulVec h + b₂)} := by
+  by_cases hnonpos : ∃ j : Fin n, W₂inv i j ≤ 0
+  · -- Subcase 1: row `i` of `W₂inv` has an entry `≤ 0` -> escape along `+e_j`.
+    obtain ⟨j, hij⟩ := hnonpos
+    refine ⟨stdBasis j, stdBasis_ne_zero j, fun t ht => ?_⟩
+    rintro ⟨h, hnn, hq⟩
+    set q : Fin n → ℝ := y + t • stdBasis j
+    -- Every coordinate of `q` is strictly positive, so `W₂ h + b₂ = q`.
+    have hpre : W₂.mulVec h + b₂ = q := by
+      funext r
+      have hqr : 0 < q r := by
+        dsimp [q, stdBasis]; split_ifs <;> linarith [hy r]
+      have hru : relu ((W₂.mulVec h + b₂) r) = q r := (congrFun hq r).symm
+      by_contra hne
+      have hle : (W₂.mulVec h + b₂) r ≤ 0 := by
+        by_contra hgt; push_neg at hgt
+        rw [relu, max_eq_right (le_of_lt hgt)] at hru
+        exact hne hru
+      rw [relu, max_eq_left hle] at hru
+      linarith
+    have hhi : h i = W₂inv.mulVec (q - b₂) i := by
+      have h1 : W₂.mulVec h = q - b₂ := by
+        funext r; have := congrFun hpre r; simp at this ⊢; linarith
+      have h2 : W₂inv.mulVec (q - b₂) = h := by
+        rw [← h1, Matrix.mulVec_mulVec, hinv, Matrix.one_mulVec]
+      exact (congrFun h2 i).symm
+    have hval : W₂inv.mulVec (q - b₂) i = W₂inv.mulVec (y - b₂) i + t * W₂inv i j := by
+      have hqsub : q - b₂ = (y - b₂) + t • stdBasis j := by
+        funext r; simp [q]; ring
+      rw [hqsub, Matrix.mulVec_add, Matrix.mulVec_smul]
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Matrix.mulVec, dotProduct, stdBasis]
+      simp
+    have h0le : 0 ≤ h i := hnn i
+    rw [hhi, hval] at h0le
+    nlinarith
+  · -- Subcase 2: every entry of row `i` of `W₂inv` is `> 0` -> escape along `-e_0`.
+    push_neg at hnonpos
+    let j : Fin n := ⟨0, hn⟩
+    refine ⟨-stdBasis j, neg_ne_zero.mpr (stdBasis_ne_zero j), fun t ht => ?_⟩
+    rintro ⟨h, hnn, hq⟩
+    set q : Fin n → ℝ := y + t • (-stdBasis j)
+    by_cases htp : y j < t
+    · -- `t > y j`: coordinate `j` of `q` is negative, impossible for `reluVec`.
+      have hqj : q j < 0 := by simp [q, stdBasis]; linarith
+      have hnn_q : 0 ≤ q j := by
+        have := congrFun hq j
+        rw [this]
+        exact le_max_left 0 _
+      linarith
+    · -- `0 ≤ t ≤ y j`: every admissible preimage `u = W₂ h + b₂` satisfies `u r ≤ q r` for all `r`.
+      have hule : ∀ r : Fin n, (W₂.mulVec h + b₂) r ≤ q r := by
+        intro r
+        have hru : relu ((W₂.mulVec h + b₂) r) = q r := (congrFun hq r).symm
+        rw [← hru]
+        exact le_max_right 0 _
+      have hhi : h i = W₂inv.mulVec ((W₂.mulVec h + b₂) - b₂) i := by
+        have h1 : (W₂.mulVec h + b₂) - b₂ = W₂.mulVec h := by
+          funext r; simp
+        rw [h1, Matrix.mulVec_mulVec, hinv, Matrix.one_mulVec]
+      -- Since `W₂inv i r > 0` for all `r` and `u r - b₂ r ≤ q r - b₂ r`, `h i ≤ W₂inv.mulVec (q - b₂) i`.
+      have hle_q : h i ≤ W₂inv.mulVec (q - b₂) i := by
+        rw [hhi]
+        simp only [Matrix.mulVec, dotProduct]
+        refine Finset.sum_le_sum fun r _ => ?_
+        have hr_pos : 0 < W₂inv i r := hnonpos r
+        have hr_le : ((W₂.mulVec h + b₂) - b₂) r ≤ (q - b₂) r := by
+          simp only [Pi.sub_apply]; linarith [hule r]
+        exact mul_le_mul_of_nonneg_left hr_le (le_of_lt hr_pos)
+      have hval : W₂inv.mulVec (q - b₂) i = W₂inv.mulVec (y - b₂) i - t * W₂inv i j := by
+        have hqsub : q - b₂ = (y - b₂) + t • (-stdBasis j) := by
+          funext r; simp [q]; ring
+        rw [hqsub, Matrix.mulVec_add, Matrix.mulVec_smul]
+        simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Matrix.mulVec, dotProduct,
+          Pi.neg_apply, stdBasis, mul_neg, Finset.sum_neg_distrib, mul_ite, mul_one, mul_zero,
+          Finset.sum_ite_eq', Finset.mem_univ, ↓reduceIte]
+        ring
+      have h0le : 0 ≤ h i := hnn i
+      have hjpos : 0 < W₂inv i j := hnonpos j
+      nlinarith
+
 end BeshkovReluTopology

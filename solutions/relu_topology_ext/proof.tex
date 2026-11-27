@@ -1,0 +1,177 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\range}{range}
+\DeclareMathOperator{\GL}{GL}
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\intr}{int}
+
+\title{\bfseries ReLU Bottleneck Topology at Arbitrary Output Width and for Tori}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Extensions of Beshkov's Tight Topological Expressivity Conjecture (\href{https://arxiv.org/abs/2610.13931}{arXiv:2610.13931})\\
+Companion to \texttt{solutions/relu\_topology/proof.pdf}\\[0.35em]
+Lean~4 companion formalization: \texttt{lean\_proofs/Conjectures/ReluTopology.lean}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We extend our resolution of Beshkov's tight topological expressivity conjecture (\href{https://arxiv.org/abs/2610.13931}{arXiv:2610.13931}) in two directions: arbitrary output width $(d, d, m)$ and $k$-tori $T^k$ ($k \ge 2$).
+First, we prove that componentwise ReLU maps every nonempty convex polyhedron $D \subseteq \mathbb{R}^d$ (compact or unbounded) to a contractible space at every output width $m$ (Theorem~A1), closing the full-domain invertible-$W_1$ contractibility question.
+Second, we prove that for every $W \in \mathbb{R}^{m \times d}$ and $b \in \mathbb{R}^m$, the linear map $W^\top : \mathbb{R}^m \to \mathbb{R}^d$ embeds the entire clipped affine $d$-plane $g(\mathbb{R}^d) = (W\mathbb{R}^d + b)_+$ bi-Lipschitz homeomorphically onto the closed convex cone $W^\top \mathbb{R}_{\ge 0}^m \subseteq \mathbb{R}^d$ independently of $b$ (Theorem~A2).
+This rules out $S^d$ and $T^d$ (and forces $\check{H}^d(Y; G) = 0$) for every $(d, d, m)$ bottleneck regardless of output width $m$, domain $X$, or hidden map $h$; we also note a sharp non-contractible counterexample for singular $H_3$ via the Barratt--Milnor $2$-sphere earring.
+Third, for $k$-tori ($k \ge 2$), we prove that no one-hidden-layer $(k, k+1, k+1)$ ReLU network on $\mathbb{R}^k$ or on any compact-image domain (including all compact contractible domains) can have image homotopy equivalent to $T^k$ (Theorem~B1), and no $(k, k+1, m)$ network constant outside a compact set can realize $T^k$ at any output width $m$ (Theorem~B2).
+Unrestricted $(2, 3, m)$ networks with $m \ge 4$ that are nonconstant outside compact sets remain open.
+\end{abstract}
+
+\section{Overview of Results}
+
+Throughout, write $g(t) := (Wt + b)_+$ for an affine ReLU readout with $W \in \mathbb{R}^{m \times d}$ and $b \in \mathbb{R}^m$, where $(u)_+ := \max(0, u)$ acts coordinatewise.
+For a one-hidden-layer ReLU network of architecture $(d, w, m)$, write $f(x) = (W_2 (W_1 x + b_1)_+ + b_2)_+$ with hidden layer $h(x) = (W_1 x + b_1)_+$.
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \textbf{Theorem~A1 (Section~\ref{sec:A1}):} $g(D)$ is contractible for every nonempty convex polyhedron $D \subseteq \mathbb{R}^d$ and every $m \ge 1$. For invertible $W_1$ on input $\mathbb{R}^d$, $h(\mathbb{R}^d) = \mathbb{R}_{\ge 0}^d$ is a convex polyhedron, so $f(\mathbb{R}^d)$ is contractible for every $m$ (closing Remark~1 of our first paper; rank-deficient $W_1$ can still produce $S^1$, and compact domains $X$ are not covered because $h(X)$ need not be convex).
+\item \textbf{Theorem~A2 (Section~\ref{sec:A2}):} $W^\top$ maps $g(\mathbb{R}^d)$ bi-Lipschitz homeomorphically onto the closed convex polyhedral cone $W^\top \mathbb{R}_{\ge 0}^m \subseteq \mathbb{R}^d$, independently of $b$. Hence for every $(d, d, m)$ bottleneck (arbitrary $m$, arbitrary $X$, arbitrary $h$), $\check{H}^d(Y; G) = 0$ and neither $S^d$ nor $T^d$ can occur (subsuming Part~B of our first paper at every $m$ and closing its Remark~3).
+\item \textbf{Theorem~B1 (Section~\ref{sec:B1}):} For $k \ge 2$, no one-hidden-layer $(k, k+1, k+1)$ ReLU network on $\mathbb{R}^k$ or on any domain $X$ with compact image $Y = f(X)$ (including all compact contractible domains) can have $Y \simeq T^k$. In particular, $(2, 3, 3)$ cannot realize $T^2$.
+\item \textbf{Theorem~B2 (Section~\ref{sec:B2}):} For $k \ge 2$ and any $m \ge 1$, no $(k, k+1, m)$ ReLU network on $\mathbb{R}^k$ that is constant outside a compact set can have image homotopy equivalent to $T^k$.
+\end{itemize}
+
+\section{Theorem A1: Contractibility of Clipped Convex Polyhedra}\label{sec:A1}
+
+\begin{theorem}[Contractibility of $g(D)$]\label{thm:A1}
+Let $D \subseteq \mathbb{R}^d$ be any nonempty convex polyhedron (compact or unbounded), $W \in \mathbb{R}^{m \times d}$, and $b \in \mathbb{R}^m$. Then $g(D) = (WD + b)_+$ is contractible.
+\end{theorem}
+
+\begin{proof}
+\emph{Compact $D$.} When $D$ is a compact convex polytope, $g : D \to g(D)$ is a proper surjective piecewise-linear map between compact polyhedra. For every $y \in g(D)$, the fiber
+\[
+g^{-1}(y) = \bigl\{t \in D : (Wt + b)_i = y_i \text{ if } y_i > 0,\ (Wt + b)_i \le 0 \text{ if } y_i = 0\bigr\}
+\]
+is a nonempty compact convex polytope, hence $\mathrm{LC}^\infty$ and $\infty$-connected. By the Vietoris--Smale theorem (Smale, \emph{Proc.\ AMS} 8 (1957), 604--610), $g_* : \pi_r(D) \to \pi_r(g(D))$ is an isomorphism for every $r \ge 0$, so $g(D)$ is weakly contractible. Since $g(D)$ is a compact polyhedron (hence a CW complex), Whitehead's theorem implies that $g(D)$ is contractible.
+
+\emph{Unbounded $D$.} Cover $D$ by finitely many closed convex polyhedral activation cells $C_\sigma := \{t \in D : \sigma_i (Wt+b)_i \ge 0\}$ ($\sigma \in \{-,+\}^m$). Let $K \subseteq g(D)$ be compact and pick a closed box $Q \subset \mathbb{R}^m$ containing $K$. On each $C_\sigma$, $g|_{C_\sigma}$ is affine, so $g(C_\sigma)$ is a closed convex polyhedron (by Minkowski--Weyl) and $g(C_\sigma) \cap Q$ is a compact convex polytope. For each nonempty $g(C_\sigma) \cap Q$, choose one preimage in $C_\sigma$ for each of its finitely many vertices, and let $D' \subseteq D$ be the convex hull of all chosen lifts across all $\sigma$. Then $D'$ is a compact convex polytope with $K \subseteq g(D') \subseteq g(D)$ (by affinity on each $C_\sigma$). By the compact case, $g(D')$ is contractible, so every map $S^r \to g(D)$ is nullhomotopic in $g(D)$. Because $g(D) = \bigcup_\sigma g(C_\sigma)$ is a connected finite union of closed polyhedra, it admits a locally finite triangulation (hence is a CW complex), so Whitehead's theorem yields contractibility.
+\end{proof}
+
+\section{Theorem A2: Bi-Lipschitz Linear Embedding Through the Bottleneck}\label{sec:A2}
+
+\begin{theorem}[Bi-Lipschitz embedding onto a convex cone]\label{thm:A2}
+For every $W \in \mathbb{R}^{m \times d}$ and $b \in \mathbb{R}^m$, the linear map $W^\top : \mathbb{R}^m \to \mathbb{R}^d$ restricts to a bi-Lipschitz homeomorphism from $g(\mathbb{R}^d) = (W\mathbb{R}^d + b)_+$ onto the closed convex polyhedral cone $W^\top \mathbb{R}_{\ge 0}^m \subseteq \mathbb{R}^d$, independently of $b$.
+\end{theorem}
+
+\begin{proof}
+\emph{Step 1 (Global injectivity via firm nonexpansiveness).} Scalar ReLU $r(u) = \max(0, u)$ satisfies $(r(u) - r(v))^2 \le (r(u) - r(v))(u - v)$ for all $u, v \in \mathbb{R}$. Summing over coordinates for $y = g(s)$ and $z = g(t)$ yields
+\begin{equation}\label{eq:firm}
+\|y - z\|_2^2 \le \langle y - z,\, W(s - t) \rangle = \langle W^\top(y - z),\, s - t \rangle.
+\end{equation}
+Thus $W^\top y = W^\top z \implies \|y - z\|_2^2 \le 0 \implies y = z$, proving global injectivity of $W^\top$ on $g(\mathbb{R}^d)$.
+
+\emph{Step 2 (Exact cone image $W^\top g(\mathbb{R}^d) = W^\top \mathbb{R}_{\ge 0}^m$).} The inclusion $W^\top g(\mathbb{R}^d) \subseteq W^\top \mathbb{R}_{\ge 0}^m$ is immediate since $g(\mathbb{R}^d) \subseteq \mathbb{R}_{\ge 0}^m$. Conversely, fix any $q \in W^\top \mathbb{R}_{\ge 0}^m$. The feasible set $\{z \in \mathbb{R}_{\ge 0}^m : W^\top z = q\}$ is nonempty, closed, and convex, so the strictly convex quadratic program
+\[
+\min_{z \in \mathbb{R}^m} \tfrac{1}{2}\|z - b\|_2^2 \qquad \text{subject to } z \ge 0,\ W^\top z = q
+\]
+admits a unique minimizer $z^*$. Because all constraints are linear, KKT conditions hold without constraint qualification: there exist $t \in \mathbb{R}^d$ and $u \in \mathbb{R}_{\ge 0}^m$ with $z^* - b = Wt + u$ and $u_i z^*_i = 0$ for all $i$. Whenever $z^*_i > 0$ we get $u_i = 0$ and $(Wt+b)_i = z^*_i > 0$; whenever $z^*_i = 0$ we get $(Wt+b)_i = -u_i \le 0$. Hence $z^* = (Wt+b)_+ = g(t)$ and $W^\top g(t) = W^\top z^* = q$.
+
+\emph{Step 3 (Bi-Lipschitz inverse).} On each closed activation cell $C_\sigma \subseteq \mathbb{R}^d$, $g(t) = D_\sigma(Wt + b)$ where $D_\sigma = \diag(\mathbf{1}_{\sigma_i = +})$ satisfies $D_\sigma^2 = D_\sigma$. Since $W^\top D_\sigma W = (D_\sigma W)^\top (D_\sigma W)$, we have $\ker(W^\top) \cap \range(D_\sigma W) = \{0\}$. Therefore $W^\top$ is an injective affine map on the closed polyhedron $P_\sigma := g(C_\sigma)$, with positive minimum singular value $s_\sigma > 0$ on $\range(D_\sigma W)$; thus $W^\top(P_\sigma)$ is a closed convex polyhedron and $(W^\top|_{P_\sigma})^{-1}$ is $(1/s_\sigma)$-Lipschitz. By Step~1 these finitely many piecewise-affine inverses agree on overlaps, so by the finite closed pasting lemma they glue to a continuous piecewise-affine map on the convex cone $W^\top \mathbb{R}_{\ge 0}^m$, which is globally Lipschitz with constant at most $\max_\sigma s_\sigma^{-1}$.
+\end{proof}
+
+\begin{corollary}[Arbitrary-width bottleneck obstructions]\label{cor:A2}
+Let $d \ge 1$, $m \ge 1$, $X$ be any topological space, $h : X \to \mathbb{R}^d$ be any map, and $Y := g(h(X)) \subseteq \mathbb{R}^m$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item For every abelian group $G$, $\check{H}^d(Y; G) = 0$. In particular, $Y$ cannot contain an embedded $S^d$, cannot be homotopy equivalent to $S^d$ or $T^d$, and admits no nonzero-degree factorization $S^d \to Y \to S^d$.
+\item If $h$ is a ReLU network on $\mathbb{R}^d$ or on any compact convex $X \subseteq \mathbb{R}^d$, then $H_d(Y; G) = 0$ for every abelian group $G$.
+\item \emph{(Sharpness for singular homology)} For $d = 3$ and any $m \ge 3$, taking $X$ to be the Barratt--Milnor shrinking bouquet of $2$-spheres translated into $\mathbb{R}_{>0}^3$ and $h(x) = (I_3 x)_+ = x$ (a genuine $(3, 3, m)$ ReLU network, padded with zeros) gives a compact $Y$ with $\check{H}^3(Y) = 0$ but $H_3(Y) \neq 0$ (Barratt--Milnor, \emph{Proc.\ AMS} 13 (1962), 293--297). Note that $X$ is not contractible.
+\end{enumerate}
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:A2}, $Y$ embeds homeomorphically as $Y' := W^\top(Y) \subseteq \mathbb{R}^d$. Every subspace of a metric space is taut for Alexander--Spanier/\v{C}ech cohomology (Spanier, \emph{Pacific J.\ Math.} 75 (1978), p.~562, Theorem~1(3)), so $\check{H}^d(Y; G) \cong \varinjlim_{U \supseteq Y'} H^d(U; G)$ over open neighborhoods $U \subseteq \mathbb{R}^d$. Each component of $U$ is a noncompact orientable $d$-manifold, hence $H^d(U; G) = 0$ and $\check{H}^d(Y; G) = 0$, proving~(1). For~(2), $Y'$ is a finite union of closed convex sets in $\mathbb{R}^d$ (polyhedra when $X = \mathbb{R}^d$, compact convex sets when $X$ is compact convex), hence closed and locally star-shaped in $\mathbb{R}^d$, hence an ENR; its singular $H_d(Y'; G)$ injects into $H_d(U; G) = 0$ for a retract neighborhood $U \subseteq \mathbb{R}^d$. Part~(3) follows immediately from Barratt--Milnor (1962) since $h$ is the identity on $X \subset \mathbb{R}_{>0}^3$.
+\end{proof}
+
+\section{Theorem B1: Exclusion of \texorpdfstring{$T^k$}{Tk} for \texorpdfstring{$(k, k+1, k+1)$}{(k,k+1,k+1)}}\label{sec:B1}
+
+\begin{theorem}[No $k$-torus for $(k, k+1, k+1)$]\label{thm:B1}
+Let $k \ge 2$, $n := k + 1$, and let $f(x) = (W_2 (W_1 x + b_1)_+ + b_2)_+$ be a one-hidden-layer $(k, n, n)$ ReLU network on a domain $X$, with image $Y := f(X)$. Suppose either $X = \mathbb{R}^k$ or $Y$ is compact (in particular, $X$ is any compact domain). Then $Y$ is not homotopy equivalent to $T^k$ (nor to any aspherical space with nonzero $H_k$ on $\mathbb{R}^k$ or nonzero $\check{H}^k$ when compact).
+\end{theorem}
+
+\begin{proof}
+If $\rank(W_2) \le k$, factoring $W_2$ through $\mathbb{R}^k$ and applying Corollary~\ref{cor:A2} gives $\check{H}^k(Y; \mathbb{Z}) = 0$, ruling out $T^k$. (If the output layer is linear, $W_2 h(X) + b_2$ either lies in a $k$-plane or is homeomorphic to $h(X) \subseteq R(H)$, which is contractible on $\mathbb{R}^k$ by Theorem~\ref{thm:A1} and embeds in $\mathbb{R}^k$ by Theorem~\ref{thm:A2}.)
+
+Assume therefore that $W_2 \in \GL_n(\mathbb{R})$, and set $a(y) := W_2^{-1}(y - b_2)$. Since $W_1 \in \mathbb{R}^{n \times k}$ has rank at most $k$, its preactivations lie in an affine hyperplane $H = \{u \in \mathbb{R}^n : \nu \cdot u = \alpha\}$ ($\nu \neq 0$), so $h(X) \subseteq R(H) \subseteq \mathbb{R}_{\ge 0}^n$ and $Y \subseteq (W_2 \mathbb{R}_{\ge 0}^n + b_2)_+$.
+
+\emph{Step 1 (Bounded complementary component).} Suppose for contradiction that $Y \simeq T^k$ (or any aspherical space with nonzero top homology/cohomology). If $Y$ is compact, $\check{H}^k(Y; \mathbb{Z}) \neq 0$, so Alexander duality in $S^n$ gives $\tilde{H}_0(S^n \setminus Y; \mathbb{Z}) \neq 0$ and hence a bounded connected component $B$ of $\mathbb{R}^n \setminus Y$. If $X = \mathbb{R}^k$, then $Y$ is a closed polyhedron of dimension $\le k$; in a compatible triangulation of $\mathbb{R}^n$, any nonzero finite simplicial $k$-cycle in $Y$ bounds a finite $n$-chain whose oriented multiplicity is locally constant off $Y$, vanishes outside a compact set, and is nonzero on some component $B$ of $\mathbb{R}^n \setminus Y$, which must be bounded.
+
+\emph{Step 2 (Hidden-coordinate escape rays).} Every $y$ with some $y_j \le 0$ escapes to $\infty$ in $\mathbb{R}^n \setminus Y$ along $y - t e_j$ ($t \ge 0$), so $B \subseteq \mathbb{R}_{>0}^n$. Suppose $y \in \mathbb{R}_{>0}^n$ has $a_i(y) < 0$ for some $i$, and let $c^\top$ be row $i$ of $W_2^{-1}$:
+\begin{itemize}[leftmargin=2em,itemsep=1pt]
+\item If some $c_j \le 0$: for all $t \ge 0$, $y + t e_j \in \mathbb{R}_{>0}^n$ has unique ReLU preimage $y + t e_j$, with $a_i(y + t e_j) = a_i(y) + t c_j < 0$, so the ray avoids $(W_2 \mathbb{R}_{\ge 0}^n + b_2)_+ \supseteq Y$.
+\item If $c_j > 0$ for all $j$: pick any $j$ and follow $y - t e_j$ ($t \ge 0$). For $0 \le t < y_j$, $y - t e_j > 0$ has unique preimage with $a_i(y - t e_j) < a_i(y) < 0$. At $t = y_j$, every ReLU preimage $u$ of $y' := y - y_j e_j$ satisfies $u \le y'$ coordinatewise; since $c > 0$, $c^\top(u - b_2) \le c^\top(y' - b_2) = a_i(y) - y_j c_j < 0$, so $W_2^{-1}(u - b_2) \notin \mathbb{R}_{\ge 0}^n$. For $t > y_j$, coordinate $j$ is negative. Again the entire ray misses $Y$.
+\end{itemize}
+Because $B$ is open and $a_i$ is nonconstant affine, $a_i(y) = 0$ cannot occur in $B$ either. Thus $B \subseteq C := \{y \in \mathbb{R}^n : y > 0,\ a(y) > 0\}$.
+
+\emph{Step 3 (Convex chamber boundary in $Y$).} On $C$, both ReLUs are strictly active, so $Z := Y \cap C \subseteq S := \{y \in C : \nu \cdot a(y) = \alpha\}$. Write $C \setminus S = C_+ \sqcup C_-$ (two open convex sets).
+\begin{itemize}[leftmargin=2em,itemsep=1pt]
+\item If $S = \varnothing$, then $B = C$ is a bounded open convex polytope with $\partial B \subseteq Y$.
+\item If $Z = S$ (in particular, when $X = \mathbb{R}^k$ and $\rank W_1 = k$), then $B = C_+$ or $B = C_-$, a bounded open convex polytope with $\partial B \subseteq Y$.
+\item If $Z \subsetneq S$, since $Z$ is relatively closed in $C$, any $p \in S \setminus Z$ has a ball in $C \setminus Z$ meeting both $C_+$ and $C_-$, so $C \setminus Z$ is connected. Since $B$ is a connected component of $\mathbb{R}^n \setminus Y$ inside $C \setminus Z$, we have $B = C \setminus Z$. Because $S$ is nowhere dense in $C$, $C$ must be bounded (otherwise $C \setminus S \subseteq B$ would be unbounded), and every $q \in \partial C$ lies in $\overline{B} \setminus B = \partial B \subseteq Y$.
+\end{itemize}
+
+\emph{Step 4 (Asphericity contradiction).} In all three cases there is a bounded open convex polytope $P \supseteq B$ with $\partial P \subseteq Y$. Pick $p_0 \in B \subset P$. Radial projection from $p_0$ defines $\rho : Y \to S^k$ restricting to a homeomorphism $\partial P \xrightarrow{\sim} S^k$, so the inclusion $S^k \cong \partial P \hookrightarrow Y$ represents a nonzero spherical class in $H_k(Y; \mathbb{Z})$. Since $k \ge 2$ and $\pi_k(T^k) = 0$, every spherical class in $H_k(T^k; \mathbb{Z})$ vanishes---contradiction.
+\end{proof}
+
+\section{Theorem B2: Arbitrary Output Width, Constant at Infinity}\label{sec:B2}
+
+\begin{theorem}[No $k$-torus for compactly supported $(k, k+1, m)$]\label{thm:B2}
+Let $k \ge 2$ and $m \ge 1$. If a one-hidden-layer $(k, k+1, m)$ ReLU network $f : \mathbb{R}^k \to \mathbb{R}^m$ (with arbitrary weights) is constant outside a compact set, then $Y := f(\mathbb{R}^k)$ is not homotopy equivalent to $T^k$ (or any aspherical space with nonzero $H_k$).
+\end{theorem}
+
+\begin{proof}
+For $y \in Y$, let $r(y)$ be the rank of the rows of $W_2$ indexed by $\{i : y_i > 0\}$, and set $L := \{y \in Y : r(y) \le k\}$. Since $r$ is lower semicontinuous, $L$ is a closed subpolyhedron of $Y$. Under the embedding $W_2^\top : Y \hookrightarrow \mathbb{R}^{k+1}$ of Theorem~\ref{thm:A2}, every $y \in L$ satisfies $W_2^\top y = \sum_{i : y_i > 0} y_i w_i$, so $W_2^\top L$ lies in a finite union $U_L$ of linear subspaces of dimension $\le k$ in $\mathbb{R}^{k+1}$. Since $U_L$ is a radially contractible $k$-dimensional polyhedron, top-dimensional homology injects under subcomplex inclusion into $U_L$ (in a common triangulation), giving $H_k(L; \mathbb{Z}) \cong H_k(W_2^\top L; \mathbb{Z}) = 0$.
+
+If $H_k(Y; \mathbb{Z}) \neq 0$, a nonzero simplicial $k$-cycle in $Y$ must use a $k$-simplex $\Delta$ whose interior lies outside $L$. Choose a generic $p \in \intr(\Delta)$ avoiding the constant value at infinity and the images of all lower-dimensional activation faces and rank-deficient affine pieces of $f$. Because $p \notin L$, the active rows of $W_2$ at $p$ have full rank $k + 1$, uniquely determining the hidden vector $h \in \mathbb{R}^{k+1}$ with $g(h) = p$. At any preimage $x \in f^{-1}(p)$, the full map has local affine rank $k$ by genericity, so the active rows of $W_1$ at $x$ have rank $k$, uniquely determining $x$ from $h$. Thus $f^{-1}(p) = \{x_0\}$ is a singleton, and $f$ is a local affine homeomorphism near $x_0$ onto a neighborhood of $p$ in $\intr(\Delta)$.
+
+Extending $f$ by its constant value at infinity yields a continuous map $\bar{f} : S^k \to Y$. By excision at the unique regular preimage $x_0$, $\bar{f}_*[S^k]$ is nonzero in $H_k(Y, Y \setminus \{p\}; \mathbb{Z})$, hence nonzero in $H_k(Y; \mathbb{Z})$, contradicting asphericity of $T^k$ for $k \ge 2$.
+\end{proof}
+
+\begin{remark}[Torus width bounds and open boundary]
+For $T^k$ ($k \ge 2$), Corollary~\ref{cor:A2} gives a universal last-hidden-layer lower bound $w_{\min}(T^k) \ge k + 1$ (valid for any domain and any earlier layers), while taking a product of $k$ independent $(1, 2, 2)$ circle networks from our first paper gives an exact homeomorphism with architecture $(k, 2k, 2k)$---for $T^2$, $(2, 4, 4)$, improving Beshkov's $(2, 16, 7)$ and $(2, 8, 4)$ bounds. Note that this $(2, 4, 4)$ product map is bounded but nonconstant on unbounded input strips, so Theorem~\ref{thm:B2} does not apply to it. For one hidden layer, Theorems~\ref{thm:B1} and~\ref{thm:B2} settle $(2, 3, 3)$ (on $\mathbb{R}^2$ and all compact domains) and compactly supported $(2, 3, m)$; unrestricted $(2, 3, m)$ with $m \ge 4$ remains open.
+\end{remark}
+
+\section{Formalization, Verification, and Attribution}
+
+\paragraph{Lean~4 formalization and Python verification.}
+We extend \texttt{ReluTopology.lean} (compiled under Lean~\texttt{v4.24.0} with Mathlib, zero \texttt{sorry}s, and standard axioms only) to machine-check the geometric engines of Theorems~\ref{thm:A2} and~\ref{thm:B1}:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item Theorem~\ref{thm:A2}: \texttt{relu\_firmly\_nonexpansive}, \texttt{reluVec\_firmly\_nonexpansive},\\
+\texttt{transpose\_injective\_on\_relu\_affine},\\
+\texttt{transpose\_ker\_inter\_active\_range}, \texttt{kkt\_implies\_relu\_preimage};
+\item Theorem~\ref{thm:B1}: \texttt{b1\_hidden\_escape\_ray}.
+\end{itemize}
+The script \texttt{solutions/relu\_topology\_ext/explore.py} verifies 4 full-domain LP nerves for Theorem~\ref{thm:A1} (all $\beta = (1,0,0)$), 5,000 firm-nonexpansiveness pairs, 60 cone-surjectivity KKT/LP checks, 15 bi-Lipschitz constant checks for Theorem~\ref{thm:A2}, over 100 LP-certified escape rays for Theorem~\ref{thm:B1}, and the $(2,4,4)$ product torus triangulation ($\beta = (1,2,1)$).
+
+\paragraph{Literature note.}
+Firm nonexpansiveness of ReLU (Combettes--Pesquet, \href{https://arxiv.org/abs/1808.07526}{arXiv:1808.07526}) and parametric-QP Lipschitz continuity are classical; their topological use here (arbitrary-width embedding into $\mathbb{R}^d$, Theorems~\ref{thm:B1}--\ref{thm:B2}) was not found in Beshkov (\href{https://arxiv.org/abs/2610.13931}{arXiv:2610.13931}), Ren--Lim (\href{https://arxiv.org/abs/2606.31856}{arXiv:2606.31856}), or preregistration \texttt{trureturing\#25155} (which proposed, without proof, contractibility of $\operatorname{ReLU}(H)$ in the $m = d+1$ hyperplane case of Theorem~\ref{thm:A1}).
+
+\end{document}

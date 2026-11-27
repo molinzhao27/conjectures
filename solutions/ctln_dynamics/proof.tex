@@ -1,0 +1,199 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.95in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,booktabs,enumitem,microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\spn}{span}
+
+\title{\bfseries Resolution of Curto--Morrison CTLN Open Questions 11, 13, and 14}
+\author{}
+\date{\vspace{-1.6em}%
+\small
+\begin{tabular}{@{}c@{}}
+Target paper: C.~Curto and K.~Morrison, \emph{Graph rules for recurrent neural network dynamics},\\
+\href{https://arxiv.org/abs/2301.12638}{arXiv:2301.12638} (extended version, Jan.\ 2023; \emph{Notices of the AMS} 70(4), Apr.\ 2023), OQ~11, 13, 14\\[0.35em]
+Lean~4 companion formalization: \texttt{lean\_proofs/Conjectures/CTLNDynamics.lean}\\[0.35em]
+November 2026
+\end{tabular}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We resolve Open Questions~11, 13, and~14 of Curto and Morrison (\href{https://arxiv.org/abs/2301.12638}{arXiv:2301.12638}, \emph{Notices of the AMS} 2023) on threshold-linear and combinatorial threshold-linear recurrent neural networks (TLNs/CTLNs).
+For Open Question~13, we prove that every proper source of every CTLN (for all $\delta > 0$, $0 < \varepsilon \le 1$, $\theta > 0$, and every initial condition $x(0) \ge 0$) enters a permanent decay trap in finite time and thereafter decays identically as $e^{-t}$, settling the general conjecture left open after Lienkaemper's thesis (\href{https://arxiv.org/abs/2209.07583}{arXiv:2209.07583}).
+For Open Question~11, we disprove constancy of total population activity on the Gaudi attractor via a 448-bit Arb interval-arithmetic proof (period $T = 238.5904619456428291\dots$, certified peak-to-peak excursion $0.004280272033101658$ with error $< 2.1 \times 10^{-50}$), and prove a general rigidity theorem answering part~2: every constant-sum trajectory in any ReLU TLN stays in a single closed linear chamber, so no isolated periodic orbit, hyperbolic attractor, or chaotic attractor can conserve total firing rate.
+For Open Question~14, complementing Londono Alvarez's invariant-set persistence lemma (\href{https://arxiv.org/abs/2410.11012}{arXiv:2410.11012}, \S7.1), we prove that attractor stability can fail along the linear interpolation segment: a 5-node competitive TLN segment destabilizes a shared strictly positive fixed point, and an Arb-certified 7-node non-isomorphic CTLN pair destabilizes a shared synchronous attracting periodic orbit at its midpoint (transverse Floquet multiplier $0.3466$ at both endpoints vs.\ $1.0529$ at $s = 1/2$). We note the strict-vs.-deformed reading caveat and that the restricted $n = 5$ oriented no-sink dictionary remains untested.
+\end{abstract}
+
+\section{Setup and Verdicts}
+
+A threshold-linear network (TLN) on $\mathbb{R}_{\ge 0}^n$ is governed by
+\[
+\dot{x}_i = -x_i + [b_i + (Wx)_i]_+ \qquad (i = 1, \dots, n),
+\]
+where $[u]_+ := \max(0, u)$. A \emph{combinatorial TLN} (CTLN) on a simple directed graph $G$ has uniform input $b_i = \theta > 0$, $W_{ii} = 0$, $W_{ij} = -1 + \varepsilon$ if $j \to i$, and $W_{ij} = -1 - \delta$ if $j \not\to i$, with legal parameters $\delta > 0$ and $0 < \varepsilon < \delta / (\delta + 1)$.
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \textbf{Open Question~13:} \textbf{True} (Theorem~\ref{thm:oq13}; holds even without $\varepsilon < \delta/(\delta+1)$, for all $\delta > 0, 0 < \varepsilon \le 1, \theta > 0, x(0) \ge 0$).
+\item \textbf{Open Question~11:} \textbf{False} for the Gaudi attractor, plus a general rigidity/no-go theorem for all ReLU TLNs (Theorem~\ref{thm:oq11}).
+\item \textbf{Open Question~14:} \textbf{False} in the strict reading (the identical attracting orbit/fixed point loses stability along the segment), for both general TLNs and 7-node CTLNs (Theorem~\ref{thm:oq14}).
+\end{itemize}
+
+\section{Open Question 13: Every Proper Source Dies}
+
+\begin{theorem}[Eventual exact exponential decay of proper sources]\label{thm:oq13}
+Let $G$ be any directed graph on $n \ge 2$ vertices, let $\delta > 0$, $0 < \varepsilon \le 1$, $\theta > 0$, and let $x(t)$ solve the CTLN ODE from any $x(0) \in \mathbb{R}_{\ge 0}^n$. If $j$ is a proper source of $G$ (in-degree $0$ and at least one outgoing edge $j \to k$, $k \neq j$), then there exists $t_* \ge 0$ such that $x_j(t) = x_j(t_*) e^{-(t - t_*)}$ for all $t \ge t_*$; in particular $\lim_{t \to \infty} x_j(t) = 0$.
+\end{theorem}
+
+\begin{proof}
+Set $c := 1 + \delta > 1$, $h := \delta + \varepsilon > 0$, $S(t) := \sum_{i=1}^n x_i(t)$, and $D(t) := \theta - c S(t)$. Since $W \le 0$ and $x(0) \ge 0$, $\mathbb{R}_{\ge 0}^n$ is forward invariant and $\dot{x}_i \le \theta - x_i$, so $0 \le x_i(t) \le \max(x_i(0), \theta)$ for all $t \ge 0$.
+
+\emph{Step 1 (Asymptotic inhibition excess).} Since $[u]_+ \ge u$, $W_{ii} = 0$, $W_{i\ell} \ge -c$ ($\ell \neq i$), and $x \ge 0$,
+\[
+\dot{S} = \sum_{i=1}^n \bigl([\theta + (Wx)_i]_+ - x_i\bigr)
+\ge \sum_{i=1}^n \bigl(\theta - c(S - x_i) - x_i\bigr)
+= n\theta - \bigl(1 + (n-1)c\bigr)S.
+\]
+Set $r := 1 + (n-1)c > 0$ and $L := n\theta/r$. Because $c > 1$, $nc > 1 + (n-1)c = r$, so $L > \theta/c$. Let $\eta := \frac{1}{2}(cL - \theta) > 0$. By Gr\"onwall's inequality, $S(t) \ge L(1 - e^{-rt})$, so there exists $T \ge 0$ (uniform in $x(0) \ge 0$) such that $D(t) = \theta - c S(t) < -\eta$ for all $t \ge T$.
+
+\emph{Step 2 (Permanent decay trap and infinite firing measure).} Since $j$ has no incoming edges, $W_{j\ell} = -c$ for all $\ell \neq j$, so its preactivation is $u_j(t) = \theta - c(S(t) - x_j(t)) = D(t) + c x_j(t)$. Set $m := \eta / c > 0$. Whenever $t \ge T$ and $x_j(t) \le m$, we have $u_j(t) < -\eta + cm = 0$, so $\dot{x}_j(t) = -x_j(t) \le 0$. Hence $\{x_j \le m\}$ is forward invariant for $t \ge T$, and once $x_j(t_*) \le m$ at some $t_* \ge T$, $x_j(t) = x_j(t_*) e^{-(t - t_*)}$ for all $t \ge t_*$.
+
+Assume for contradiction that $x_j(t) > m$ for all $t \ge T$, and let $E := \{t \ge T : u_j(t) > 0\}$. Because $W_{j\ell} \le 0$ and $x \ge 0$, $u_j(t) \le \theta$, so $\dot{x}_j(t) \le -m + \theta \mathbf{1}_E(t)$ for all $t \ge T$. Integrating over $[T, t]$ gives
+\[
+0 < x_j(t) \le x_j(T) - m(t - T) + \theta\,|E \cap [T, t]|,
+\]
+whence $|E \cap [T, t]| \ge \frac{m}{\theta}(t - T) - \frac{x_j(T)}{\theta} \to \infty$ as $t \to \infty$.
+
+\emph{Step 3 (Out-neighbor catch-up and dominance).} Pick $k \neq j$ with $j \to k$. Then $W_{kj} = -1 + \varepsilon = -c + h$ and $W_{k\ell} \ge -c$ for $\ell \notin \{k, j\}$, so $u_k(t) \ge D(t) + c x_k(t) + h x_j(t)$. Set $d(t) := x_k(t) - x_j(t)$ for $t \ge T$:
+\begin{itemize}[leftmargin=2em,itemsep=1pt]
+\item On $E$ ($u_j > 0$): $\dot{d} = ([u_k]_+ - x_k) - (D + c x_j - x_j) \ge (c-1)x_k + (h - c + 1)x_j = \delta x_k + \varepsilon x_j \ge \varepsilon m > 0$.
+\item Off $E$ ($u_j \le 0$): $\dot{d} = [u_k]_+ - x_k + x_j \ge -d$.
+\end{itemize}
+In particular, wherever $d(t) \le 0$ on $[T, \infty)$ we have $\dot{d}(t) \ge 0$, with $\dot{d}(t) \ge \varepsilon m > 0$ on $E$ and $\dot{d}(t) > 0$ whenever $d(t) < 0$. If $d(t) < 0$ for all $t \ge T$, then $d(t) \ge d(T) + \varepsilon m |E \cap [T, t]| \to +\infty$, contradiction; thus $d(T_1) \ge 0$ for some $T_1 \ge T$. Moreover $\{d \ge 0\}$ is forward invariant after $T_1$: if $d(t_1) < 0$ for some $t_1 > T_1$, setting $t_0 := \sup\{t \in [T_1, t_1] : d(t) \ge 0\}$ gives $d(t_0) = 0$ and $d < 0$ on $(t_0, t_1]$, where $\dot{d} > 0$, contradicting $d(t_1) = \int_{t_0}^{t_1} \dot{d} > 0$. Hence $x_k(t) \ge x_j(t) > m$ for all $t \ge T_1$.
+
+\emph{Step 4 (Ratio blow-up).} For $t \ge T_1$, let $r(t) := x_k(t) / x_j(t) \ge 1$. Then $\dot{r} = ([u_k]_+ - r[u_j]_+)/x_j$. Off $E$, $[u_j]_+ = 0$ so $\dot{r} \ge 0$. On $E$, since $D < 0$ and $r \ge 1$,
+\[
+\dot{r} \ge \frac{(D + c x_k + h x_j) - r(D + c x_j)}{x_j} = h + \frac{(r - 1)(-D)}{x_j} \ge h.
+\]
+Integrating yields $r(t) \ge r(T_1) + h\,|E \cap [T_1, t]| \to +\infty$, contradicting $r(t) \le \max(x_k(0), \theta)/m$.
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:oq13} resolves the general proper-source conjecture left open after Lienkaemper's thesis (\href{https://arxiv.org/abs/2209.07583}{arXiv:2209.07583}, Prop.~10.2, Thm.~10.1, Lemma~10.3), which treated sources projecting to all vertices and the smallest source.
+\end{remark}
+
+\section{Open Question 11: Gaudi Counterexample and Constant-Sum Rigidity}
+
+\begin{theorem}[Constant-sum rigidity in ReLU TLNs]\label{thm:oq11}
+Let $\dot{x} = -x + [Wx + b]_+$ be any ReLU TLN on $\mathbb{R}^n$, and let $x : \mathbb{R} \to \mathbb{R}^n$ be a complete solution with constant sum $\mathbf{1}^\top x(t) \equiv S_0$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item There exists an activation pattern $\sigma \in \{0, 1\}^n$ such that $x(t)$ stays in the single closed linear chamber $\overline{\mathcal{C}_\sigma} := \{z : (Wz+b)_i \ge 0 \text{ if } \sigma_i=1,\ (Wz+b)_i \le 0 \text{ if } \sigma_i=0\}$ for all $t \in \mathbb{R}$ and solves the single affine ODE $\dot{x} = A_\sigma x + b_\sigma$ (with $P_\sigma = \diag(\sigma)$, $A_\sigma = P_\sigma W - I$, $b_\sigma = P_\sigma b$).
+\item If $x$ is periodic of period $T > 0$ and non-constant, then its time average $\bar{x} := \frac{1}{T}\int_0^T x(t)\,dt \in \overline{\mathcal{C}_\sigma}$ satisfies $A_\sigma \bar{x} + b_\sigma = 0$, and $x_\lambda(t) := \bar{x} + \lambda(x(t) - \bar{x})$ is an exact TLN periodic orbit for every $\lambda \in [0, 1]$. Thus no isolated periodic orbit, hyperbolic attractor, or chaotic attractor can conserve total activity.
+\item Any non-static bounded constant-sum trajectory requires $(W - I)|_\sigma$ to have a purely imaginary eigenvalue.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+The closed chambers $\{\overline{\mathcal{C}_\sigma}\}_{\sigma \in \{0,1\}^n}$ form a finite closed cover of $\mathbb{R}^n$. By the Baire category theorem, some $\{t : x(t) \in \overline{\mathcal{C}_\sigma}\}$ contains a nonempty open interval $(t_1, t_2)$. Let $z(t)$ solve $\dot{z} = A_\sigma z + b_\sigma$ with $z(t_1) = x(t_1)$. Since $z = x$ on $[t_1, t_2]$, the real-analytic function $\mathbf{1}^\top z(t)$ is constant on $[t_1, t_2]$, hence $\mathbf{1}^\top z(t) \equiv S_0 = \mathbf{1}^\top x(t)$ on all of $\mathbb{R}$.
+
+Write $-x + [Wx + b]_+ = A_\sigma x + b_\sigma + q(x)$, where $q(x) := [Wx + b]_+ - P_\sigma(Wx + b)$. Then $q(x) \ge 0$ componentwise everywhere, and $q(x) = 0 \iff x \in \overline{\mathcal{C}_\sigma}$. Pick $\tau_0 > 0$ depending only on $A_\sigma$ such that every entry of $\mathbf{1}^\top e^{A_\sigma s}$ is strictly positive for $s \in [0, \tau_0]$. Whenever $x(t_*) = z(t_*)$, variation of constants gives, for $s \in [0, \tau_0]$,
+\[
+0 = \mathbf{1}^\top\bigl(x(t_* + s) - z(t_* + s)\bigr) = \int_0^s \bigl(\mathbf{1}^\top e^{A_\sigma(s - v)}\bigr) q(x(t_* + v))\,dv.
+\]
+Positivity of $\mathbf{1}^\top e^{A_\sigma(s-v)}$ and nonnegativity of $q$ force $q(x(t_* + v)) = 0$ for $v \in [0, \tau_0]$, hence $x = z$ on $[t_*, t_* + \tau_0]$. Iterating forward from $t_2$ (and symmetrically backward from $t_1$ using $-A_\sigma$) proves~(1).
+
+For~(2), integrating $\dot{x} = A_\sigma x + b_\sigma$ over $[0, T]$ gives $A_\sigma \bar{x} + b_\sigma = 0$; convexity of $\overline{\mathcal{C}_\sigma}$ keeps $x_\lambda(t) = (1-\lambda)\bar{x} + \lambda x(t) \in \overline{\mathcal{C}_\sigma}$, so $x_\lambda$ is an exact TLN solution for all $\lambda \in [0, 1]$. Part~(3) follows from $z(t) = \bar{x} + e^{A_\sigma t}(x(0) - \bar{x})$.
+\end{proof}
+
+\paragraph{Application to the Gaudi network (\href{https://arxiv.org/abs/2301.12638}{arXiv:2301.12638}, Figure~8).}
+For the 5-node circulant graph $j \to j+1, j+2 \pmod 5$ with $(\varepsilon, \delta, \theta) = (0.1, 0.12, 1)$:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Exact rational arithmetic shows $\gcd(p_\sigma(z), p_\sigma(-z)) = 1$ for every nonempty active subset $\sigma \subseteq \{1,\dots,5\}$, excluding all zero and purely imaginary eigenvalues of $A_\sigma$; by Theorem~\ref{thm:oq11}, no non-static constant-sum trajectory exists.
+\item A 448-bit Arb interval-arithmetic certificate (\texttt{uv run solutions/\allowbreak ctln\_dynamics/\allowbreak explore.py certificate}; shooting Lipschitz bound $6.39 \times 10^{-55}$, Schur--Cohn stability check, 474 Taylor-enclosure itinerary intervals) rigorously encloses the attracting $\mathbb{Z}_5$-rotating-wave Gaudi orbit:
+\begin{align*}
+T &= 238.5904619456428291\dots,\\
+S_{\min} &= \frac{125}{126} = 0.9920634920634920\dots, \qquad
+S_{\max} = 0.9963437640965937\dots,
+\end{align*}
+with certified peak-to-peak excursion $S_{\max} - S_{\min} = 0.004280272033101658$ (absolute error $< 2.1 \times 10^{-50}$). On all-active flights, $\dot{S} = 5 - \frac{126}{25} S$ relaxes exponentially toward $125/126$ within $\sim 10^{-41}$ for $\sim 55\%$ of each period, explaining the visually flat plots in Figure~8.
+\end{enumerate}
+
+\section{Open Question 14: Failure of Attractor Persistence Under Interpolation}
+
+In \S7.1 of her thesis (\href{https://arxiv.org/abs/2410.11012}{arXiv:2410.11012}, Oct.\ 2024, Lemma~48 and Corollaries~49--50), Londono Alvarez proved that if two TLNs $(W_0, b)$ and $(W_1, b)$ share an identical fixed point or trajectory $x(t)$, then $x(t)$ persists as an exact solution along the entire linear segment $W_s = (1-s)W_0 + sW_1$ ($s \in [0, 1]$). The next theorem proves that \textbf{stability can still fail}, refuting both the general TLN convex-hull conjecture and the strict CTLN interpolation conjecture.
+
+\begin{theorem}[Destabilization of shared attractors along linear segments]\label{thm:oq14}
+Let $P, Q \in \{0, 1\}^{5 \times 5}$ be the row-selection matrices of $f_0 = (2,3,1,1,2)$ and $f_1 = (3,5,4,1,4)$ (1-based), and set $R_s := (1-s)P + sQ$.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item \emph{(5-node static TLN counterexample)} For $W_0 = -\frac{3}{2} P$, $W_1 = -\frac{3}{2} Q$, and $b = \mathbf{1} \in \mathbb{R}^5$, the strictly positive fixed point $x^* = \frac{2}{5}\mathbf{1}$ is shared by every $W_s = (1-s)W_0 + sW_1$. Its Jacobian $-I - \frac{3}{2} R_s$ has spectral abscissa $-0.25 < 0$ at $s = 0, 1$ (attracting) and $+0.0738\dots > 0$ at $s = 1/2$ (unstable).
+\item \emph{(7-node CTLN periodic-orbit counterexample)} Fix legal CTLN parameters $(\varepsilon, \delta, \theta) = (0.3, 1.5, 1)$ ($0.3 < 1.5/2.5 = 0.6$). Partition $\{1, \dots, 7\}$ into $A = \{1, \dots, 5\}$, $B = \{6\}$, $C = \{7\}$ with all edges $A \to B \to C \to A$, no reverse interblock edges, and inside $A$ every off-diagonal edge except $f_0(i) \to i$ (for $G_0$) or $f_1(i) \to i$ (for $G_1$). Then $G_0$ and $G_1$ are loopless and non-isomorphic, and every $W_s = (1-s)W_0 + sW_1$ shares the exact same synchronous periodic trajectory $\gamma_{\mathrm{sync}}$ (period $T = 5.635227195185912\dots$, Arb-certified block-$A$ active fraction $p = 0.507488130425927\dots$). At both endpoints $s = 0, 1$, $\gamma_{\mathrm{sync}}$ is exponentially attracting (largest normal Floquet exponent $-0.1880$, multiplier $0.3466$); at $s = 1/2$, $\gamma_{\mathrm{sync}}$ is unstable (largest normal Floquet exponent $+0.00915$, multiplier $1.0529$).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Both $f_0$ and $f_1$ are fixed-point-free (no self-loops), and $P$ has two zero columns whereas $Q$ has one, so $G_0 \not\cong G_1$. Direct determinant expansion gives
+\[
+\det(zI - P) = \det(zI - Q) = z^2(z - 1)(z^2 + z + 1),
+\]
+\[
+\det\bigl(zI - \tfrac{1}{2}(P + Q)\bigr) = \frac{1}{16}(z - 1)(16z^4 + 16z^3 + 8z^2 + 2z - 1).
+\]
+On the transverse space $\mathbb{R}^5 / \spn(\mathbf{1})$ (dividing out the synchronous eigenvalue $z = 1$), $P$ and $Q$ have eigenvalues $0, 0, e^{\pm 2\pi i/3}$ ($\min \operatorname{Re}\mu = -1/2$). For the midpoint quartic $q(z) := 16z^4 + 16z^3 + 8z^2 + 2z - 1$, $q(-0.716) > 0 > q(-0.715)$, so by the Intermediate Value Theorem $\frac{1}{2}(P+Q)$ has a real transverse eigenvalue $\mu_* \in (-0.716, -0.715)$ ($\mu_* \approx -0.71586$).
+
+For~(1), since $R_s \mathbf{1} = \mathbf{1}$, $(-I - \frac{3}{2} R_s)(\frac{2}{5}\mathbf{1}) + \mathbf{1} = 0$ for all $s$. The eigenvalues of $-I - \frac{3}{2} R_s$ are $-1 - \frac{3}{2}\mu$: at $s = 0, 1$ the maximum real part is $-1 - \frac{3}{2}(-\frac{1}{2}) = -1/4 < 0$, whereas at $s = 1/2$ it is at least $-1 - \frac{3}{2}(-0.715) = +0.0725 > 0$.
+
+For~(2), because $R_s \mathbf{1} = \mathbf{1}$, every $W_s$ leaves the synchronous subspace $\mathcal{M} = \{x_1 = \dots = x_5\}$ invariant with the identical 3-node quotient matrix
+\[
+W_{\mathrm{red}} = \begin{pmatrix} -23/5 & -5/2 & -7/10 \\ -7/2 & 0 & -5/2 \\ -25/2 & -7/10 & 0 \end{pmatrix}.
+\]
+The 448-bit Arb certificate (\texttt{explore.py certificate}, Lipschitz bound $1.93 \times 10^{-57}$, Schur--Cohn test, 192 intervals) proves that $(W_{\mathrm{red}}, \mathbf{1})$ possesses an exponentially attracting periodic orbit $\gamma$ of period $T = 5.635227\dots$ whose block-$A$ active fraction satisfies $p \in (0.5074, 0.5076)$. Lifting $\gamma$ gives the identical synchronous orbit $\gamma_{\mathrm{sync}}$ for all $s \in [0, 1]$.
+
+On the transverse quotient $\mathbb{R}^5 / \spn(\mathbf{1})$ (where coupling to $B$ and $C$ acts along $\mathbf{1}$ and vanishes), the linearized flow equals $-\varepsilon I - (\delta + \varepsilon)R_s = -0.3 I - 1.8 R_s$ when block $A$ is active and $-I$ when block $A$ is inactive. At the simultaneous crossing where all five clones switch activation together, the ReLU vector field is continuous and piecewise linear, so a perturbation $\xi$ experiences an $O(|\xi|)$ vector-field mismatch over an $O(|\xi|)$ crossing window, contributing $O(|\xi|^2)$ to the return map; hence the saltation matrix is the identity $I$. Because the active and inactive transverse matrices commute, each transverse eigenvalue $\mu$ of $R_s$ produces the exact per-unit-time normal Floquet exponent
+\[
+\Lambda(\mu) = -(1 - p) + p(-0.3 - 1.8\operatorname{Re}\mu) = -1 + p(0.7 - 1.8\operatorname{Re}\mu).
+\]
+For $p \in (0.5074, 0.5076)$: at $s = 0, 1$, $\max \Lambda = -1 + 1.6p < -0.187 < 0$ (multiplier $\approx 0.3466$), so $\gamma_{\mathrm{sync}}$ is exponentially attracting; at $s = 1/2$, $\Lambda(\mu_*) > -1 + 0.5074(0.7 + 1.8 \cdot 0.715) > 0$ ($\approx +0.00915$, multiplier $\approx 1.0529$), so $\gamma_{\mathrm{sync}}$ is unstable.
+\end{proof}
+
+\begin{remark}[Scope caveats for Open Question~14]
+Long numerical integrations ($t = 6000$) show that at $s = 1/2$ trajectories leaving $\gamma_{\mathrm{sync}}$ settle onto a nearby desynchronized periodic attractor (block-$A$ peaks $0.120$--$0.142$ vs.\ synchronous $0.132$, with $B$ and $C$ unchanged; a stronger non-isomorphic pair $f_0 = (2,4,1,1,2)$, $f_1 = (3,1,5,3,4)$ yields exponent $+0.0749$ at $s = 0.58$ and two coexisting desynchronized attractors). Thus Theorem~\ref{thm:oq14}(2) decisively refutes strict persistence of the shared attractor, while a nearby symmetry-broken cycle persists under a looser ``nearly identical'' reading. Moreover, both 7-node graphs contain bidirectional edges inside $A$; the restricted $n = 5$ oriented no-sink dictionary of Figure~14 was not tested exhaustively. (When $W_0$ and $W_1$ differ only in columns of neurons that remain strictly silent on the attractor---as in Figure~14 \texttt{att~4}---both the orbit and its Floquet multipliers are identically independent of $s$.)
+\end{remark}
+
+\section{Formalization, Verification, and Attribution}
+
+\paragraph{Lean~4 formalization and Python/Arb verification.}
+The companion file \texttt{CTLNDynamics.lean} (Lean~\texttt{v4.24.0} + Mathlib, zero \texttt{sorry}s, standard axioms only) machine-checks:
+\begin{itemize}[leftmargin=2em,itemsep=1pt,topsep=3pt]
+\item Open Question~13: \texttt{ctln\_sum\_lower\_bound}, \texttt{ctln\_asymptotic\_D\_neg},\\
+\texttt{oq13\_source\_decay\_trap}, \texttt{oq13\_diff\_on\_E}, \texttt{oq13\_diff\_off\_E},\\
+\texttt{oq13\_ratio\_growth\_on\_E}, \texttt{oq13\_ratio\_nonneg\_off\_E};
+\item Open Question~11: \texttt{oq11\_q\_nonneg\_and\_zero\_iff};
+\item Open Question~14: \texttt{oq14\_params\_legal}, \texttt{oq14\_no\_self\_loops}, \texttt{oq14\_non\_isomorphic},\\
+\texttt{oq14\_synchronous\_reduction}, \texttt{oq14\_static\_tln\_fixed\_point},\\
+\texttt{oq14\_charpoly\_P}, \texttt{oq14\_charpoly\_Q}, \texttt{oq14\_charpoly\_midpoint},\\
+\texttt{oq14\_midpoint\_real\_root}, \texttt{oq14\_floquet\_exponent\_flip},\\
+\texttt{oq14\_static\_abscissa\_flip}.
+\end{itemize}
+Numerical simulations run via \texttt{.venv/bin/python} on \texttt{explore.py all}, and both 448-bit Arb certificates run via \texttt{uv run} on \texttt{explore.py certificate} (in \texttt{solutions/ctln\_dynamics/}).
+
+\paragraph{Literature note.}
+Prior partial progress on Open Question~13 appears in Lienkaemper (\href{https://arxiv.org/abs/2209.07583}{arXiv:2209.07583}, \S10), and invariant-set persistence for Open Question~14 appears in Londono Alvarez (\href{https://arxiv.org/abs/2410.11012}{arXiv:2410.11012}, \S7.1). No prior resolution of Open Questions~11 or~13, or stability counterexample for Open Question~14, was found as of November~2026.
+
+\end{document}

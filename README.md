@@ -1,6 +1,6 @@
 # Conjectures
 
-Proofs, counterexamples, Python checks, and Lean 4 formalizations for 7 conjectures across machine learning, neuroscience, biology, and biophysics.
+Proofs, counterexamples, Python/Arb checks, and Lean 4 formalizations for 11 problems across machine learning, neuroscience, biology, and biophysics.
 
 All Lean files compile with Lean `v4.24.0` + Mathlib, zero `sorry`s, and standard axioms only (`propext`, `Classical.choice`, `Quot.sound`).
 
@@ -11,7 +11,11 @@ All Lean files compile with Lean `v4.24.0` + Mathlib, zero `sorry`s, and standar
 | Problem | Paper | Result | Proof & Check | Lean 4 |
 |---|---|---|---|---|
 | ReLU topological expressivity | [arXiv:2610.13931](https://arxiv.org/abs/2610.13931) (Conj. 2.16) | **Proved** Part A ($P(\mathbb{R}^d)=\partial\Delta_0^{d+1}\cong S^d$) and Part B ($(d,d,d+1)$ impossible via straight-ray escape + Alexander duality) | [pdf](solutions/relu_topology/proof.pdf) · [md](solutions/relu_topology/solution.md) · [check](solutions/relu_topology/verify_conjecture.py) | [ReluTopology.lean](lean_proofs/Conjectures/ReluTopology.lean) |
-| Neural codes Boolean rank | [arXiv:2603.10837](https://arxiv.org/abs/2603.10837) (Conj. & Q2) | **Disproved** via $3\times 4$ counterexample & exponential-gap family; proved positive case for intersection-complete codes; Q2 bound $2\lambda-2$ sharp for all $n\ge 1$ | [pdf](solutions/neural_codes/proof.pdf) · [md](solutions/neural_codes/solution.md) · [check](solutions/neural_codes/verify_conjecture.py) | [NeuralCodes.lean](lean_proofs/Conjectures/NeuralCodes.lean) |
+| ReLU bottleneck topology (arbitrary width & tori) | Extends [arXiv:2610.13931](https://arxiv.org/abs/2610.13931) | **Proved** contractibility of clipped convex polyhedra at all $m$; bi-Lipschitz embedding $W^\top : g(\mathbb{R}^d) \xrightarrow{\sim} W^\top\mathbb{R}_{\ge 0}^m$ ruling out $S^d, T^d$ for all $(d,d,m)$; excluded $T^k$ ($k\ge 2$) for $(k,k+1,k+1)$ (on $\mathbb{R}^k$ & compact-image domains) and compactly supported $(k,k+1,m)$. Unrestricted $(2,3,m)$ ($m\ge 4$) remains open. | [pdf](solutions/relu_topology_ext/proof.pdf) · [md](solutions/relu_topology_ext/solution.md) · [check](solutions/relu_topology_ext/explore.py) | [ReluTopology.lean](lean_proofs/Conjectures/ReluTopology.lean) |
+| Curto–Morrison CTLN dynamics | [arXiv:2301.12638](https://arxiv.org/abs/2301.12638) (*Notices AMS* 2023, OQ 11, 13, 14) | **Proved** OQ 13 (every proper source enters exact $e^{-t}$ decay, for all $\delta>0, 0<\varepsilon\le 1, \theta>0, x(0)\ge 0$); **Disproved** OQ 11 (Arb-certified Gaudi oscillation $0.00428027$ + constant-sum rigidity no-go theorem); **Disproved** OQ 14 in the strict reading (5-node TLN & Arb-certified 7-node CTLN destabilize shared attractors at midpoint; nearby deformed cycle persists and $n=5$ oriented dictionary untested). | [pdf](solutions/ctln_dynamics/proof.pdf) · [md](solutions/ctln_dynamics/solution.md) · [check](solutions/ctln_dynamics/explore.py) | [CTLNDynamics.lean](lean_proofs/Conjectures/CTLNDynamics.lean) |
+| Similarity matching PCA | [arXiv:2506.06134](https://arxiv.org/abs/2506.06134) (*Neural Comput.* 2026, Conj. 1–3) | **Proved** Conj. 1 (uniform singular-value barrier & global existence); **Proved** intended Conj. 2 (corrected stationary set, rank-deficient exclusion, strict saddles; citing Pehlevan et al. 2018 & Lipshutz–Lipshutz 2026); **Disproved** Conj. 3 (kernel rotations for $n-m\ge 2$ + exact iff; trace lemma still holds via Horn log-majorization). | [pdf](solutions/sim_matching_pca/proof.pdf) · [md](solutions/sim_matching_pca/solution.md) · [check](solutions/sim_matching_pca/explore.py) | [SimMatchingPCA.lean](lean_proofs/Conjectures/SimMatchingPCA.lean) |
+| ENTP `Count3` | [arXiv:2410.01600](https://arxiv.org/abs/2410.01600) (TMLR 2025, Conj. 6.1) | **Disproved** on read-only RAM via $O(n^{3/2})$-time / $O(\sqrt{n}\log n)$-bit residue blocking (plus $O(n^2\log\log n/\log n)$ / $O(1)$-word and $O(n\log n)$ / $o(n)$-bit word-RAM refinements); proved tight $\Theta(n)$-bit one-pass streaming bound. Lemma 6.2 loses its premise; causal Transformer depth remains open. | [pdf](solutions/entp_count3/proof.pdf) · [md](solutions/entp_count3/solution.md) · [check](solutions/entp_count3/explore.py) | [ENTPCount3.lean](lean_proofs/Conjectures/ENTPCount3.lean) |
+| Neural codes Boolean rank | [arXiv:2603.10837](https://arxiv.org/abs/2603.10837) (Conj. & Q2) | **Disproved** via $3\times 4$ counterexample & exponential-gap family; proved positive case for intersection-complete codes; Q2 bound $2\lambda-2$ sharp for all $n\ge 1$. | [pdf](solutions/neural_codes/proof.pdf) · [md](solutions/neural_codes/solution.md) · [check](solutions/neural_codes/verify_conjecture.py) | [NeuralCodes.lean](lean_proofs/Conjectures/NeuralCodes.lean) |
 | Multilayer transformer head count | [arXiv:2510.06662](https://arxiv.org/abs/2510.06662) (ICLR 2026, Conj. 1) | **Disproved** for standard bidirectional encoders with residuals ($L=2,h=1$ solves any $D\ge 3$ with PE; NoPE + zero mid-FFNs hits $D=(2L-1)h$). CLS-only and residual-free variants remain open. | [pdf](solutions/transformer_heads/proof.pdf) · [md](solutions/transformer_heads/solution.md) · [check](solutions/transformer_heads/verify_transformer_heads.py) | [TransformerHeads.lean](lean_proofs/Conjectures/TransformerHeads.lean) |
 
 ### Extensions, refutations, and formalizations (with recent partial prior work)
@@ -31,12 +35,17 @@ cd lean_proofs
 lake exe cache get
 lake build Conjectures
 ```
-[`lean_proofs/Conjectures.lean`](lean_proofs/Conjectures.lean) imports all 7 modules and prints the axioms for all 62 main theorems. Each `.lean` file header documents exactly what is machine-checked vs. prose-only.
+[`lean_proofs/Conjectures.lean`](lean_proofs/Conjectures.lean) imports all 10 modules and prints the axioms for all 106 main theorems. Each `.lean` file header documents exactly what is machine-checked vs. prose-only.
 
-### Python checks
+### Python & Arb checks
 ```bash
-pip install numpy mpmath scipy
+pip install numpy mpmath scipy sympy
 python solutions/relu_topology/verify_conjecture.py
+python solutions/relu_topology_ext/explore.py
+python solutions/ctln_dynamics/explore.py all
+uv run solutions/ctln_dynamics/explore.py certificate   # 448-bit Arb proofs (python-flint 0.9)
+python solutions/sim_matching_pca/explore.py
+python solutions/entp_count3/explore.py
 python solutions/neural_codes/verify_conjecture.py
 python solutions/transformer_heads/verify_transformer_heads.py
 python solutions/hopfield_mixed_memories/verify_hopfield.py

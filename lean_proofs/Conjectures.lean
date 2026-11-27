@@ -5,6 +5,9 @@ import Conjectures.StochThermo
 import Conjectures.AttentionIdentifiability
 import Conjectures.TransformerHeads
 import Conjectures.HopfieldMixedMemories
+import Conjectures.ENTPCount3
+import Conjectures.SimMatchingPCA
+import Conjectures.CTLNDynamics
 
 #print axioms BeshkovReluTopology.continuous_P_net
 #print axioms BeshkovReluTopology.beshkov_part_A
@@ -16,6 +19,12 @@ import Conjectures.HopfieldMixedMemories
 #print axioms BeshkovReluTopology.straight_ray_escape
 #print axioms BeshkovReluTopology.bottleneck_not_superset_sphere
 #print axioms BeshkovReluTopology.bottleneck_not_superset_boundarySimplex
+#print axioms BeshkovReluTopology.relu_firmly_nonexpansive
+#print axioms BeshkovReluTopology.reluVec_firmly_nonexpansive
+#print axioms BeshkovReluTopology.transpose_injective_on_relu_affine
+#print axioms BeshkovReluTopology.transpose_ker_inter_active_range
+#print axioms BeshkovReluTopology.kkt_implies_relu_preimage
+#print axioms BeshkovReluTopology.b1_hidden_escape_ray
 
 #print axioms NeuralCodesBMF.refutation_clean_3x4
 #print axioms NeuralCodesBMF.exponential_gap_family
@@ -74,3 +83,44 @@ import Conjectures.HopfieldMixedMemories
 #print axioms HopfieldMixedMemories.M_all_multiplicity_even_above_min
 #print axioms HopfieldMixedMemories.chow_parseval
 #print axioms HopfieldMixedMemories.dense_lift_sum_lt_two
+
+#print axioms ENTPCount3.count3_eq_hist_sum
+#print axioms ENTPCount3.blockedCount3_eq_count3
+#print axioms ENTPCount3.sqrt_block_bounds
+#print axioms ENTPCount3.indexInstance_bounds
+#print axioms ENTPCount3.index_reduction_correct
+#print axioms ENTPCount3.streaming_state_lower_bound
+#print axioms ENTPCount3.unaryCode_injective
+
+#print axioms SimMatchingPCA.gram_ode_identity
+#print axioms SimMatchingPCA.lower_barrier_pos
+#print axioms SimMatchingPCA.upper_barrier_neg
+#print axioms SimMatchingPCA.stationary_implies_gram_eq_sq
+#print axioms SimMatchingPCA.printed_set_not_stationary
+#print axioms SimMatchingPCA.rank_one_perturbation_algebra
+#print axioms SimMatchingPCA.rank_one_escape_negative
+#print axioms SimMatchingPCA.exchange_curvature_neg
+#print axioms SimMatchingPCA.radial_curvature_pos
+#print axioms SimMatchingPCA.conj3_cube_identity
+#print axioms SimMatchingPCA.conj3_kernel_rotation_counterexample
+#print axioms SimMatchingPCA.conj3_active_tie_counterexample
+
+#print axioms CTLNDynamics.ctln_sum_lower_bound
+#print axioms CTLNDynamics.ctln_asymptotic_D_neg
+#print axioms CTLNDynamics.oq13_source_decay_trap
+#print axioms CTLNDynamics.oq13_diff_on_E
+#print axioms CTLNDynamics.oq13_diff_off_E
+#print axioms CTLNDynamics.oq13_ratio_growth_on_E
+#print axioms CTLNDynamics.oq13_ratio_nonneg_off_E
+#print axioms CTLNDynamics.oq11_q_nonneg_and_zero_iff
+#print axioms CTLNDynamics.oq14_params_legal
+#print axioms CTLNDynamics.oq14_no_self_loops
+#print axioms CTLNDynamics.oq14_non_isomorphic
+#print axioms CTLNDynamics.oq14_synchronous_reduction
+#print axioms CTLNDynamics.oq14_static_tln_fixed_point
+#print axioms CTLNDynamics.oq14_charpoly_P
+#print axioms CTLNDynamics.oq14_charpoly_Q
+#print axioms CTLNDynamics.oq14_charpoly_midpoint
+#print axioms CTLNDynamics.oq14_midpoint_real_root
+#print axioms CTLNDynamics.oq14_floquet_exponent_flip
+#print axioms CTLNDynamics.oq14_static_abscissa_flip
